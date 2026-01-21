@@ -1,23 +1,31 @@
 /**
- * Middleware for protecting routes
- * Runs on matched paths before page/API handlers
+ * Lightweight Middleware for route protection
+ * Uses JWT token validation without importing full auth module
+ * This reduces Edge Function size to stay under 1MB limit
  */
 
-import { auth } from '@/lib/auth';
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
-export default auth((req) => {
-    const isLoggedIn = !!req.auth;
-    const isAuthPage = req.nextUrl.pathname.startsWith('/login') ||
-        req.nextUrl.pathname.startsWith('/register');
-    const isProtectedPage = req.nextUrl.pathname.startsWith('/profile') ||
-        req.nextUrl.pathname.startsWith('/templates') ||
-        req.nextUrl.pathname.startsWith('/settings');
-    const isProtectedAPI = req.nextUrl.pathname.startsWith('/api/profile');
+// Protected paths configuration
+const protectedPages = ['/profile', '/templates', '/settings'];
+const protectedAPIs = ['/api/profile'];
+const authPages = ['/login', '/register'];
+
+export function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl;
+
+    // Check for session token (NextAuth stores it in cookies)
+    const sessionToken = request.cookies.get('authjs.session-token')?.value ||
+        request.cookies.get('__Secure-authjs.session-token')?.value;
+
+    const isLoggedIn = !!sessionToken;
+    const isAuthPage = authPages.some(page => pathname.startsWith(page));
+    const isProtectedPage = protectedPages.some(page => pathname.startsWith(page));
+    const isProtectedAPI = protectedAPIs.some(api => pathname.startsWith(api));
 
     // Redirect logged-in users away from auth pages
     if (isAuthPage && isLoggedIn) {
-        return NextResponse.redirect(new URL('/profile', req.nextUrl));
+        return NextResponse.redirect(new URL('/profile', request.url));
     }
 
     // Redirect unauthenticated users to login
@@ -25,12 +33,12 @@ export default auth((req) => {
         if (isProtectedAPI) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        const callbackUrl = encodeURIComponent(req.nextUrl.pathname);
-        return NextResponse.redirect(new URL(`/login?callbackUrl=${callbackUrl}`, req.nextUrl));
+        const callbackUrl = encodeURIComponent(pathname);
+        return NextResponse.redirect(new URL(`/login?callbackUrl=${callbackUrl}`, request.url));
     }
 
     return NextResponse.next();
-});
+}
 
 export const config = {
     matcher: [
