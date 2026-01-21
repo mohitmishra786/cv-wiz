@@ -68,12 +68,13 @@ model User {
   sessions Session[]
 
   // CV-Wiz Profile Relations
-  experiences  Experience[]
-  projects     Project[]
-  educations   Education[]
-  skills       Skill[]
-  publications Publication[]
-  settings     UserSettings?
+  experiences   Experience[]
+  projects      Project[]
+  educations    Education[]
+  skills        Skill[]
+  publications  Publication[]
+  coverLetters  CoverLetter[]
+  settings      UserSettings?
 }
 
 // ============================================
@@ -179,3 +180,17 @@ model UserSettings {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
+
+model CoverLetter {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content     String   @db.Text
+  jobTitle    String?
+  companyName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+

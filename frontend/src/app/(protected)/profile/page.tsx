@@ -6,33 +6,227 @@
  */
 
 import { useSession, signOut } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import type { UserProfile, Experience, Project, Skill, Education } from '@/types';
+import { createLogger } from '@/lib/logger';
+import Modal from '@/components/ui/Modal';
+import ExperienceForm from '@/components/forms/ExperienceForm';
+import ProjectForm from '@/components/forms/ProjectForm';
+import SkillForm from '@/components/forms/SkillForm';
+import EducationForm from '@/components/forms/EducationForm';
+import ProfileEditForm from '@/components/forms/ProfileEditForm';
+import CoverLetterSection from '@/components/CoverLetterSection';
+import ResumeUpload from '@/components/ResumeUpload';
+
+const logger = createLogger({ component: 'ProfilePage' });
+
+type ModalType = 'profile' | 'experience' | 'project' | 'skill' | 'education' | 'upload' | null;
 
 export default function ProfilePage() {
     const { data: session, status } = useSession();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('experiences');
+    const [modalType, setModalType] = useState<ModalType>(null);
+    const [editingItem, setEditingItem] = useState<Experience | Project | Skill | Education | null>(null);
 
-    useEffect(() => {
-        if (status === 'authenticated') {
-            fetchProfile();
-        }
-    }, [status]);
-
-    const fetchProfile = async () => {
+    const fetchProfile = useCallback(async () => {
+        logger.startOperation('ProfilePage:fetchProfile');
         try {
             const response = await fetch('/api/profile');
             if (response.ok) {
                 const data = await response.json();
                 setProfile(data);
+                logger.info('[ProfilePage] Profile fetched', {
+                    experiencesCount: data.experiences?.length,
+                    projectsCount: data.projects?.length,
+                    skillsCount: data.skills?.length,
+                    educationsCount: data.educations?.length,
+                });
+                logger.endOperation('ProfilePage:fetchProfile');
             }
         } catch (error) {
-            console.error('Failed to fetch profile:', error);
+            logger.failOperation('ProfilePage:fetchProfile', error);
         } finally {
             setLoading(false);
         }
+    }, []);
+
+    useEffect(() => {
+        if (status === 'authenticated') {
+            logger.info('[ProfilePage] User authenticated, fetching profile');
+            fetchProfile();
+        }
+    }, [status, fetchProfile]);
+
+    const openModal = (type: ModalType, item?: Experience | Project | Skill | Education) => {
+        logger.info('[ProfilePage] Opening modal', { type, hasItem: !!item });
+        setModalType(type);
+        setEditingItem(item || null);
+    };
+
+    const closeModal = () => {
+        logger.debug('[ProfilePage] Closing modal');
+        setModalType(null);
+        setEditingItem(null);
+    };
+
+    // Experience handlers
+    const handleExperienceSubmit = async (data: Partial<Experience>) => {
+        logger.startOperation('ProfilePage:saveExperience');
+        try {
+            const method = editingItem?.id ? 'PUT' : 'POST';
+            const url = editingItem?.id
+                ? `/api/profile/experiences?id=${editingItem.id}`
+                : '/api/profile/experiences';
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                logger.info('[ProfilePage] Experience saved successfully');
+                logger.endOperation('ProfilePage:saveExperience');
+                closeModal();
+                await fetchProfile();
+            } else {
+                throw new Error('Failed to save experience');
+            }
+        } catch (error) {
+            logger.failOperation('ProfilePage:saveExperience', error);
+            throw error;
+        }
+    };
+
+    // Project handlers
+    const handleProjectSubmit = async (data: Partial<Project>) => {
+        logger.startOperation('ProfilePage:saveProject');
+        try {
+            const method = editingItem?.id ? 'PUT' : 'POST';
+            const url = editingItem?.id
+                ? `/api/profile/projects?id=${editingItem.id}`
+                : '/api/profile/projects';
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                logger.info('[ProfilePage] Project saved successfully');
+                logger.endOperation('ProfilePage:saveProject');
+                closeModal();
+                await fetchProfile();
+            } else {
+                throw new Error('Failed to save project');
+            }
+        } catch (error) {
+            logger.failOperation('ProfilePage:saveProject', error);
+            throw error;
+        }
+    };
+
+    // Skill handlers
+    const handleSkillSubmit = async (data: Partial<Skill>) => {
+        logger.startOperation('ProfilePage:saveSkill');
+        try {
+            const method = editingItem?.id ? 'PUT' : 'POST';
+            const url = editingItem?.id
+                ? `/api/profile/skills?id=${editingItem.id}`
+                : '/api/profile/skills';
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                logger.info('[ProfilePage] Skill saved successfully');
+                logger.endOperation('ProfilePage:saveSkill');
+                closeModal();
+                await fetchProfile();
+            } else {
+                throw new Error('Failed to save skill');
+            }
+        } catch (error) {
+            logger.failOperation('ProfilePage:saveSkill', error);
+            throw error;
+        }
+    };
+
+    // Education handlers
+    const handleEducationSubmit = async (data: Partial<Education>) => {
+        logger.startOperation('ProfilePage:saveEducation');
+        try {
+            const method = editingItem?.id ? 'PUT' : 'POST';
+            const url = editingItem?.id
+                ? `/api/profile/educations?id=${editingItem.id}`
+                : '/api/profile/educations';
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                logger.info('[ProfilePage] Education saved successfully');
+                logger.endOperation('ProfilePage:saveEducation');
+                closeModal();
+                await fetchProfile();
+            } else {
+                throw new Error('Failed to save education');
+            }
+        } catch (error) {
+            logger.failOperation('ProfilePage:saveEducation', error);
+            throw error;
+        }
+    };
+
+    // Profile edit handler
+    const handleProfileSubmit = async (data: { name: string; image?: string }) => {
+        logger.startOperation('ProfilePage:saveProfile');
+        try {
+            const response = await fetch('/api/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                logger.info('[ProfilePage] Profile updated successfully');
+                logger.endOperation('ProfilePage:saveProfile');
+                closeModal();
+                await fetchProfile();
+            } else {
+                throw new Error('Failed to update profile');
+            }
+        } catch (error) {
+            logger.failOperation('ProfilePage:saveProfile', error);
+            throw error;
+        }
+    };
+
+    // Resume upload handler
+    const handleResumeDataExtracted = async (data: {
+        name?: string;
+        email?: string;
+        experiences?: Array<Record<string, unknown>>;
+        skills?: string[];
+    }) => {
+        logger.info('[ProfilePage] Resume data extracted', {
+            hasName: !!data.name,
+            experiencesCount: data.experiences?.length,
+            skillsCount: data.skills?.length,
+        });
+        closeModal();
+        // Refresh profile to show any extracted data that was saved
+        await fetchProfile();
     };
 
     if (status === 'loading' || loading) {
@@ -48,37 +242,45 @@ export default function ProfilePage() {
         { id: 'projects', label: 'Projects', count: profile?.projects?.length || 0 },
         { id: 'skills', label: 'Skills', count: profile?.skills?.length || 0 },
         { id: 'education', label: 'Education', count: profile?.educations?.length || 0 },
+        { id: 'cover-letters', label: 'Cover Letters', count: 0 },
     ];
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen" style={{ background: 'var(--background)' }}>
             {/* Header */}
             <header className="bg-white border-b border-gray-200">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                            <svg
-                                className="w-5 h-5 text-white"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                            >
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                <polyline points="14 2 14 8 20 8" />
-                            </svg>
-                        </div>
+                        <Image
+                            src="/logo.png"
+                            alt="CV-Wiz Logo"
+                            width={40}
+                            height={40}
+                            className="rounded-xl"
+                        />
                         <span className="text-xl font-bold text-gray-900">CV-Wiz</span>
                     </div>
 
                     <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => {
+                                logger.info('[ProfilePage] Upload Resume clicked');
+                                openModal('upload');
+                            }}
+                            className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-200"
+                        >
+                            Upload Resume
+                        </button>
                         <a href="/templates" className="text-gray-600 hover:text-gray-900 font-medium">
                             Templates
                         </a>
                         <div className="flex items-center gap-3">
                             <span className="text-sm text-gray-600">{session?.user?.email}</span>
                             <button
-                                onClick={() => signOut({ callbackUrl: '/' })}
+                                onClick={() => {
+                                    logger.info('[ProfilePage] Sign out clicked');
+                                    signOut({ callbackUrl: '/' });
+                                }}
                                 className="text-sm text-gray-500 hover:text-gray-700"
                             >
                                 Sign out
@@ -104,7 +306,13 @@ export default function ProfilePage() {
                                 <p className="text-gray-600">{session?.user?.email}</p>
                             </div>
                         </div>
-                        <button className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                        <button
+                            onClick={() => {
+                                logger.info('[ProfilePage] Edit Profile clicked');
+                                openModal('profile');
+                            }}
+                            className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        >
                             Edit Profile
                         </button>
                     </div>
@@ -137,16 +345,21 @@ export default function ProfilePage() {
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
+                                    onClick={() => {
+                                        logger.debug('[ProfilePage] Tab switched', { tab: tab.id });
+                                        setActiveTab(tab.id);
+                                    }}
                                     className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
-                                            ? 'border-indigo-500 text-indigo-600'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                                        ? 'border-indigo-500 text-indigo-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700'
                                         }`}
                                 >
                                     {tab.label}
-                                    <span className="ml-2 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">
-                                        {tab.count}
-                                    </span>
+                                    {tab.id !== 'cover-letters' && (
+                                        <span className="ml-2 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">
+                                            {tab.count}
+                                        </span>
+                                    )}
                                 </button>
                             ))}
                         </nav>
@@ -155,33 +368,144 @@ export default function ProfilePage() {
                     {/* Tab Content */}
                     <div className="p-6">
                         {activeTab === 'experiences' && (
-                            <ExperienceList experiences={profile?.experiences || []} onRefresh={fetchProfile} />
+                            <ExperienceList
+                                experiences={profile?.experiences || []}
+                                onAdd={() => openModal('experience')}
+                                onEdit={(exp) => openModal('experience', exp)}
+                            />
                         )}
                         {activeTab === 'projects' && (
-                            <ProjectList projects={profile?.projects || []} onRefresh={fetchProfile} />
+                            <ProjectList
+                                projects={profile?.projects || []}
+                                onAdd={() => openModal('project')}
+                                onEdit={(proj) => openModal('project', proj)}
+                            />
                         )}
                         {activeTab === 'skills' && (
-                            <SkillList skills={profile?.skills || []} onRefresh={fetchProfile} />
+                            <SkillList
+                                skills={profile?.skills || []}
+                                onAdd={() => openModal('skill')}
+                                onEdit={(skill) => openModal('skill', skill)}
+                            />
                         )}
                         {activeTab === 'education' && (
-                            <EducationList educations={profile?.educations || []} onRefresh={fetchProfile} />
+                            <EducationList
+                                educations={profile?.educations || []}
+                                onAdd={() => openModal('education')}
+                                onEdit={(edu) => openModal('education', edu)}
+                            />
+                        )}
+                        {activeTab === 'cover-letters' && (
+                            <CoverLetterSection />
                         )}
                     </div>
                 </div>
             </main>
+
+            {/* Modals */}
+            <Modal
+                isOpen={modalType === 'profile'}
+                onClose={closeModal}
+                title="Edit Profile"
+            >
+                <ProfileEditForm
+                    currentName={profile?.name || ''}
+                    currentImage={profile?.image || ''}
+                    onSubmit={handleProfileSubmit}
+                    onCancel={closeModal}
+                />
+            </Modal>
+
+            <Modal
+                isOpen={modalType === 'experience'}
+                onClose={closeModal}
+                title={editingItem ? 'Edit Experience' : 'Add Experience'}
+                size="lg"
+            >
+                <ExperienceForm
+                    experience={editingItem as Experience | undefined}
+                    onSubmit={handleExperienceSubmit}
+                    onCancel={closeModal}
+                />
+            </Modal>
+
+            <Modal
+                isOpen={modalType === 'project'}
+                onClose={closeModal}
+                title={editingItem ? 'Edit Project' : 'Add Project'}
+                size="lg"
+            >
+                <ProjectForm
+                    project={editingItem as Project | undefined}
+                    onSubmit={handleProjectSubmit}
+                    onCancel={closeModal}
+                />
+            </Modal>
+
+            <Modal
+                isOpen={modalType === 'skill'}
+                onClose={closeModal}
+                title={editingItem ? 'Edit Skill' : 'Add Skill'}
+            >
+                <SkillForm
+                    skill={editingItem as Skill | undefined}
+                    onSubmit={handleSkillSubmit}
+                    onCancel={closeModal}
+                />
+            </Modal>
+
+            <Modal
+                isOpen={modalType === 'education'}
+                onClose={closeModal}
+                title={editingItem ? 'Edit Education' : 'Add Education'}
+                size="lg"
+            >
+                <EducationForm
+                    education={editingItem as Education | undefined}
+                    onSubmit={handleEducationSubmit}
+                    onCancel={closeModal}
+                />
+            </Modal>
+
+            <Modal
+                isOpen={modalType === 'upload'}
+                onClose={closeModal}
+                title="Upload Resume"
+                size="lg"
+            >
+                <div className="space-y-4">
+                    <p className="text-gray-600">
+                        Upload your existing resume to automatically extract your experience, education, and skills.
+                    </p>
+                    <ResumeUpload onDataExtracted={handleResumeDataExtracted} />
+                </div>
+            </Modal>
         </div>
     );
 }
 
 // Experience List Component
-function ExperienceList({ experiences, onRefresh }: { experiences: Experience[]; onRefresh: () => void }) {
+function ExperienceList({
+    experiences,
+    onAdd,
+    onEdit
+}: {
+    experiences: Experience[];
+    onAdd: () => void;
+    onEdit: (exp: Experience) => void;
+}) {
+    const listLogger = createLogger({ component: 'ExperienceList' });
+
     if (experiences.length === 0) {
         return (
             <EmptyState
                 title="No work experience yet"
                 description="Add your work history to build your resume"
                 actionLabel="Add Experience"
-                onAction={() => {/* TODO: Open modal */ }}
+                onAction={() => {
+                    listLogger.info('[ExperienceList] Add Experience from empty state');
+                    onAdd();
+                }}
             />
         );
     }
@@ -189,7 +513,14 @@ function ExperienceList({ experiences, onRefresh }: { experiences: Experience[];
     return (
         <div className="space-y-4">
             {experiences.map((exp) => (
-                <div key={exp.id} className="border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
+                <div
+                    key={exp.id}
+                    className="border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors cursor-pointer"
+                    onClick={() => {
+                        listLogger.debug('[ExperienceList] Edit experience clicked', { id: exp.id });
+                        onEdit(exp);
+                    }}
+                >
                     <div className="flex justify-between items-start">
                         <div>
                             <h3 className="font-semibold text-gray-900">{exp.title}</h3>
@@ -199,9 +530,15 @@ function ExperienceList({ experiences, onRefresh }: { experiences: Experience[];
                                 {exp.current ? ' Present' : exp.endDate ? ` ${new Date(exp.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : ''}
                             </p>
                         </div>
-                        <button className="text-gray-400 hover:text-gray-600">
+                        <button
+                            className="text-gray-400 hover:text-gray-600"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(exp);
+                            }}
+                        >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                         </button>
                     </div>
@@ -217,7 +554,13 @@ function ExperienceList({ experiences, onRefresh }: { experiences: Experience[];
                     )}
                 </div>
             ))}
-            <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors">
+            <button
+                onClick={() => {
+                    listLogger.info('[ExperienceList] Add Experience clicked');
+                    onAdd();
+                }}
+                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors"
+            >
                 + Add Experience
             </button>
         </div>
@@ -225,14 +568,27 @@ function ExperienceList({ experiences, onRefresh }: { experiences: Experience[];
 }
 
 // Project List Component
-function ProjectList({ projects, onRefresh }: { projects: Project[]; onRefresh: () => void }) {
+function ProjectList({
+    projects,
+    onAdd,
+    onEdit
+}: {
+    projects: Project[];
+    onAdd: () => void;
+    onEdit: (proj: Project) => void;
+}) {
+    const listLogger = createLogger({ component: 'ProjectList' });
+
     if (projects.length === 0) {
         return (
             <EmptyState
                 title="No projects yet"
                 description="Showcase your work and side projects"
                 actionLabel="Add Project"
-                onAction={() => { }}
+                onAction={() => {
+                    listLogger.info('[ProjectList] Add Project from empty state');
+                    onAdd();
+                }}
             />
         );
     }
@@ -240,8 +596,28 @@ function ProjectList({ projects, onRefresh }: { projects: Project[]; onRefresh: 
     return (
         <div className="grid grid-cols-2 gap-4">
             {projects.map((proj) => (
-                <div key={proj.id} className="border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
-                    <h3 className="font-semibold text-gray-900">{proj.name}</h3>
+                <div
+                    key={proj.id}
+                    className="border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors cursor-pointer"
+                    onClick={() => {
+                        listLogger.debug('[ProjectList] Edit project clicked', { id: proj.id });
+                        onEdit(proj);
+                    }}
+                >
+                    <div className="flex justify-between items-start">
+                        <h3 className="font-semibold text-gray-900">{proj.name}</h3>
+                        <button
+                            className="text-gray-400 hover:text-gray-600"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(proj);
+                            }}
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+                    </div>
                     <p className="text-sm text-gray-600 mt-1 line-clamp-2">{proj.description}</p>
                     {proj.technologies?.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
@@ -254,7 +630,13 @@ function ProjectList({ projects, onRefresh }: { projects: Project[]; onRefresh: 
                     )}
                 </div>
             ))}
-            <button className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center">
+            <button
+                onClick={() => {
+                    listLogger.info('[ProjectList] Add Project clicked');
+                    onAdd();
+                }}
+                className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center"
+            >
                 + Add Project
             </button>
         </div>
@@ -262,7 +644,17 @@ function ProjectList({ projects, onRefresh }: { projects: Project[]; onRefresh: 
 }
 
 // Skill List Component
-function SkillList({ skills, onRefresh }: { skills: Skill[]; onRefresh: () => void }) {
+function SkillList({
+    skills,
+    onAdd,
+    onEdit
+}: {
+    skills: Skill[];
+    onAdd: () => void;
+    onEdit: (skill: Skill) => void;
+}) {
+    const listLogger = createLogger({ component: 'SkillList' });
+
     // Group skills by category
     const skillsByCategory = skills.reduce((acc, skill) => {
         if (!acc[skill.category]) acc[skill.category] = [];
@@ -276,7 +668,10 @@ function SkillList({ skills, onRefresh }: { skills: Skill[]; onRefresh: () => vo
                 title="No skills added"
                 description="Add your technical and soft skills"
                 actionLabel="Add Skill"
-                onAction={() => { }}
+                onAction={() => {
+                    listLogger.info('[SkillList] Add Skill from empty state');
+                    onAdd();
+                }}
             />
         );
     }
@@ -292,7 +687,11 @@ function SkillList({ skills, onRefresh }: { skills: Skill[]; onRefresh: () => vo
                         {categorySkills.map((skill) => (
                             <span
                                 key={skill.id}
-                                className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:border-gray-300 transition-colors"
+                                onClick={() => {
+                                    listLogger.debug('[SkillList] Edit skill clicked', { id: skill.id });
+                                    onEdit(skill);
+                                }}
+                                className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:border-indigo-300 hover:text-indigo-600 transition-colors cursor-pointer"
                             >
                                 {skill.name}
                                 {skill.proficiency && (
@@ -303,7 +702,13 @@ function SkillList({ skills, onRefresh }: { skills: Skill[]; onRefresh: () => vo
                     </div>
                 </div>
             ))}
-            <button className="py-2 text-indigo-600 hover:text-indigo-700 font-medium text-sm">
+            <button
+                onClick={() => {
+                    listLogger.info('[SkillList] Add Skill clicked');
+                    onAdd();
+                }}
+                className="py-2 text-indigo-600 hover:text-indigo-700 font-medium text-sm"
+            >
                 + Add Skill
             </button>
         </div>
@@ -311,14 +716,27 @@ function SkillList({ skills, onRefresh }: { skills: Skill[]; onRefresh: () => vo
 }
 
 // Education List Component
-function EducationList({ educations, onRefresh }: { educations: Education[]; onRefresh: () => void }) {
+function EducationList({
+    educations,
+    onAdd,
+    onEdit
+}: {
+    educations: Education[];
+    onAdd: () => void;
+    onEdit: (edu: Education) => void;
+}) {
+    const listLogger = createLogger({ component: 'EducationList' });
+
     if (educations.length === 0) {
         return (
             <EmptyState
                 title="No education added"
                 description="Add your educational background"
                 actionLabel="Add Education"
-                onAction={() => { }}
+                onAction={() => {
+                    listLogger.info('[EducationList] Add Education from empty state');
+                    onAdd();
+                }}
             />
         );
     }
@@ -326,17 +744,45 @@ function EducationList({ educations, onRefresh }: { educations: Education[]; onR
     return (
         <div className="space-y-4">
             {educations.map((edu) => (
-                <div key={edu.id} className="border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
-                    <h3 className="font-semibold text-gray-900">{edu.degree} in {edu.field}</h3>
-                    <p className="text-gray-600">{edu.institution}</p>
-                    <p className="text-sm text-gray-500">
-                        {new Date(edu.startDate).getFullYear()} -
-                        {edu.endDate ? ` ${new Date(edu.endDate).getFullYear()}` : ' Present'}
-                        {edu.gpa && ` • GPA: ${edu.gpa.toFixed(2)}`}
-                    </p>
+                <div
+                    key={edu.id}
+                    className="border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors cursor-pointer"
+                    onClick={() => {
+                        listLogger.debug('[EducationList] Edit education clicked', { id: edu.id });
+                        onEdit(edu);
+                    }}
+                >
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3 className="font-semibold text-gray-900">{edu.degree} in {edu.field}</h3>
+                            <p className="text-gray-600">{edu.institution}</p>
+                            <p className="text-sm text-gray-500">
+                                {new Date(edu.startDate).getFullYear()} -
+                                {edu.endDate ? ` ${new Date(edu.endDate).getFullYear()}` : ' Present'}
+                                {edu.gpa && ` • GPA: ${edu.gpa.toFixed(2)}`}
+                            </p>
+                        </div>
+                        <button
+                            className="text-gray-400 hover:text-gray-600"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(edu);
+                            }}
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             ))}
-            <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors">
+            <button
+                onClick={() => {
+                    listLogger.info('[EducationList] Add Education clicked');
+                    onAdd();
+                }}
+                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors"
+            >
                 + Add Education
             </button>
         </div>

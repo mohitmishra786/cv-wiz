@@ -1,11 +1,13 @@
 /**
  * Resume/CV Upload API Route
- * Parses uploaded documents and extracts structured data
+ * Forwards uploads to backend for parsing and extracts structured data
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { createRequestLogger, getOrCreateRequestId, logAuthOperation } from '@/lib/logger';
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
 export async function POST(request: NextRequest) {
     const requestId = getOrCreateRequestId(request.headers);
@@ -46,54 +48,70 @@ export async function POST(request: NextRequest) {
             uploadType: type,
         });
 
-        // Get file content as text
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
+        // Forward to backend for parsing
+        logger.info('Forwarding file to backend for parsing', { requestId, userId });
 
-        logger.info('File buffer created', {
-            requestId,
-            userId,
-            bufferSize: buffer.length,
-        });
+        const backendFormData = new FormData();
+        backendFormData.append('file', file);
 
-        // For now, return a mock response
-        // In production, you would use a PDF/DOCX parser library
-        logger.warn('Using mock data - parsing not yet implemented', { requestId, userId, type });
+        try {
+            const backendResponse = await fetch(`${BACKEND_URL}/api/upload/resume`, {
+                method: 'POST',
+                body: backendFormData,
+            });
 
-        // Mock extracted data based on file type
-        const mockData = type === 'cover-letter' ? {
-            content: 'Cover letter content would be extracted here...',
-        } : {
-            name: '',
-            email: '',
-            phone: '',
-            experiences: [],
-            education: [],
-            skills: [],
-            message: 'Resume parsing is not yet implemented. Please enter your details manually.',
-        };
+            if (!backendResponse.ok) {
+                const errorText = await backendResponse.text();
+                logger.error('Backend parsing failed', {
+                    requestId,
+                    userId,
+                    status: backendResponse.status,
+                    error: errorText,
+                });
 
-        logger.info('Upload processed (mock)', {
-            requestId,
-            userId,
-            filename: file.name,
-            type,
-            isMock: true,
-        });
+                // Fall back to mock data if backend fails
+                logger.warn('Falling back to mock data', { requestId, userId });
+                return NextResponse.json({
+                    success: true,
+                    data: getMockData(type),
+                    warning: 'Backend parsing unavailable. Please enter data manually.',
+                    requestId,
+                });
+            }
 
-        // Note: To implement actual parsing, you would need:
-        // 1. For PDF: npm install pdf-parse
-        // 2. For DOCX: npm install mammoth
-        // 3. Use NLP or regex to extract structured data
+            const backendData = await backendResponse.json();
 
-        logger.endOperation('upload:resume');
+            logger.info('Backend parsing successful', {
+                requestId,
+                userId,
+                hasExperiences: !!backendData.data?.experiences?.length,
+                hasSkills: !!backendData.data?.skills?.length,
+            });
 
-        return NextResponse.json({
-            success: true,
-            data: mockData,
-            warning: 'Resume parsing is in beta. Please verify extracted data.',
-            requestId,
-        });
+            logger.endOperation('upload:resume');
+
+            return NextResponse.json({
+                success: backendData.success,
+                data: backendData.data,
+                warning: backendData.data?.warning,
+                requestId,
+            });
+
+        } catch (backendError) {
+            logger.warn('Backend connection failed, using mock data', {
+                requestId,
+                userId,
+                error: backendError instanceof Error ? backendError.message : String(backendError),
+            });
+
+            // Return mock data if backend is unavailable
+            return NextResponse.json({
+                success: true,
+                data: getMockData(type),
+                warning: 'Resume parsing service unavailable. Please enter your details manually.',
+                requestId,
+            });
+        }
 
     } catch (error) {
         logger.failOperation('upload:resume', error);
@@ -114,4 +132,23 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
+}
+
+function getMockData(type: string) {
+    if (type === 'cover-letter') {
+        return {
+            content: '',
+            message: 'Cover letter parsing is not yet implemented. Please enter your content manually.',
+        };
+    }
+
+    return {
+        name: '',
+        email: '',
+        phone: '',
+        experiences: [],
+        education: [],
+        skills: [],
+        message: 'Resume parsing is temporarily unavailable. Please enter your details manually.',
+    };
 }
