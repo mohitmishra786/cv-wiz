@@ -1,17 +1,17 @@
 # CV-Wiz Backend Dockerfile
 # Multi-stage build for production deployment
 
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Install system dependencies for WeasyPrint
+# Install system dependencies for WeasyPrint (Debian Trixie compatible)
 RUN apt-get update && apt-get install -y \
     build-essential \
     libffi-dev \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-2.0-0 \
     libcairo2 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
@@ -28,11 +28,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime dependencies for WeasyPrint
+# Install runtime dependencies for WeasyPrint (Debian Trixie compatible)
 RUN apt-get update && apt-get install -y \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-2.0-0 \
     libcairo2 \
     libglib2.0-0 \
     fonts-liberation \
