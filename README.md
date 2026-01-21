@@ -1,164 +1,79 @@
-# CV-Wiz: Career Resume Compiler
+<div align="center">
 
-A full-stack application for generating tailored resumes and cover letters based on job descriptions using AI.
+# CV-Wiz
 
-## Tech Stack
+*"The future depends on what you do today."* — Mahatma Gandhi
 
-### Frontend (Next.js 15)
-- **Framework:** Next.js 15 with App Router
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS
-- **Auth:** NextAuth.js v5 (Google OAuth + Email/Password)
-- **Database ORM:** Prisma
+The modern career compiler. Turn job descriptions into opportunities with AI-driven tailoring.
 
-### Backend (Python FastAPI)
-- **Framework:** FastAPI
-- **PDF Generation:** WeasyPrint
-- **LLM Integration:** Groq API
-- **Caching:** Redis (Upstash)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Groq](https://img.shields.io/badge/Powered%20by-Groq-orange?style=flat-square)](https://groq.com/)
 
-### Chrome Extension
-- **Manifest Version:** 3
-- **Content Scripts:** Job description extraction
-- **Popup UI:** Resume/Cover letter generation
+---
 
-### Database
-- **Primary:** PostgreSQL (Neon)
-- **Cache:** Redis (Upstash)
+Most job seekers spend hours manually tweaking their resumes for every application. They guess which keywords matter, struggle with formatting, and eventually settle for a generic version that fails to stand out.
 
-## Project Structure
+**CV-Wiz** changes the game. It is not just a resume builder; it is a compilation engine. By matching your professional profile against specific job descriptions in real-time, it generates high-impact, tailored artifacts that speak directly to what hiring managers are looking for.
 
-```
-cv-wiz/
-├── frontend/                 # Next.js 15 App
-│   ├── src/
-│   │   ├── app/              # App Router pages
-│   │   │   ├── (auth)/       # Login, Register
-│   │   │   ├── (protected)/  # Profile, Templates
-│   │   │   └── api/          # API routes
-│   │   └── components/       # React components
-│   ├── lib/                  # Utilities (auth, prisma)
-│   ├── types/                # TypeScript types
-│   └── prisma/               # Database schema
-│
-├── backend/                  # Python FastAPI
-│   └── app/
-│       ├── models/           # Pydantic models
-│       ├── services/         # Business logic
-│       ├── routers/          # API endpoints
-│       ├── utils/            # Helpers
-│       └── middleware/       # Auth middleware
-│
-└── extension/                # Chrome Extension (MV3)
-    ├── background/           # Service worker
-    ├── content/              # Content scripts
-    └── popup/                # Popup UI
-```
+</div>
 
-## Getting Started
+---
 
-### Prerequisites
-- Node.js 18+
-- Python 3.11+
-- PostgreSQL (or Neon account)
-- Redis (or Upstash account)
-- Groq API key
+## Components
 
-### Environment Variables
+| Component | Stack | Description |
+| :--- | :--- | :--- |
+| **Frontend** | Next.js 15, Prisma, NextAuth | The command center for your professional profile and template management. |
+| **Backend** | FastAPI, WeasyPrint, Groq | The intelligence layer that scores relevance and generates ATS-optimized PDFs. |
+| **Extension** | Manifest V3, Content Scripts | The bridge that extracts job descriptions directly from LinkedIn, Indeed, and more. |
 
-Copy `.env.example` to `.env` and fill in:
+---
 
-```bash
-# Database
-DATABASE_URL=postgresql://...
+## What It Actually Does
 
-# Redis
-REDIS_URL=redis://...
+The workflow is designed for maximum speed and minimum friction.
 
-# Groq
-GROQ_API_KEY=...
+First, the **Chrome Extension** identifies a job description on your screen. With one click, it extracts the requirements, responsibilities, and key technologies, sending them to the processing engine.
 
-# NextAuth
-NEXTAUTH_SECRET=...
-NEXTAUTH_URL=http://localhost:3000
+Second, the **Backend Engine** performs a deep analysis. It compares your stored experiences, projects, and skills against the job's needs. It doesn't just look for keywords; it calculates relevance scores to determine which parts of your history will have the most impact.
 
-# Google OAuth
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-```
+Third, it generates a **Tailored PDF**. Using standard professional templates and WeasyPrint, it produces a clean, readable resume that handles the heavy lifting of formatting while ensuring your most relevant achievements are front and center.
 
-### Frontend Setup
+## The Engine
 
-```bash
-cd frontend
-npm install
-npx prisma generate
-npx prisma db push
-npm run dev
-```
+The intelligence behind CV-Wiz is built on three core pillars:
 
-### Backend Setup
+**Relevance Scoring** ensures you never lead with the wrong story. The AI evaluates every experience and project, suggesting the optimal order based on the specific job description.
 
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
+**Zero Hallucination** is our promise. Unlike generic LLM tools that might invent history to fit a role, CV-Wiz is strictly constrained to your actual validated data. It rephrases and highlights, but it never invents.
 
-### Chrome Extension
+**ATS Optimization** keeps your resume in the "Yes" pile. By avoiding complex tables, images, and non-standard fonts, the generated PDFs are fully readable by Applicant Tracking Systems while remaining visually polished for human eyes.
 
-1. Go to `chrome://extensions/`
-2. Enable "Developer mode"
-3. Click "Load unpacked"
-4. Select the `extension/` directory
+## Philosophy
 
-## API Endpoints
+*"Simplicity is the ultimate sophistication."* — Leonardo da Vinci
 
-### Frontend (Next.js)
-- `POST /api/auth/register` - User registration
-- `GET/PUT /api/profile` - User profile
-- `CRUD /api/profile/experiences` - Work experiences
-- `CRUD /api/profile/projects` - Projects
-- `CRUD /api/profile/skills` - Skills
-- `CRUD /api/profile/educations` - Education
-- `GET/PUT /api/profile/settings` - User settings
+We believe that professional storytelling shouldn't be a chore. CV-Wiz is built on the idea that your past achievements are the raw code, and a job description is the target architecture. Our job is to compile one into the other.
 
-### Backend (FastAPI)
-- `POST /api/compile` - Generate tailored resume PDF
-- `POST /api/compile/pdf` - Direct PDF download
-- `POST /api/cover-letter` - Generate cover letter
-- `GET /api/templates` - Available templates
+No unwanted emojis. No generic templates. No setup complexity for the end user. Just a direct path from "Job Found" to "Application Sent."
 
-## Features
+## Technical Approach
 
-- **Profile Management:** Store complete career data (experiences, projects, skills, education)
-- **Multiple Templates:** Choose from 4 resume layouts
-- **Relevance Scoring:** AI matches your experience to job requirements
-- **ATS-Friendly PDFs:** Clean formatting that passes applicant tracking systems
-- **No Hallucination:** Cover letters use ONLY your actual profile data
-- **Browser Extension:** Extract job descriptions from LinkedIn, Indeed, Glassdoor, etc.
-- **Caching:** Repeated requests are cached for performance
+The system is architected for low latency and high reliability:
 
-## Architecture
+- **Next.js 15** provides a reactive, modern interface for managing complex profile data.
+- **FastAPI** handles the intensive scoring and PDF generation tasks with asynchronous performance.
+- **Groq LPU Inference** allows for near-instant resume tailoring and cover letter generation.
+- **Redis (Upstash)** caches scoring results to ensure that repeated adjustments don't cost time or tokens.
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ Chrome Extension│───▶│  FastAPI Backend │───▶│   Groq LLM API  │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-        │                      │
-        │                      ▼
-        │              ┌─────────────────┐
-        │              │  Redis Cache    │
-        │              └─────────────────┘
-        │
-        ▼
-┌─────────────────┐    ┌─────────────────┐
-│ Next.js Frontend│───▶│   PostgreSQL    │
-└─────────────────┘    └─────────────────┘
-```
+## Looking Ahead
 
-## License
+We are building the future of career management. Upcoming updates include deeper integrations with company research tools, automated portfolio generation, and an even wider range of industry-standard professional templates.
 
-MIT
+*"Excellence is not a destination; it is a continuous journey that never ends."* — Brian Tracy
+
+---
+
+MIT License
