@@ -125,8 +125,8 @@ This creates all the necessary tables.
 
 1. Go to your database details
 2. Scroll to **"REST API"** section
-3. Copy the **UPSTASH_REDIS_REST_URL** (format: `https://xxx.upstash.io`)
-4. Also copy **UPSTASH_REDIS_REST_TOKEN**
+3. Copy the **UPSTASH_REDIS_RES_URL** (format: `https://xxx.upstash.io`)
+4. Also copy **UPSTASH_REDIS_RES_TOKEN**
 
 For the backend, you need the standard Redis URL format. Look for:
 ```

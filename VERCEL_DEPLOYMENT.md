@@ -87,8 +87,8 @@ Create free accounts on:
 ### 2.2 Get Redis URL
 
 1. On your database page, go to **"Details"** tab
-2. Copy the **UPSTASH_REDIS_REST_URL** 
-3. Also copy **UPSTASH_REDIS_REST_TOKEN**
+2. Copy the **UPSTASH_REDIS_RES_URL** 
+3. Also copy **UPSTASH_REDIS_RES_TOKEN**
 4. For traditional Redis URL, scroll to find something like:
    ```
    redis://default:xxx@xxx.upstash.io:6379

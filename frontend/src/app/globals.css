@@ -7,6 +7,7 @@
   --muted-foreground: #64748b;
   --card: #ffffff;
   --card-foreground: #171717;
+  --card-rgb: 255, 255, 255;
   --primary: #6366f1;
   --primary-foreground: #ffffff;
   --border: #e2e8f0;
@@ -19,6 +20,7 @@
   --muted-foreground: #94a3b8;
   --card: #1e293b;
   --card-foreground: #f1f5f9;
+  --card-rgb: 15, 23, 42;
   --primary: #818cf8;
   --primary-foreground: #0f172a;
   --border: #334155;
