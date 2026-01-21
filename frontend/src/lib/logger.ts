@@ -158,8 +158,8 @@ export function logDbOperation(operation: string, table: string, data?: unknown)
 /**
  * Log auth operations
  */
-export function logAuthOperation(operation: string, data?: unknown, userId?: string) {
-    logger.info(`[AUTH] ${operation}`, data, {
+export function logAuthOperation(operation: string, userId?: string, success: boolean = true, data?: unknown) {
+    logger.info(`[AUTH] ${operation}`, { ...data as object, userId, success }, {
         component: 'nextauth',
         action: `auth:${operation}`,
         userId

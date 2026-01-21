@@ -3,13 +3,74 @@ FastAPI Main Application Entry Point
 CV-Wiz Resume Compiler API
 """
 
+import time
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
 from app.routers import compile, cover_letter
 from app.utils.redis_cache import redis_client
+from app.utils.logger import (
+    logger, 
+    generate_request_id, 
+    set_request_context, 
+    clear_request_context,
+    log_api_request
+)
+
+
+class LoggingMiddleware(BaseHTTPMiddleware):
+    """Middleware to log all requests with timing and correlation IDs"""
+    
+    async def dispatch(self, request: Request, call_next):
+        # Generate or extract request ID
+        request_id = request.headers.get("x-request-id") or generate_request_id()
+        
+        # Set request context for logging
+        set_request_context(request_id=request_id)
+        
+        # Log request start
+        logger.info(f"[REQUEST] {request.method} {request.url.path}", {
+            "method": request.method,
+            "path": request.url.path,
+            "query": str(request.query_params) if request.query_params else None,
+            "client_ip": request.client.host if request.client else None,
+            "user_agent": request.headers.get("user-agent", "")[:100],
+        })
+        
+        start_time = time.time()
+        
+        try:
+            response = await call_next(request)
+            duration_ms = (time.time() - start_time) * 1000
+            
+            # Add request ID to response headers
+            response.headers["x-request-id"] = request_id
+            
+            # Log response
+            log_api_request(
+                request.method, 
+                request.url.path, 
+                response.status_code, 
+                duration_ms
+            )
+            
+            return response
+            
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"[REQUEST ERROR] {request.method} {request.url.path}", {
+                "method": request.method,
+                "path": request.url.path,
+                "duration_ms": round(duration_ms, 2),
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+            }, exc_info=True)
+            raise
+        finally:
+            clear_request_context()
 
 
 @asynccontextmanager
@@ -17,14 +78,19 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown events."""
     # Startup
     settings = get_settings()
-    print(f"Starting CV-Wiz API...")
-    print(f"Groq Model: {settings.groq_model}")
+    logger.info("[STARTUP] CV-Wiz API starting", {
+        "groq_model": settings.groq_model,
+        "frontend_url": settings.nextauth_url,
+        "database_url": "configured" if settings.database_url != "postgresql://localhost:5432/cv_wiz" else "default",
+        "redis_url": "configured" if settings.redis_url != "redis://localhost:6379" else "default",
+        "upstash_rest_url": "configured" if settings.upstash_redis_rest_url else "not set",
+    })
     
     yield
     
     # Shutdown
     await redis_client.close()
-    print("CV-Wiz API shutdown complete")
+    logger.info("[SHUTDOWN] CV-Wiz API shutdown complete")
 
 
 app = FastAPI(
@@ -34,6 +100,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Add logging middleware FIRST
+app.add_middleware(LoggingMiddleware)
+
 # Configure CORS
 settings = get_settings()
 app.add_middleware(
@@ -41,6 +110,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         settings.nextauth_url,
+        "https://cv-wiz-orcin.vercel.app",  # Production frontend
         "chrome-extension://*",  # Allow Chrome extension
     ],
     allow_credentials=True,
@@ -56,14 +126,35 @@ app.include_router(cover_letter.router, prefix="/api", tags=["Cover Letter"])
 @app.get("/")
 async def root():
     """Health check endpoint."""
+    logger.debug("[HEALTH] Root endpoint called")
     return {"status": "healthy", "service": "cv-wiz-api", "version": "1.0.0"}
 
 
 @app.get("/health")
 async def health_check():
-    """Detailed health check."""
-    return {
+    """Detailed health check with logging."""
+    logger.info("[HEALTH] Health check requested")
+    
+    health_status = {
         "status": "healthy",
-        "database": "connected",  # TODO: Add actual DB check
-        "redis": "connected",      # TODO: Add actual Redis check
+        "database": "unknown",
+        "redis": "unknown",
+        "config": {
+            "groq_api_key": "configured" if settings.groq_api_key else "NOT SET",
+            "database_url": "configured" if settings.database_url != "postgresql://localhost:5432/cv_wiz" else "default",
+            "redis_url": "configured" if settings.redis_url != "redis://localhost:6379" else "default",
+        }
     }
+    
+    # Check Redis connection
+    try:
+        if redis_client:
+            await redis_client.ping()
+            health_status["redis"] = "connected"
+            logger.debug("[HEALTH] Redis connection OK")
+    except Exception as e:
+        health_status["redis"] = f"error: {str(e)}"
+        logger.warning("[HEALTH] Redis connection failed", {"error": str(e)})
+    
+    logger.info("[HEALTH] Health check complete", health_status)
+    return health_status

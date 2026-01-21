@@ -3,6 +3,7 @@ Resume Compiler Service
 Orchestrates the resume compilation process.
 """
 
+import time
 from typing import Optional
 
 from app.models.user import UserProfile
@@ -11,6 +12,7 @@ from app.utils.relevance_scorer import RelevanceScorer
 from app.utils import PDFGenerator, PDF_AVAILABLE
 from app.utils.redis_cache import get_cached, set_cached, generate_cache_key
 from app.config import get_settings
+from app.utils.logger import logger, get_request_id, log_cache_operation
 
 
 # Template configurations defining what sections to include and limits
@@ -53,18 +55,16 @@ TEMPLATE_CONFIGS = {
 class ResumeCompiler:
     """
     Compiles tailored resumes from user profiles based on job descriptions.
-    
-    Process:
-    1. Fetch user profile
-    2. Score items by relevance to job description
-    3. Select top items within template constraints
-    4. Generate PDF
     """
     
     def __init__(self):
         """Initialize resume compiler with dependencies."""
         self.pdf_generator = PDFGenerator() if PDF_AVAILABLE else None
         self.settings = get_settings()
+        logger.info("ResumeCompiler initialized", {
+            "pdf_available": PDF_AVAILABLE,
+            "max_resume_pages": self.settings.max_resume_pages,
+        })
     
     async def compile(
         self,
@@ -75,33 +75,58 @@ class ResumeCompiler:
     ) -> ResumeResponse:
         """
         Compile a tailored resume for the given profile and job description.
-        
-        Args:
-            profile: User's complete profile
-            job_description: Job posting text
-            template: Template to use (or user's saved preference)
-            use_cache: Whether to check/use cache
-        
-        Returns:
-            ResumeResponse with PDF and/or error
         """
-        # Determine template to use
-        if template is None:
-            template = (
-                profile.settings.selected_template
-                if profile.settings
-                else "experience-skills-projects"
-            )
+        request_id = get_request_id()
+        start_time = time.time()
         
-        # Check cache
-        if use_cache:
-            cache_key = generate_cache_key(profile.id, job_description, "resume")
-            cached = await get_cached(cache_key)
-            if cached:
-                return ResumeResponse(**cached)
+        logger.start_operation("ResumeCompiler.compile", {
+            "request_id": request_id,
+            "user_id": profile.id,
+            "job_description_length": len(job_description),
+            "template_requested": template,
+            "use_cache": use_cache,
+        })
         
         try:
+            # Determine template to use
+            if template is None:
+                template = (
+                    profile.settings.selected_template
+                    if profile.settings
+                    else "experience-skills-projects"
+                )
+            
+            logger.debug("Template selected", {
+                "request_id": request_id,
+                "template": template,
+                "from_profile_settings": template is None,
+            })
+            
+            # Check cache
+            if use_cache:
+                cache_key = generate_cache_key(profile.id, job_description, "resume")
+                logger.debug("Checking cache", {"request_id": request_id, "cache_key": cache_key[:50]})
+                
+                cached = await get_cached(cache_key)
+                if cached:
+                    log_cache_operation("get", cache_key, hit=True)
+                    logger.info("Cache hit - returning cached resume", {
+                        "request_id": request_id,
+                        "user_id": profile.id,
+                    })
+                    return ResumeResponse(**cached)
+                
+                log_cache_operation("get", cache_key, hit=False)
+                logger.debug("Cache miss", {"request_id": request_id})
+            
             # Score and select items
+            logger.info("Starting relevance scoring", {
+                "request_id": request_id,
+                "experiences_count": len(profile.experiences) if profile.experiences else 0,
+                "projects_count": len(profile.projects) if profile.projects else 0,
+                "skills_count": len(profile.skills) if profile.skills else 0,
+            })
+            
             scorer = RelevanceScorer(job_description)
             config = TEMPLATE_CONFIGS.get(template, TEMPLATE_CONFIGS["experience-skills-projects"])
             
@@ -113,6 +138,15 @@ class ResumeCompiler:
                 max_education=config["max_education"],
                 max_publications=config["max_publications"],
             )
+            
+            logger.info("Relevance scoring complete", {
+                "request_id": request_id,
+                "selected_experiences": len(selected["experiences"]),
+                "selected_projects": len(selected["projects"]),
+                "selected_skills": len(selected["skills"]),
+                "selected_educations": len(selected["educations"]),
+                "job_title_extracted": scorer.job_title,
+            })
             
             # Build compiled resume
             compiled = CompiledResume(
@@ -130,10 +164,22 @@ class ResumeCompiler:
             # Generate PDF (if available)
             pdf_base64 = None
             if self.pdf_generator:
+                logger.info("Generating PDF", {"request_id": request_id})
+                pdf_start = time.time()
+                
                 pdf_base64 = self.pdf_generator.generate_pdf_base64(
                     compiled,
                     max_pages=self.settings.max_resume_pages,
                 )
+                
+                pdf_duration = (time.time() - pdf_start) * 1000
+                logger.info("PDF generation complete", {
+                    "request_id": request_id,
+                    "duration_ms": round(pdf_duration, 2),
+                    "pdf_size_bytes": len(pdf_base64) if pdf_base64 else 0,
+                })
+            else:
+                logger.warning("PDF generator not available", {"request_id": request_id})
             
             response = ResumeResponse(
                 success=True,
@@ -143,32 +189,48 @@ class ResumeCompiler:
             
             # Cache successful result
             if use_cache:
+                logger.debug("Caching result", {"request_id": request_id})
                 await set_cached(
                     cache_key,
                     response.model_dump(mode="json"),
                 )
+                log_cache_operation("set", cache_key, hit=True)
+            
+            duration_ms = (time.time() - start_time) * 1000
+            logger.end_operation("ResumeCompiler.compile", duration_ms, {
+                "request_id": request_id,
+                "user_id": profile.id,
+                "success": True,
+                "has_pdf": bool(pdf_base64),
+            })
             
             return response
             
         except ValueError as e:
-            # Page limit exceeded
+            duration_ms = (time.time() - start_time) * 1000
+            logger.warning("Resume compilation value error", {
+                "request_id": request_id,
+                "error": str(e),
+                "duration_ms": duration_ms,
+            })
             return ResumeResponse(
                 success=False,
                 error=str(e),
             )
         except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.fail_operation("ResumeCompiler.compile", e, {
+                "request_id": request_id,
+                "duration_ms": duration_ms,
+            })
             return ResumeResponse(
                 success=False,
                 error=f"Resume compilation failed: {str(e)}",
             )
     
     def get_available_templates(self) -> dict[str, dict]:
-        """
-        Get all available templates with their configurations.
-        
-        Returns:
-            Dict of template name to configuration
-        """
+        """Get all available templates with their configurations."""
+        logger.debug("Getting available templates")
         return {
             name: {
                 **config,
