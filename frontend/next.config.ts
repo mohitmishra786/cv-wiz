@@ -5,12 +5,12 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 
   // Rewrite /api/py/* to the FastAPI function
-  // This allows the frontend to call the Python backend on the same domain
+  // Vercel detects Python functions in /api directory
   async rewrites() {
     return [
       {
         source: "/api/py/:path*",
-        destination: "/api/index.py",
+        destination: "/api/",  // Vercel routes to /api/index.py automatically
       },
     ];
   },

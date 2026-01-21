@@ -129,7 +129,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers (no /api prefix - the rewrite adds /api/py)
+# Include routers (no prefix - frontend adds /api/py via getBackendUrl)
 app.include_router(compile.router, tags=["Resume"])
 app.include_router(cover_letter.router, tags=["Cover Letter"])
 app.include_router(upload.router, tags=["Upload"])
