@@ -87,7 +87,8 @@ export async function POST(request: NextRequest) {
         backendFormData.append('file_type', fileType);
 
         // Determine the backend URL for this request
-        const uploadEndpoint = getBackendUrl('/api/upload/resume');
+        // Path should be /upload/resume (FastAPI prefix is /api, rewrite adds /py)
+        const uploadEndpoint = getBackendUrl('/upload/resume');
 
         // Forward to backend for parsing
         logger.info('[Upload] Forwarding to backend', {
