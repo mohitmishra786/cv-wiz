@@ -7,14 +7,14 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ThemeToggle, useTheme } from '@/components/ThemeProvider';
+import { ThemeToggle } from '@/components/ThemeProvider';
 
 export default function Home() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b" style={{
-        background: 'rgba(var(--card-rgb, 255, 255, 255), 0.8)',
+        background: 'rgba(var(--card-rgb), 0.9)',
         borderColor: 'var(--border)'
       }}>
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -51,10 +51,13 @@ export default function Home() {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-full text-indigo-600 dark:text-indigo-400 text-sm font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6" style={{
+            background: 'var(--muted)',
+            color: 'var(--primary)'
+          }}>
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--primary)' }}></span>
+              <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: 'var(--primary)' }}></span>
             </span>
             Powered by AI
           </div>
@@ -78,10 +81,11 @@ export default function Home() {
             </Link>
             <Link
               href="#features"
-              className="w-full sm:w-auto px-8 py-4 border-2 font-semibold rounded-xl transition-all text-lg"
+              className="w-full sm:w-auto px-8 py-4 border-2 font-semibold rounded-xl transition-all text-lg hover:opacity-80"
               style={{
                 borderColor: 'var(--border)',
-                color: 'var(--foreground)'
+                color: 'var(--foreground)',
+                background: 'var(--card)'
               }}
             >
               Learn More
@@ -91,7 +95,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-4" style={{ background: 'var(--card)' }}>
+      <section id="features" className="py-20 px-4" style={{ background: 'var(--muted)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold" style={{ color: 'var(--foreground)' }}>
@@ -104,13 +108,13 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Step 1 */}
-            <div className="relative p-6 rounded-2xl" style={{ background: 'var(--muted)' }}>
+            <div className="relative p-6 rounded-2xl shadow-sm" style={{ background: 'var(--card)' }}>
               <div className="absolute -top-4 -left-4 w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white font-bold">
                 1
               </div>
               <div className="mt-4">
-                <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
+                  <svg className="w-6 h-6" style={{ color: 'var(--primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
@@ -122,13 +126,13 @@ export default function Home() {
             </div>
 
             {/* Step 2 */}
-            <div className="relative p-6 rounded-2xl" style={{ background: 'var(--muted)' }}>
+            <div className="relative p-6 rounded-2xl shadow-sm" style={{ background: 'var(--card)' }}>
               <div className="absolute -top-4 -left-4 w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center text-white font-bold">
                 2
               </div>
               <div className="mt-4">
-                <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
+                  <svg className="w-6 h-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
                   </svg>
                 </div>
@@ -140,13 +144,13 @@ export default function Home() {
             </div>
 
             {/* Step 3 */}
-            <div className="relative p-6 rounded-2xl" style={{ background: 'var(--muted)' }}>
+            <div className="relative p-6 rounded-2xl shadow-sm" style={{ background: 'var(--card)' }}>
               <div className="absolute -top-4 -left-4 w-10 h-10 bg-pink-500 rounded-xl flex items-center justify-center text-white font-bold">
                 3
               </div>
               <div className="mt-4">
-                <div className="w-12 h-12 rounded-xl bg-pink-100 dark:bg-pink-900/50 flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
+                  <svg className="w-6 h-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -161,12 +165,12 @@ export default function Home() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4" style={{ background: 'var(--background)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="p-8 rounded-2xl shadow-sm" style={{ background: 'var(--card)' }}>
-              <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/50 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="p-8 rounded-2xl shadow-sm border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
+                <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
@@ -176,9 +180,9 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="p-8 rounded-2xl shadow-sm" style={{ background: 'var(--card)' }}>
-              <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="p-8 rounded-2xl shadow-sm border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
+                <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
@@ -188,9 +192,9 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="p-8 rounded-2xl shadow-sm" style={{ background: 'var(--card)' }}>
-              <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/50 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="p-8 rounded-2xl shadow-sm border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
+                <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
@@ -201,9 +205,9 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="p-8 rounded-2xl shadow-sm" style={{ background: 'var(--card)' }}>
-              <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/50 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="p-8 rounded-2xl shadow-sm border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
+                <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                 </svg>
               </div>
@@ -217,7 +221,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4" style={{ background: 'var(--muted)' }}>
         <div className="max-w-4xl mx-auto text-center">
           <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-12">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -237,7 +241,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 border-t" style={{ borderColor: 'var(--border)' }}>
+      <footer className="py-12 px-4 border-t" style={{ borderColor: 'var(--border)', background: 'var(--background)' }}>
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Image
