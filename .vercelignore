@@ -1,0 +1,43 @@
+# .vercelignore - Files to exclude from Vercel deployment
+# See: https://vercel.com/docs/projects/project-configuration#vercelignore
+
+# Python virtual environment
+backend/venv/
+venv/
+
+# Python cache files
+backend/**/*.pyc
+backend/__pycache__/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test files
+**/*.test.py
+**/*.spec.py
+**/tests/
+**/test_*.py
+
+# Logs and temporary files
+logs_result.json
+*.log
+
+# PDF files (test data)
+*.pdf
+
+# Documentation
+docs/
+
+# Git
+.git/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

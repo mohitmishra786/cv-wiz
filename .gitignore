@@ -39,3 +39,5 @@ npm-debug.log*
 
 # Extension build
 extension/dist/
+my_cover_letter.pdf
+*.pdf

@@ -11,21 +11,22 @@ import { auth } from '@/lib/auth';
 import { createRequestLogger, getOrCreateRequestId, logAuthOperation } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-    // Validate BACKEND_URL at runtime - fail loudly if not configured
-    const BACKEND_URL = process.env.BACKEND_URL;
-    if (!BACKEND_URL) {
-        console.error(
-            '[CV-Wiz Upload] BACKEND_URL environment variable is not configured. ' +
-            'Set BACKEND_URL in your Vercel environment settings (e.g., https://your-backend.railway.app).'
-        );
-        return NextResponse.json(
-            {
-                success: false,
-                error: 'Server configuration error: BACKEND_URL is not configured.',
-            },
-            { status: 500 }
-        );
-    }
+    // Determine the backend endpoint - must be absolute URL for server-side fetch
+    const getBackendUrl = (path: string): string => {
+        const BACKEND_URL = process.env.BACKEND_URL;
+
+        if (BACKEND_URL) {
+            // Separate deployment: use explicit backend URL
+            return `${BACKEND_URL}${path}`;
+        }
+
+        // Monorepo: construct absolute URL from request
+        const protocol = request.headers.get('x-forwarded-proto') || 'http';
+        const host = request.headers.get('host') || 'localhost:3000';
+        // Map /api/upload/resume -> /api/py/upload/resume
+        return `${protocol}://${host}/api/py${path}`;
+    };
+
 
     const requestId = getOrCreateRequestId(request.headers);
     const logger = createRequestLogger(requestId);
@@ -85,17 +86,20 @@ export async function POST(request: NextRequest) {
         backendFormData.append('file', file);
         backendFormData.append('file_type', fileType);
 
+        // Determine the backend URL for this request
+        const uploadEndpoint = getBackendUrl('/api/upload/resume');
+
         // Forward to backend for parsing
         logger.info('[Upload] Forwarding to backend', {
             requestId,
             userId,
-            backendUrl: `${BACKEND_URL}/api/upload/resume`,
+            backendUrl: uploadEndpoint,
         });
 
         let backendResponse: Response;
 
         try {
-            backendResponse = await fetch(`${BACKEND_URL}/api/upload/resume`, {
+            backendResponse = await fetch(uploadEndpoint, {
                 method: 'POST',
                 body: backendFormData,
                 headers: {
@@ -112,17 +116,17 @@ export async function POST(request: NextRequest) {
                 userId,
                 error: errorMessage,
                 stack: errorStack,
-                backendUrl: BACKEND_URL,
+                backendUrl: uploadEndpoint,
             });
 
+            // Don't leak internal URLs to client
             return NextResponse.json(
                 {
                     success: false,
-                    error: `Failed to connect to parsing service. Please ensure the backend server is running at ${BACKEND_URL}.`,
+                    error: 'Failed to connect to parsing service.',
                     details: {
                         errorType: 'CONNECTION_ERROR',
                         message: errorMessage,
-                        backendUrl: BACKEND_URL,
                     },
                     requestId,
                 },
