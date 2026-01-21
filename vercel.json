@@ -4,16 +4,10 @@
     "buildCommand": "cd frontend && npm run build",
     "outputDirectory": "frontend/.next",
     "installCommand": "cd frontend && npm install",
-    "functions": {
-        "api/main.py": {
-            "runtime": "python3.12",
-            "maxDuration": 60
-        }
-    },
     "rewrites": [
         {
             "source": "/api/py/:path*",
-            "destination": "/api/main.py"
+            "destination": "/api/index.py"
         }
     ],
     "headers": [
