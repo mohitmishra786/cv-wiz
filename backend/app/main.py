@@ -103,11 +103,15 @@ app = FastAPI(
 # Add logging middleware FIRST
 app.add_middleware(LoggingMiddleware)
 
-# Configure CORS - Only allow deployed frontend origins
+# Configure CORS
+# In monorepo Vercel deployment, frontend and backend are on the same domain
+# so we allow all origins. The vercel.json also sets CORS headers.
 settings = get_settings()
 
-# Build allowed origins list, filtering out empty strings and duplicates
+# Build allowed origins list for standalone deployments
+# For monorepo, we use ["*"] since requests come from same origin
 _cors_origins = [
+    "*",  # Allow all origins (safe in monorepo - same domain)
     settings.effective_frontend_url,  # Production frontend URL
     settings.nextauth_url,  # Auth callback URL
     "https://cv-wiz-psi.vercel.app",  # Explicit production frontend
