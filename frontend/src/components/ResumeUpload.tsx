@@ -52,7 +52,8 @@ interface ExtractedData {
 }
 
 interface ResumeUploadProps {
-    onDataExtracted: (data: ExtractedData) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onDataExtracted: (data: any) => void;
     type?: 'resume' | 'cover-letter';
 }
 
