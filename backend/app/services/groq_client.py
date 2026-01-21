@@ -3,10 +3,12 @@ Groq LLM Client
 Wrapper for the Groq API for generating cover letters.
 """
 
+import time
 from typing import Optional
 from groq import Groq
 
 from app.config import get_settings
+from app.utils.logger import logger, get_request_id, log_llm_request
 
 
 class GroqClient:
@@ -20,6 +22,10 @@ class GroqClient:
         settings = get_settings()
         self.client = Groq(api_key=settings.groq_api_key)
         self.model = settings.groq_model
+        logger.info("GroqClient initialized", {
+            "model": self.model,
+            "api_key_configured": bool(settings.groq_api_key),
+        })
     
     async def generate_cover_letter(
         self,
@@ -30,34 +36,86 @@ class GroqClient:
     ) -> tuple[str, str]:
         """
         Generate a cover letter using Groq's LLM.
-        
-        Args:
-            candidate_info: Structured candidate background from profile
-            job_description: Job posting text
-            tone: Desired tone (professional, enthusiastic, formal)
-            max_words: Maximum word count
-        
-        Returns:
-            Tuple of (generated_text, model_used)
         """
-        system_prompt = self._build_system_prompt(tone, max_words)
-        user_prompt = self._build_user_prompt(candidate_info, job_description)
+        request_id = get_request_id()
+        start_time = time.time()
         
-        # Use sync client in async context (Groq SDK is sync)
-        # Note: In production, consider using run_in_executor for true async
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.7,
-            max_tokens=1500,
-            top_p=0.95,
-        )
+        logger.start_operation("GroqClient.generate_cover_letter", {
+            "request_id": request_id,
+            "model": self.model,
+            "tone": tone,
+            "max_words": max_words,
+            "candidate_info_length": len(candidate_info),
+            "job_description_length": len(job_description),
+        })
         
-        generated_text = response.choices[0].message.content
-        return generated_text.strip(), self.model
+        try:
+            system_prompt = self._build_system_prompt(tone, max_words)
+            user_prompt = self._build_user_prompt(candidate_info, job_description)
+            
+            total_prompt_length = len(system_prompt) + len(user_prompt)
+            logger.debug("Prompts built", {
+                "request_id": request_id,
+                "system_prompt_length": len(system_prompt),
+                "user_prompt_length": len(user_prompt),
+                "total_length": total_prompt_length,
+            })
+            
+            logger.info("Calling Groq API", {
+                "request_id": request_id,
+                "model": self.model,
+                "estimated_tokens": total_prompt_length // 4,
+            })
+            
+            api_start = time.time()
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.7,
+                max_tokens=1500,
+                top_p=0.95,
+            )
+            api_duration = (time.time() - api_start) * 1000
+            
+            generated_text = response.choices[0].message.content.strip()
+            total_duration = (time.time() - start_time) * 1000
+            
+            # Log LLM usage
+            usage = response.usage if hasattr(response, 'usage') else None
+            tokens_in = usage.prompt_tokens if usage else total_prompt_length // 4
+            tokens_out = usage.completion_tokens if usage else len(generated_text) // 4
+            
+            log_llm_request(
+                model=self.model,
+                operation="generate_cover_letter",
+                tokens_in=tokens_in,
+                tokens_out=tokens_out,
+                duration_ms=api_duration,
+            )
+            
+            logger.end_operation("GroqClient.generate_cover_letter", total_duration, {
+                "request_id": request_id,
+                "model": self.model,
+                "tokens_in": tokens_in,
+                "tokens_out": tokens_out,
+                "api_duration_ms": round(api_duration, 2),
+                "generated_length": len(generated_text),
+                "word_count": len(generated_text.split()),
+            })
+            
+            return generated_text, self.model
+            
+        except Exception as e:
+            total_duration = (time.time() - start_time) * 1000
+            logger.fail_operation("GroqClient.generate_cover_letter", e, {
+                "request_id": request_id,
+                "model": self.model,
+                "duration_ms": total_duration,
+            })
+            raise
     
     def _build_system_prompt(self, tone: str, max_words: int) -> str:
         """Build system prompt for cover letter generation."""
@@ -119,19 +177,17 @@ Write the cover letter now:"""
     ) -> str:
         """
         Format candidate information for the LLM prompt.
-        Uses structured format to prevent hallucination.
-        
-        Args:
-            name: Candidate name
-            email: Candidate email
-            experiences: List of Experience objects
-            projects: List of Project objects
-            skills: List of Skill objects
-            educations: List of Education objects
-        
-        Returns:
-            Formatted string with candidate information
         """
+        request_id = get_request_id()
+        logger.debug("Formatting candidate info", {
+            "request_id": request_id,
+            "name": name,
+            "experiences_count": len(experiences),
+            "projects_count": len(projects),
+            "skills_count": len(skills),
+            "educations_count": len(educations),
+        })
+        
         lines = [
             f"Name: {name}",
             f"Email: {email}",
@@ -183,4 +239,11 @@ Write the cover letter now:"""
                     lines.append(f"  Honors: {', '.join(edu.honors)}")
                 lines.append("")
         
-        return "\n".join(lines)
+        formatted = "\n".join(lines)
+        logger.debug("Candidate info formatted", {
+            "request_id": request_id,
+            "total_length": len(formatted),
+            "line_count": len(lines),
+        })
+        
+        return formatted

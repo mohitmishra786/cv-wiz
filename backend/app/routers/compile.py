@@ -3,6 +3,7 @@ Resume Compilation Router
 API endpoint for generating tailored resumes.
 """
 
+import time
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import Response
 
@@ -10,6 +11,7 @@ from app.models.resume import ResumeRequest, ResumeResponse
 from app.services.profile_service import ProfileService
 from app.services.resume_compiler import ResumeCompiler
 from app.middleware.auth import verify_auth_token
+from app.utils.logger import logger, get_request_id, log_auth_operation
 
 
 router = APIRouter()
@@ -32,42 +34,82 @@ async def compile_resume(
 ) -> ResumeResponse:
     """
     Compile a tailored resume based on user profile and job description.
-    
-    Request Body:
-        - auth_token: JWT authentication token
-        - job_description: Job posting text (50-50000 chars)
-        - template: Optional template override
-    
-    Returns:
-        - success: Boolean indicating success
-        - pdf_base64: Base64 encoded PDF (if successful)
-        - resume_json: Structured resume data
-        - error: Error message (if failed)
     """
-    # Validate auth token and get user profile
-    profile = await profile_service.get_profile(request.auth_token)
+    request_id = get_request_id()
+    start_time = time.time()
     
-    if profile is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired authentication token",
+    logger.start_operation("compile_resume", {
+        "request_id": request_id,
+        "job_description_length": len(request.job_description),
+        "template": request.template,
+        "has_auth_token": bool(request.auth_token),
+    })
+    
+    try:
+        # Validate auth token and get user profile
+        logger.info("Fetching user profile", {"request_id": request_id})
+        profile = await profile_service.get_profile(request.auth_token)
+        
+        if profile is None:
+            logger.warning("Profile fetch failed - invalid token", {"request_id": request_id})
+            log_auth_operation("compile:auth_failed", success=False)
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid or expired authentication token",
+            )
+        
+        logger.info("Profile fetched successfully", {
+            "request_id": request_id,
+            "user_id": profile.id,
+            "user_email": profile.email[:3] + "***" if profile.email else None,
+            "experiences_count": len(profile.experiences) if profile.experiences else 0,
+            "projects_count": len(profile.projects) if profile.projects else 0,
+            "skills_count": len(profile.skills) if profile.skills else 0,
+        })
+        
+        log_auth_operation("compile:auth_success", user_id=profile.id, success=True)
+        
+        # Check if profile has required data
+        if not profile.experiences and not profile.projects and not profile.skills:
+            logger.warning("Profile is empty - cannot compile", {
+                "request_id": request_id,
+                "user_id": profile.id,
+            })
+            raise HTTPException(
+                status_code=400,
+                detail="Profile is empty. Please add experiences, projects, or skills before generating a resume.",
+            )
+        
+        # Compile resume
+        logger.info("Starting resume compilation", {
+            "request_id": request_id,
+            "user_id": profile.id,
+            "template": request.template,
+        })
+        
+        response = await compiler.compile(
+            profile=profile,
+            job_description=request.job_description,
+            template=request.template,
         )
-    
-    # Check if profile has required data
-    if not profile.experiences and not profile.projects and not profile.skills:
-        raise HTTPException(
-            status_code=400,
-            detail="Profile is empty. Please add experiences, projects, or skills before generating a resume.",
-        )
-    
-    # Compile resume
-    response = await compiler.compile(
-        profile=profile,
-        job_description=request.job_description,
-        template=request.template,
-    )
-    
-    return response
+        
+        duration_ms = (time.time() - start_time) * 1000
+        logger.end_operation("compile_resume", duration_ms, {
+            "request_id": request_id,
+            "user_id": profile.id,
+            "success": response.success,
+            "has_pdf": bool(response.pdf_base64),
+            "error": response.error,
+        })
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        duration_ms = (time.time() - start_time) * 1000
+        logger.fail_operation("compile_resume", e, {"request_id": request_id, "duration_ms": duration_ms})
+        raise HTTPException(status_code=500, detail=f"Resume compilation failed: {str(e)}")
 
 
 @router.post("/compile/pdf")
@@ -78,52 +120,83 @@ async def compile_resume_pdf(
 ) -> Response:
     """
     Compile and return resume as direct PDF download.
-    
-    Returns the PDF file directly (not base64 encoded).
     """
-    # Validate auth token and get user profile
-    profile = await profile_service.get_profile(request.auth_token)
+    request_id = get_request_id()
+    start_time = time.time()
     
-    if profile is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired authentication token",
+    logger.start_operation("compile_resume_pdf", {
+        "request_id": request_id,
+        "job_description_length": len(request.job_description),
+    })
+    
+    try:
+        # Validate auth token and get user profile
+        profile = await profile_service.get_profile(request.auth_token)
+        
+        if profile is None:
+            logger.warning("PDF compile failed - invalid token", {"request_id": request_id})
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid or expired authentication token",
+            )
+        
+        logger.info("Profile fetched for PDF", {"request_id": request_id, "user_id": profile.id})
+        
+        if not profile.experiences and not profile.projects and not profile.skills:
+            logger.warning("Profile empty for PDF compile", {"request_id": request_id, "user_id": profile.id})
+            raise HTTPException(
+                status_code=400,
+                detail="Profile is empty.",
+            )
+        
+        # Compile resume
+        response = await compiler.compile(
+            profile=profile,
+            job_description=request.job_description,
+            template=request.template,
         )
-    
-    if not profile.experiences and not profile.projects and not profile.skills:
-        raise HTTPException(
-            status_code=400,
-            detail="Profile is empty.",
+        
+        if not response.success or not response.pdf_base64:
+            logger.error("PDF compilation failed", {
+                "request_id": request_id,
+                "user_id": profile.id,
+                "error": response.error,
+            })
+            raise HTTPException(
+                status_code=500,
+                detail=response.error or "Resume compilation failed",
+            )
+        
+        # Decode base64 to bytes
+        import base64
+        pdf_bytes = base64.b64decode(response.pdf_base64)
+        
+        # Generate filename
+        name_slug = (profile.name or "resume").replace(" ", "_").lower()
+        filename = f"{name_slug}_resume.pdf"
+        
+        duration_ms = (time.time() - start_time) * 1000
+        logger.end_operation("compile_resume_pdf", duration_ms, {
+            "request_id": request_id,
+            "user_id": profile.id,
+            "pdf_size_bytes": len(pdf_bytes),
+            "filename": filename,
+        })
+        
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "X-Request-Id": request_id,
+            },
         )
-    
-    # Compile resume
-    response = await compiler.compile(
-        profile=profile,
-        job_description=request.job_description,
-        template=request.template,
-    )
-    
-    if not response.success or not response.pdf_base64:
-        raise HTTPException(
-            status_code=500,
-            detail=response.error or "Resume compilation failed",
-        )
-    
-    # Decode base64 to bytes
-    import base64
-    pdf_bytes = base64.b64decode(response.pdf_base64)
-    
-    # Generate filename
-    name_slug = (profile.name or "resume").replace(" ", "_").lower()
-    filename = f"{name_slug}_resume.pdf"
-    
-    return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
-        },
-    )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.fail_operation("compile_resume_pdf", e, {"request_id": request_id})
+        raise
 
 
 @router.get("/templates")
@@ -132,10 +205,13 @@ async def get_templates(
 ) -> dict:
     """
     Get available resume templates with descriptions.
-    
-    Returns:
-        Dict of template configurations and descriptions.
     """
+    request_id = get_request_id()
+    logger.debug("Templates requested", {"request_id": request_id})
+    
+    templates = compiler.get_available_templates()
+    logger.info("Templates returned", {"request_id": request_id, "template_count": len(templates)})
+    
     return {
-        "templates": compiler.get_available_templates(),
+        "templates": templates,
     }

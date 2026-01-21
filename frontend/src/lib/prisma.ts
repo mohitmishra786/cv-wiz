@@ -3,6 +3,9 @@
  * Prevents multiple instances in development
  */
 
+// CRITICAL: Import environment setup FIRST to map CV_DATABASE_DATABASE_URL to DATABASE_URL
+import './prisma-env';
+
 import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as {
