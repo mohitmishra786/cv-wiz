@@ -11,21 +11,20 @@ import { auth } from '@/lib/auth';
 import { createRequestLogger, getOrCreateRequestId, logAuthOperation } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-    // For monorepo Vercel deployment, use relative URL /api/py/*
-    // For separate deployments, use BACKEND_URL env var
-    // In production monorepo, /api/py/* is rewritten to the FastAPI function
-    const BACKEND_URL = process.env.BACKEND_URL || '';
+    // Determine the backend endpoint - must be absolute URL for server-side fetch
+    const getBackendUrl = (path: string): string => {
+        const BACKEND_URL = process.env.BACKEND_URL;
 
-    // Determine the backend endpoint
-    // If BACKEND_URL is set (separate deployment), use it
-    // Otherwise use relative path (monorepo deployment)
-    const getBackendUrl = (path: string) => {
         if (BACKEND_URL) {
+            // Separate deployment: use explicit backend URL
             return `${BACKEND_URL}${path}`;
         }
-        // Monorepo: use /api/py/* which is rewritten to FastAPI
+
+        // Monorepo: construct absolute URL from request
+        const protocol = request.headers.get('x-forwarded-proto') || 'http';
+        const host = request.headers.get('host') || 'localhost:3000';
         // Map /api/upload/resume -> /api/py/upload/resume
-        return `/api/py${path}`;
+        return `${protocol}://${host}/api/py${path}`;
     };
 
 
@@ -120,14 +119,14 @@ export async function POST(request: NextRequest) {
                 backendUrl: uploadEndpoint,
             });
 
+            // Don't leak internal URLs to client
             return NextResponse.json(
                 {
                     success: false,
-                    error: `Failed to connect to parsing service at ${uploadEndpoint}.`,
+                    error: 'Failed to connect to parsing service.',
                     details: {
                         errorType: 'CONNECTION_ERROR',
                         message: errorMessage,
-                        backendUrl: uploadEndpoint,
                     },
                     requestId,
                 },

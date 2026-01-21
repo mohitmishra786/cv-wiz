@@ -1,9 +1,5 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
-    "framework": "nextjs",
-    "buildCommand": "cd frontend && npm run build",
-    "outputDirectory": "frontend/.next",
-    "installCommand": "cd frontend && npm install",
     "rewrites": [
         {
             "source": "/api/py/:path*",
@@ -15,12 +11,8 @@
             "source": "/api/(.*)",
             "headers": [
                 {
-                    "key": "Access-Control-Allow-Credentials",
-                    "value": "true"
-                },
-                {
                     "key": "Access-Control-Allow-Origin",
-                    "value": "*"
+                    "value": "https://cv-wiz-psi.vercel.app"
                 },
                 {
                     "key": "Access-Control-Allow-Methods",
