@@ -80,9 +80,9 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     logger.info("[STARTUP] CV-Wiz API starting", {
         "groq_model": settings.groq_model,
-        "frontend_url": settings.nextauth_url,
-        "database_url": "configured" if settings.database_url != "postgresql://localhost:5432/cv_wiz" else "default",
-        "redis_url": "configured" if settings.redis_url != "redis://localhost:6379" else "default",
+        "frontend_url": settings.effective_frontend_url,
+        "database_url": "configured" if settings.database_url else "NOT SET",
+        "redis_url": "configured" if settings.redis_url else "NOT SET",
         "upstash_rest_url": "configured" if settings.upstash_redis_rest_url else "not set",
     })
     
@@ -103,16 +103,21 @@ app = FastAPI(
 # Add logging middleware FIRST
 app.add_middleware(LoggingMiddleware)
 
-# Configure CORS
+# Configure CORS - Only allow deployed frontend origins
 settings = get_settings()
+
+# Build allowed origins list, filtering out empty strings and duplicates
+_cors_origins = [
+    settings.effective_frontend_url,  # Production frontend URL
+    settings.nextauth_url,  # Auth callback URL
+    "https://cv-wiz-psi.vercel.app",  # Explicit production frontend
+]
+# Filter out empty strings and deduplicate
+allowed_origins = list(set(origin for origin in _cors_origins if origin))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        settings.nextauth_url,
-        "https://cv-wiz-orcin.vercel.app",  # Production frontend
-        "chrome-extension://*",  # Allow Chrome extension
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -142,8 +147,8 @@ async def health_check():
         "redis": "unknown",
         "config": {
             "groq_api_key": "configured" if settings.groq_api_key else "NOT SET",
-            "database_url": "configured" if settings.database_url != "postgresql://localhost:5432/cv_wiz" else "default",
-            "redis_url": "configured" if settings.redis_url != "redis://localhost:6379" else "default",
+            "database_url": "configured" if settings.database_url else "NOT SET",
+            "redis_url": "configured" if settings.redis_url else "NOT SET",
         }
     }
     

@@ -1,26 +1,27 @@
 """
 Configuration module for CV-Wiz backend.
 Loads environment variables and provides typed settings.
+Fails loudly if required environment variables are missing.
 """
 
 import os
 from functools import lru_cache
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, model_validator
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
-    # Database - supports multiple env var names
+    # Database - REQUIRED in production
     database_url: str = Field(
-        default="postgresql://localhost:5432/cv_wiz",
+        default="",
         validation_alias="DATABASE_URL"
     )
     
-    # Redis - supports multiple env var names for Upstash
+    # Redis - REQUIRED in production
     redis_url: str = Field(
-        default="redis://localhost:6379",
+        default="",
         validation_alias="REDIS_URL"
     )
     
@@ -35,10 +36,11 @@ class Settings(BaseSettings):
     # Auth
     nextauth_secret: str = Field(default="", validation_alias="NEXTAUTH_SECRET")
     auth_secret: str = Field(default="", validation_alias="AUTH_SECRET")  # NextAuth v5 uses AUTH_SECRET
-    nextauth_url: str = Field(default="http://localhost:3000", validation_alias="NEXTAUTH_URL")
+    nextauth_url: str = Field(default="", validation_alias="NEXTAUTH_URL")
     
-    # Frontend API (for fetching user profiles)
-    frontend_api_url: str = Field(default="http://localhost:3000", validation_alias="FRONTEND_API_URL")
+    # Frontend URLs - REQUIRED in production
+    frontend_url: str = Field(default="", validation_alias="FRONTEND_URL")
+    frontend_api_url: str = Field(default="", validation_alias="FRONTEND_API_URL")
     
     # Cache TTL (seconds)
     cache_ttl: int = 300  # 5 minutes
@@ -54,6 +56,28 @@ class Settings(BaseSettings):
         extra = "ignore"  # Allow extra fields from .env
         populate_by_name = True  # Allow using either field name or alias
     
+    @model_validator(mode='after')
+    def validate_required_settings(self) -> 'Settings':
+        """Validate that required settings are configured in production."""
+        missing = []
+        
+        if not self.database_url:
+            missing.append("DATABASE_URL")
+        
+        if not self.redis_url and not self.upstash_redis_rest_url:
+            missing.append("REDIS_URL (or UPSTASH_REDIS_RES_KV_REST_API_URL)")
+        
+        if not self.nextauth_url and not self.frontend_url:
+            missing.append("NEXTAUTH_URL or FRONTEND_URL")
+        
+        if missing:
+            raise ValueError(
+                f"[CV-Wiz Config] Missing required environment variables: {', '.join(missing)}. "
+                "Set these in your deployment environment (e.g., Railway, Vercel)."
+            )
+        
+        return self
+    
     @property
     def effective_secret(self) -> str:
         """Get the effective auth secret (AUTH_SECRET or NEXTAUTH_SECRET)."""
@@ -62,7 +86,12 @@ class Settings(BaseSettings):
     @property
     def effective_redis_url(self) -> str:
         """Get Redis URL, preferring direct URL over REST API."""
-        return self.redis_url if self.redis_url != "redis://localhost:6379" else ""
+        return self.redis_url if self.redis_url else ""
+    
+    @property
+    def effective_frontend_url(self) -> str:
+        """Get the effective frontend URL for CORS."""
+        return self.frontend_url or self.nextauth_url
 
 
 def _get_env_with_fallbacks(primary: str, *fallbacks: str, default: str = "") -> str:
@@ -84,6 +113,7 @@ def get_settings() -> Settings:
     env_mappings = {
         "DATABASE_URL": ["CV_DATABASE_DATABASE_URL", "DATABASE_POSTGRES_URL", "DATABASE_URL"],
         "REDIS_URL": ["UPSTASH_REDIS_RES_REDIS_URL", "UPSTASH_REDIS_RES_KV_URL", "REDIS_URL"],
+        "FRONTEND_URL": ["FRONTEND_URL", "NEXTAUTH_URL"],
     }
     
     for target, sources in env_mappings.items():
@@ -95,3 +125,4 @@ def get_settings() -> Settings:
                     break
     
     return Settings()
+

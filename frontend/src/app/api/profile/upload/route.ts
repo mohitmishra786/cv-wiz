@@ -10,9 +10,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { createRequestLogger, getOrCreateRequestId, logAuthOperation } from '@/lib/logger';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
-
 export async function POST(request: NextRequest) {
+    // Validate BACKEND_URL at runtime - fail loudly if not configured
+    const BACKEND_URL = process.env.BACKEND_URL;
+    if (!BACKEND_URL) {
+        console.error(
+            '[CV-Wiz Upload] BACKEND_URL environment variable is not configured. ' +
+            'Set BACKEND_URL in your Vercel environment settings (e.g., https://your-backend.railway.app).'
+        );
+        return NextResponse.json(
+            {
+                success: false,
+                error: 'Server configuration error: BACKEND_URL is not configured.',
+            },
+            { status: 500 }
+        );
+    }
+
     const requestId = getOrCreateRequestId(request.headers);
     const logger = createRequestLogger(requestId);
 
