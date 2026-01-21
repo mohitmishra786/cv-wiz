@@ -212,17 +212,15 @@ export default function ProfilePage() {
         }
     };
 
-    // Resume upload handler
-    const handleResumeDataExtracted = async (data: {
-        name?: string;
-        email?: string;
-        experiences?: Array<Record<string, unknown>>;
-        skills?: string[];
-    }) => {
+    // Resume upload handler - accepts ExtractedData from ResumeUpload component
+    const handleResumeDataExtracted = async (data: Record<string, unknown>) => {
         logger.info('[ProfilePage] Resume data extracted', {
             hasName: !!data.name,
-            experiencesCount: data.experiences?.length,
-            skillsCount: data.skills?.length,
+            experiencesCount: (data.experiences as unknown[])?.length,
+            skillsCount: (data.skills as unknown[])?.length,
+            educationCount: (data.education as unknown[])?.length,
+            projectsCount: (data.projects as unknown[])?.length,
+            extractionMethod: data.extraction_method,
         });
         closeModal();
         // Refresh profile to show any extracted data that was saved
