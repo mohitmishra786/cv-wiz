@@ -7,6 +7,9 @@
 
 import { useState } from 'react';
 import type { Experience } from '@/types';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger({ component: 'ExperienceForm' });
 
 interface ExperienceFormProps {
     experience?: Partial<Experience>;
@@ -27,10 +30,27 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
         keywords: experience?.keywords?.join(', ') || '',
     });
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    logger.debug('[ExperienceForm] Initialized', {
+        isEdit: !!experience?.id,
+        experienceId: experience?.id
+    });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validation
+        if (!formData.company.trim() || !formData.title.trim() || !formData.startDate) {
+            setError('Please fill in all required fields');
+            logger.warn('[ExperienceForm] Validation failed - missing required fields');
+            return;
+        }
+
+        logger.startOperation('ExperienceForm:submit');
         setLoading(true);
+        setError('');
+
         try {
             await onSubmit({
                 ...formData,
@@ -39,6 +59,10 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
                 highlights: formData.highlights.split('\n').filter(h => h.trim()),
                 keywords: formData.keywords.split(',').map(k => k.trim()).filter(Boolean),
             });
+            logger.endOperation('ExperienceForm:submit');
+        } catch (err) {
+            logger.failOperation('ExperienceForm:submit', err);
+            setError('Failed to save experience. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -149,6 +173,10 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
                     placeholder="React, TypeScript, Leadership (comma separated)"
                 />
             </div>
+
+            {error && (
+                <p className="text-sm text-red-600">{error}</p>
+            )}
 
             <div className="flex gap-3 pt-4">
                 <button
