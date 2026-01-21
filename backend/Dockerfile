@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install -y \
     libcairo2 \
     libglib2.0-0 \
     fonts-liberation \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy from builder
@@ -54,9 +55,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Expose port
 EXPOSE 8000
 
-# Health check
+# Health check (use 0.0.0.0 since uvicorn binds to all interfaces)
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+    CMD curl --fail http://0.0.0.0:8000/health || exit 1
 
 # Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
