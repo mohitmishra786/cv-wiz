@@ -1,6 +1,9 @@
 /**
  * Resume/CV Upload API Route
- * Forwards uploads to backend for parsing and extracts structured data
+ * Forwards uploads to backend for parsing - NO MOCK DATA FALLBACK
+ * 
+ * This route acts as a proxy to the backend parsing service.
+ * All parsing is done server-side for reliability.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -17,138 +20,203 @@ export async function POST(request: NextRequest) {
 
     try {
         // Check authentication
-        logger.info('Authenticating user for file upload');
+        logger.info('[Upload] Authenticating user');
         const session = await auth();
 
         if (!session?.user?.id) {
-            logger.warn('Upload failed - no session');
+            logger.warn('[Upload] Authentication failed - no session');
             logAuthOperation('upload:unauthorized', undefined, false);
-            return NextResponse.json({ error: 'Unauthorized', requestId }, { status: 401 });
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Unauthorized. Please sign in to upload files.',
+                    requestId
+                },
+                { status: 401 }
+            );
         }
 
         const userId = session.user.id;
-        logger.info('User authenticated for upload', { requestId, userId });
+        logger.info('[Upload] User authenticated', { requestId, userId });
         logAuthOperation('upload:authenticated', userId, true);
 
+        // Parse the multipart form data
         const formData = await request.formData();
         const file = formData.get('file') as File;
-        const type = formData.get('type') as string || 'resume';
+        const fileType = formData.get('type') as string || 'resume';
 
         if (!file) {
-            logger.warn('Upload failed - no file provided', { requestId, userId });
-            return NextResponse.json({ error: 'No file provided', requestId }, { status: 400 });
+            logger.warn('[Upload] No file provided', { requestId, userId });
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'No file provided. Please select a file to upload.',
+                    requestId
+                },
+                { status: 400 }
+            );
         }
 
-        logger.info('Processing uploaded file', {
+        logger.info('[Upload] Processing file', {
             requestId,
             userId,
             filename: file.name,
             filetype: file.type,
             filesize: file.size,
-            uploadType: type,
+            uploadType: fileType,
         });
 
-        // Forward to backend for parsing
-        logger.info('Forwarding file to backend for parsing', { requestId, userId });
-
+        // Prepare form data for backend
         const backendFormData = new FormData();
         backendFormData.append('file', file);
+        backendFormData.append('file_type', fileType);
+
+        // Forward to backend for parsing
+        logger.info('[Upload] Forwarding to backend', {
+            requestId,
+            userId,
+            backendUrl: `${BACKEND_URL}/api/upload/resume`,
+        });
+
+        let backendResponse: Response;
 
         try {
-            const backendResponse = await fetch(`${BACKEND_URL}/api/upload/resume`, {
+            backendResponse = await fetch(`${BACKEND_URL}/api/upload/resume`, {
                 method: 'POST',
                 body: backendFormData,
+                headers: {
+                    'X-Request-ID': requestId,
+                },
             });
+        } catch (fetchError) {
+            // Network error - backend unreachable
+            const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+            const errorStack = fetchError instanceof Error ? fetchError.stack : undefined;
 
-            if (!backendResponse.ok) {
-                const errorText = await backendResponse.text();
-                logger.error('Backend parsing failed', {
-                    requestId,
-                    userId,
-                    status: backendResponse.status,
-                    error: errorText,
-                });
-
-                // Fall back to mock data if backend fails
-                logger.warn('Falling back to mock data', { requestId, userId });
-                return NextResponse.json({
-                    success: true,
-                    data: getMockData(type),
-                    warning: 'Backend parsing unavailable. Please enter data manually.',
-                    requestId,
-                });
-            }
-
-            const backendData = await backendResponse.json();
-
-            logger.info('Backend parsing successful', {
+            logger.error('[Upload] Backend connection failed', {
                 requestId,
                 userId,
-                hasExperiences: !!backendData.data?.experiences?.length,
-                hasSkills: !!backendData.data?.skills?.length,
+                error: errorMessage,
+                stack: errorStack,
+                backendUrl: BACKEND_URL,
             });
 
-            logger.endOperation('upload:resume');
-
-            return NextResponse.json({
-                success: backendData.success,
-                data: backendData.data,
-                warning: backendData.data?.warning,
-                requestId,
-            });
-
-        } catch (backendError) {
-            logger.warn('Backend connection failed, using mock data', {
-                requestId,
-                userId,
-                error: backendError instanceof Error ? backendError.message : String(backendError),
-            });
-
-            // Return mock data if backend is unavailable
-            return NextResponse.json({
-                success: true,
-                data: getMockData(type),
-                warning: 'Resume parsing service unavailable. Please enter your details manually.',
-                requestId,
-            });
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: `Failed to connect to parsing service. Please ensure the backend server is running at ${BACKEND_URL}.`,
+                    details: {
+                        errorType: 'CONNECTION_ERROR',
+                        message: errorMessage,
+                        backendUrl: BACKEND_URL,
+                    },
+                    requestId,
+                },
+                { status: 503 }
+            );
         }
 
+        // Parse backend response
+        let backendData: Record<string, unknown>;
+
+        try {
+            backendData = await backendResponse.json();
+        } catch (parseError) {
+            const responseText = await backendResponse.text().catch(() => 'Unable to read response');
+
+            logger.error('[Upload] Failed to parse backend response', {
+                requestId,
+                userId,
+                status: backendResponse.status,
+                responsePreview: responseText.slice(0, 500),
+                parseError: parseError instanceof Error ? parseError.message : String(parseError),
+            });
+
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Invalid response from parsing service.',
+                    details: {
+                        errorType: 'PARSE_ERROR',
+                        status: backendResponse.status,
+                        responsePreview: responseText.slice(0, 200),
+                    },
+                    requestId,
+                },
+                { status: 502 }
+            );
+        }
+
+        // Handle non-OK response from backend
+        if (!backendResponse.ok) {
+            logger.error('[Upload] Backend returned error', {
+                requestId,
+                userId,
+                status: backendResponse.status,
+                error: backendData,
+            });
+
+            // Extract error message from backend response
+            const errorMessage = typeof backendData.detail === 'string'
+                ? backendData.detail
+                : (backendData.detail as Record<string, unknown>)?.message ||
+                backendData.error ||
+                'Failed to parse file';
+
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: String(errorMessage),
+                    details: backendData,
+                    requestId,
+                },
+                { status: backendResponse.status }
+            );
+        }
+
+        // Success - return parsed data
+        logger.info('[Upload] Parsing successful', {
+            requestId,
+            userId,
+            hasName: !!(backendData.data as Record<string, unknown>)?.name,
+            hasExperiences: !!((backendData.data as Record<string, unknown>)?.experiences as unknown[])?.length,
+            hasSkills: !!((backendData.data as Record<string, unknown>)?.skills as unknown[])?.length,
+            hasEducation: !!((backendData.data as Record<string, unknown>)?.education as unknown[])?.length,
+            extractionMethod: (backendData.data as Record<string, unknown>)?.extraction_method,
+        });
+
+        logger.endOperation('upload:resume');
+
+        return NextResponse.json({
+            success: true,
+            data: backendData.data,
+            requestId,
+        });
+
     } catch (error) {
-        logger.failOperation('upload:resume', error);
-        logger.error('Upload error details', {
+        // Unexpected error in the route handler
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+
+        logger.error('[Upload] Unexpected error in upload handler', {
             requestId,
             errorType: error instanceof Error ? error.constructor.name : typeof error,
-            errorMessage: error instanceof Error ? error.message : String(error),
+            errorMessage,
+            stack: errorStack,
         });
+        logger.failOperation('upload:resume', error);
 
         return NextResponse.json(
             {
-                error: 'Failed to process file',
+                success: false,
+                error: 'An unexpected error occurred while processing your file.',
+                details: process.env.NODE_ENV !== 'production' ? {
+                    errorType: error instanceof Error ? error.constructor.name : typeof error,
+                    message: errorMessage,
+                } : undefined,
                 requestId,
-                debug: process.env.NODE_ENV !== 'production' ? {
-                    message: error instanceof Error ? error.message : String(error),
-                } : undefined
             },
             { status: 500 }
         );
     }
-}
-
-function getMockData(type: string) {
-    if (type === 'cover-letter') {
-        return {
-            content: '',
-            message: 'Cover letter parsing is not yet implemented. Please enter your content manually.',
-        };
-    }
-
-    return {
-        name: '',
-        email: '',
-        phone: '',
-        experiences: [],
-        education: [],
-        skills: [],
-        message: 'Resume parsing is temporarily unavailable. Please enter your details manually.',
-    };
 }

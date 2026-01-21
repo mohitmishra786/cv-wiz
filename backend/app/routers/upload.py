@@ -1,11 +1,13 @@
 """
 Resume Upload Router
-API endpoint for uploading and parsing resume files.
+API endpoint for uploading and parsing resume/cover letter files.
 """
 
 import time
-from fastapi import APIRouter, HTTPException, UploadFile, File
+import traceback
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
+from typing import Optional
 
 from app.services.resume_parser import resume_parser
 from app.utils.logger import logger, get_request_id
@@ -18,17 +20,53 @@ router = APIRouter()
 ALLOWED_TYPES = {
     "application/pdf": ".pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+    "text/plain": ".txt",
+    "text/markdown": ".md",
 }
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+# Also allow by extension for files where MIME type detection fails
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt", ".md", ".markdown"}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+
+def validate_file(file: UploadFile, request_id: str) -> None:
+    """Validate file type and return file extension."""
+    filename = file.filename or ""
+    extension = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    
+    # Check by content type first
+    content_type_valid = file.content_type in ALLOWED_TYPES
+    
+    # Also check by extension
+    extension_valid = extension in ALLOWED_EXTENSIONS
+    
+    if not content_type_valid and not extension_valid:
+        logger.warning("[Upload] Invalid file type", {
+            "request_id": request_id,
+            "content_type": file.content_type,
+            "extension": extension,
+            "allowed_types": list(ALLOWED_TYPES.keys()),
+            "allowed_extensions": list(ALLOWED_EXTENSIONS),
+        })
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type '{extension}' (MIME: {file.content_type}). Allowed: PDF, DOCX, TXT, MD",
+        )
 
 
 @router.post("/upload/resume")
-async def upload_resume(file: UploadFile = File(...)) -> JSONResponse:
+async def upload_resume(
+    file: UploadFile = File(...),
+    file_type: Optional[str] = Form(default="resume"),
+) -> JSONResponse:
     """
     Upload and parse a resume file.
     
-    Accepts PDF and DOCX files up to 5MB.
-    Returns structured resume data including experiences, education, and skills.
+    Accepts PDF, DOCX, TXT, and MD files up to 10MB.
+    Returns structured resume data including experiences, education, skills, and projects.
+    
+    Args:
+        file: The uploaded file
+        file_type: "resume" or "cover-letter"
     """
     request_id = get_request_id()
     start_time = time.time()
@@ -37,20 +75,12 @@ async def upload_resume(file: UploadFile = File(...)) -> JSONResponse:
         "request_id": request_id,
         "filename": file.filename,
         "content_type": file.content_type,
+        "file_type": file_type,
     })
     
     try:
         # Validate file type
-        if file.content_type not in ALLOWED_TYPES:
-            logger.warning("[Upload] Invalid file type", {
-                "request_id": request_id,
-                "content_type": file.content_type,
-                "allowed": list(ALLOWED_TYPES.keys()),
-            })
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid file type. Allowed types: PDF, DOCX",
-            )
+        validate_file(file, request_id)
         
         # Read file content
         content = await file.read()
@@ -60,6 +90,7 @@ async def upload_resume(file: UploadFile = File(...)) -> JSONResponse:
             "request_id": request_id,
             "filename": file.filename,
             "size_bytes": file_size,
+            "file_type": file_type,
         })
         
         # Validate file size
@@ -71,7 +102,7 @@ async def upload_resume(file: UploadFile = File(...)) -> JSONResponse:
             })
             raise HTTPException(
                 status_code=400,
-                detail=f"File too large. Maximum size is {MAX_FILE_SIZE // 1024 // 1024}MB",
+                detail=f"File too large ({file_size // 1024 // 1024}MB). Maximum size is {MAX_FILE_SIZE // 1024 // 1024}MB",
             )
         
         if file_size == 0:
@@ -81,13 +112,18 @@ async def upload_resume(file: UploadFile = File(...)) -> JSONResponse:
                 detail="File is empty",
             )
         
-        # Parse the resume
-        logger.info("[Upload] Starting resume parsing", {
+        # Parse the file
+        logger.info("[Upload] Starting file parsing", {
             "request_id": request_id,
             "filename": file.filename,
+            "file_type": file_type,
         })
         
-        result = await resume_parser.parse_file(content, file.filename)
+        result = await resume_parser.parse_file(
+            content, 
+            file.filename or "unknown",
+            file_type=file_type or "resume",
+        )
         
         duration_ms = (time.time() - start_time) * 1000
         
@@ -102,6 +138,7 @@ async def upload_resume(file: UploadFile = File(...)) -> JSONResponse:
                 content={
                     "success": False,
                     "error": result["error"],
+                    "data": result,
                     "request_id": request_id,
                 },
             )
@@ -109,9 +146,11 @@ async def upload_resume(file: UploadFile = File(...)) -> JSONResponse:
         logger.end_operation("upload_resume", duration_ms, {
             "request_id": request_id,
             "filename": file.filename,
+            "file_type": file_type,
             "experiences_count": len(result.get("experiences", [])),
             "skills_count": len(result.get("skills", [])),
             "education_count": len(result.get("education", [])),
+            "extraction_method": result.get("extraction_method"),
         })
         
         return JSONResponse(
@@ -127,11 +166,49 @@ async def upload_resume(file: UploadFile = File(...)) -> JSONResponse:
         raise
     except Exception as e:
         duration_ms = (time.time() - start_time) * 1000
+        error_traceback = traceback.format_exc()
+        
+        logger.error("[Upload] Unexpected error", {
+            "request_id": request_id,
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "traceback": error_traceback,
+            "duration_ms": round(duration_ms, 2),
+        })
         logger.fail_operation("upload_resume", e, {
             "request_id": request_id,
             "duration_ms": round(duration_ms, 2),
         })
+        
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to process resume: {str(e)}",
+            detail={
+                "message": f"Failed to process file: {str(e)}",
+                "error_type": type(e).__name__,
+                "request_id": request_id,
+            },
         )
+
+
+@router.post("/parse-resume")
+async def parse_resume_alt(
+    file: UploadFile = File(...),
+) -> JSONResponse:
+    """
+    Alternative endpoint for resume parsing (for compatibility).
+    Same functionality as /upload/resume.
+    """
+    return await upload_resume(file=file, file_type="resume")
+
+
+@router.post("/parse-cover-letter")
+async def parse_cover_letter(
+    file: UploadFile = File(...),
+) -> JSONResponse:
+    """
+    Parse a cover letter file and extract the text content.
+    
+    Accepts PDF, DOCX, TXT, and MD files.
+    Returns the text content of the cover letter.
+    """
+    return await upload_resume(file=file, file_type="cover-letter")

@@ -140,6 +140,47 @@ export default function CoverLetterSection() {
                         </div>
                     </div>
 
+                    {/* File Upload Option */}
+                    <div className="border border-dashed border-gray-300 rounded-lg p-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Upload from file (optional)</label>
+                        <input
+                            type="file"
+                            accept=".pdf,.docx,.doc,.txt,.md"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+
+                                logger.info('[CoverLetterSection] Uploading file', { filename: file.name });
+                                setError('');
+
+                                try {
+                                    const formData = new FormData();
+                                    formData.append('file', file);
+                                    formData.append('type', 'cover-letter');
+
+                                    const response = await fetch('/api/profile/upload', {
+                                        method: 'POST',
+                                        body: formData,
+                                    });
+
+                                    const data = await response.json();
+
+                                    if (data.success && data.data?.content) {
+                                        setContent(data.data.content);
+                                        logger.info('[CoverLetterSection] File content extracted', { wordCount: data.data.word_count });
+                                    } else if (data.error) {
+                                        setError(data.error);
+                                    }
+                                } catch (err) {
+                                    logger.error('[CoverLetterSection] File upload failed', { error: err });
+                                    setError('Failed to upload file. Please try again or paste your content manually.');
+                                }
+                            }}
+                            className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Supports PDF, DOCX, TXT, or MD files</p>
+                    </div>
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Cover Letter Content *</label>
                         <textarea
