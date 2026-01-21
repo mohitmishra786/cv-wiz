@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.env.local
+.env.*.local
+
+# Next.js
+.next/
+out/
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Extension build
+extension/dist/

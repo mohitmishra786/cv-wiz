@@ -1,0 +1,451 @@
+/**
+ * CV-Wiz Popup Styles
+ * Modern, clean UI for the extension popup
+ */
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 360px;
+  min-height: 400px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1a1a2e;
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+}
+
+/* ============================================
+   Header
+   ============================================ */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.auth-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.auth-status.logged-in {
+  opacity: 1;
+}
+
+.user-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================
+   Main Content
+   ============================================ */
+
+.main {
+  flex: 1;
+  padding: 16px;
+}
+
+.section {
+  animation: fadeIn 0.3s ease;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  min-height: 280px;
+}
+
+.empty-state svg {
+  color: #9ca3af;
+  margin-bottom: 16px;
+}
+
+.empty-state h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #374151;
+}
+
+.empty-state p {
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+/* Job Card */
+.job-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.job-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.job-company {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.job-preview {
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.6;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* Template Selection */
+.template-section {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #1a1a2e;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 8px center;
+  background-repeat: no-repeat;
+  background-size: 20px;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* ============================================
+   Loading State
+   ============================================ */
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  text-align: center;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.loading p {
+  color: #6b7280;
+}
+
+/* ============================================
+   Results
+   ============================================ */
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  background: #f9fafb;
+}
+
+.tab.active {
+  color: #667eea;
+  border-color: #667eea;
+  background: #f0f2ff;
+}
+
+.result-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.result-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cover-letter-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #374151;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.btn-secondary:hover {
+  background: #f0f2ff;
+}
+
+.btn-sm {
+  padding: 8px 14px;
+  font-size: 12px;
+}
+
+.btn-link {
+  background: none;
+  color: #6b7280;
+  padding: 8px 0;
+}
+
+.btn-link:hover {
+  color: #667eea;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-icon:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   Footer
+   ============================================ */
+
+.footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  font-size: 12px;
+  border-top: 1px solid #e5e7eb;
+  background: white;
+}
+
+.footer a {
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: #667eea;
+}
+
+.divider {
+  color: #d1d5db;
+}
+
+/* ============================================
+   Notification
+   ============================================ */
+
+.notification {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  animation: slideDown 0.3s ease;
+  z-index: 1000;
+}
+
+.notification.success {
+  background: #10b981;
+  color: white;
+}
+
+.notification.error {
+  background: #ef4444;
+  color: white;
+}
+
+.notification.fade-out {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   Scrollbar
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

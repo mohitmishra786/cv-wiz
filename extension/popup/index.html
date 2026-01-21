@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CV-Wiz</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        <span>CV-Wiz</span>
+      </div>
+      <div id="auth-status" class="auth-status"></div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Login Prompt (shown when not authenticated) -->
+      <section id="login-prompt" class="section hidden">
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <h2>Welcome to CV-Wiz</h2>
+          <p>Log in to generate tailored resumes and cover letters</p>
+          <button id="login-btn" class="btn btn-primary">
+            Log In / Sign Up
+          </button>
+        </div>
+      </section>
+
+      <!-- No Job Detected -->
+      <section id="no-job" class="section hidden">
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+          </svg>
+          <h2>No Job Detected</h2>
+          <p>Navigate to a job listing page on LinkedIn, Indeed, or other supported sites</p>
+          <button id="extract-btn" class="btn btn-secondary">
+            Try to Extract
+          </button>
+        </div>
+      </section>
+
+      <!-- Job Details & Actions -->
+      <section id="job-section" class="section hidden">
+        <div class="job-card">
+          <h3 id="job-title" class="job-title">Loading...</h3>
+          <p id="job-company" class="job-company"></p>
+          <p id="job-preview" class="job-preview"></p>
+        </div>
+
+        <div class="actions">
+          <button id="compile-btn" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Generate Resume
+          </button>
+          <button id="cover-letter-btn" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Generate Cover Letter
+          </button>
+        </div>
+
+        <!-- Template Selection -->
+        <div class="template-section">
+          <label class="label">Resume Template</label>
+          <select id="template-select" class="select">
+            <option value="experience-skills-projects">Experience + Skills + Projects</option>
+            <option value="education-research-skills">Education + Research + Skills</option>
+            <option value="projects-skills-experience">Projects + Skills + Experience</option>
+            <option value="compact-technical">Compact Technical</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Loading State -->
+      <section id="loading" class="section hidden">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p id="loading-text">Generating your resume...</p>
+        </div>
+      </section>
+
+      <!-- Results -->
+      <section id="results" class="section hidden">
+        <div class="tabs">
+          <button id="tab-resume" class="tab active">Resume</button>
+          <button id="tab-cover" class="tab">Cover Letter</button>
+        </div>
+
+        <!-- Resume Result -->
+        <div id="resume-result" class="result-panel">
+          <div class="result-actions">
+            <button id="download-pdf-btn" class="btn btn-sm btn-primary">
+              Download PDF
+            </button>
+            <button id="view-pdf-btn" class="btn btn-sm btn-secondary">
+              View PDF
+            </button>
+          </div>
+          <div id="resume-preview" class="preview"></div>
+        </div>
+
+        <!-- Cover Letter Result -->
+        <div id="cover-result" class="result-panel hidden">
+          <div class="result-actions">
+            <button id="copy-cover-btn" class="btn btn-sm btn-primary">
+              Copy to Clipboard
+            </button>
+          </div>
+          <div id="cover-letter-text" class="cover-letter-text"></div>
+        </div>
+
+        <button id="back-btn" class="btn btn-link">
+          ← Back to Job
+        </button>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <a href="#" id="profile-link">Manage Profile</a>
+      <span class="divider">•</span>
+      <a href="#" id="settings-link">Settings</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

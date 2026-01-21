@@ -1,0 +1,67 @@
+{
+    "manifest_version": 3,
+    "name": "CV-Wiz Resume Compiler",
+    "version": "1.0.0",
+    "description": "Automatically compile tailored resumes and cover letters for job applications",
+    "icons": {
+        "16": "assets/icon16.png",
+        "48": "assets/icon48.png",
+        "128": "assets/icon128.png"
+    },
+    "permissions": [
+        "activeTab",
+        "storage"
+    ],
+    "host_permissions": [
+        "*://*.linkedin.com/*",
+        "*://*.indeed.com/*",
+        "*://*.glassdoor.com/*",
+        "*://*.greenhouse.io/*",
+        "*://*.lever.co/*",
+        "*://*.workday.com/*",
+        "*://*.ziprecruiter.com/*",
+        "*://*.monster.com/*"
+    ],
+    "background": {
+        "service_worker": "background/service-worker.js",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://*.linkedin.com/jobs/*",
+                "*://*.indeed.com/viewjob*",
+                "*://*.indeed.com/job/*",
+                "*://*.glassdoor.com/job-listing/*",
+                "*://*.greenhouse.io/jobs/*",
+                "*://*.lever.co/*",
+                "*://*.workday.com/*/job/*",
+                "*://*.ziprecruiter.com/jobs/*",
+                "*://*.monster.com/job-openings/*"
+            ],
+            "js": [
+                "content/job-extractor.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
+    "action": {
+        "default_popup": "popup/index.html",
+        "default_icon": {
+            "16": "assets/icon16.png",
+            "48": "assets/icon48.png",
+            "128": "assets/icon128.png"
+        },
+        "default_title": "CV-Wiz"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "lib/*"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ]
+}

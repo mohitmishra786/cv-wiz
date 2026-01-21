@@ -1,0 +1,181 @@
+// Prisma Schema for CV-Wiz
+// Career Resume Compiler Database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// NextAuth.js Models
+// ============================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// User Model (Extended for CV-Wiz)
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // CV-Wiz Profile Relations
+  experiences  Experience[]
+  projects     Project[]
+  educations   Education[]
+  skills       Skill[]
+  publications Publication[]
+  settings     UserSettings?
+}
+
+// ============================================
+// Career Data Models
+// ============================================
+
+model Experience {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     String
+  title       String
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  current     Boolean   @default(false)
+  description String    @db.Text
+  highlights  String[]  @default([])
+  keywords    String[]  @default([])
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Project {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  description  String    @db.Text
+  url          String?
+  startDate    DateTime?
+  endDate      DateTime?
+  technologies String[]  @default([])
+  highlights   String[]  @default([])
+  order        Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Education {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution String
+  degree      String
+  field       String
+  startDate   DateTime
+  endDate     DateTime?
+  gpa         Float?
+  honors      String[]  @default([])
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  category    String   // e.g., "Programming", "Tools", "Soft Skills"
+  proficiency String?  // e.g., "Expert", "Intermediate", "Beginner"
+  yearsExp    Int?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@unique([userId, name])
+}
+
+model Publication {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  venue     String   // Journal/Conference name
+  authors   String[]
+  date      DateTime
+  url       String?
+  doi       String?
+  abstract  String?  @db.Text
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model UserSettings {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  selectedTemplate  String   @default("experience-skills-projects")
+  resumePreferences Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
