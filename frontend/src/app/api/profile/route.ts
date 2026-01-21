@@ -7,25 +7,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
 
 /**
  * GET /api/profile
  * Returns the complete profile for the authenticated user
  */
 export async function GET(request: NextRequest) {
+    const requestId = getOrCreateRequestId(request.headers);
+    const logger = createRequestLogger(requestId);
+
+    logger.startOperation('profile:get');
+
     try {
+        logger.info('Authenticating user for profile fetch', { requestId });
         const session = await auth();
 
         if (!session?.user?.id) {
+            logger.warn('Profile fetch failed - no session', { requestId });
+            logAuthOperation('profile:get:unauthorized', undefined, false);
             return NextResponse.json(
-                { error: 'Unauthorized' },
+                { error: 'Unauthorized', requestId },
                 { status: 401 }
             );
         }
 
         const userId = session.user.id;
+        logger.info('User authenticated', { requestId, userId });
+        logAuthOperation('profile:get:authenticated', userId, true);
 
         // Fetch complete profile with all relations
+        logger.info('Fetching profile from database', { requestId, userId });
+        logDbOperation('findUnique', 'User', { userId, includeRelations: true });
+
         const user = await prisma.user.findUnique({
             where: { id: userId },
             include: {
@@ -49,11 +63,23 @@ export async function GET(request: NextRequest) {
         });
 
         if (!user) {
+            logger.error('User not found in database', { requestId, userId });
             return NextResponse.json(
-                { error: 'User not found' },
+                { error: 'User not found', requestId },
                 { status: 404 }
             );
         }
+
+        logger.info('Profile fetched successfully', {
+            requestId,
+            userId,
+            experiencesCount: user.experiences.length,
+            projectsCount: user.projects.length,
+            educationsCount: user.educations.length,
+            skillsCount: user.skills.length,
+            publicationsCount: user.publications.length,
+            hasSettings: !!user.settings,
+        });
 
         // Transform to API response format
         const profile = {
@@ -69,11 +95,26 @@ export async function GET(request: NextRequest) {
             settings: user.settings,
         };
 
-        return NextResponse.json(profile);
+        logger.endOperation('profile:get');
+
+        return NextResponse.json({ ...profile, requestId });
     } catch (error) {
-        console.error('Profile GET error:', error);
+        logger.failOperation('profile:get', error);
+        logger.error('Profile GET error details', {
+            requestId,
+            errorType: error instanceof Error ? error.constructor.name : typeof error,
+            errorMessage: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5) : undefined,
+        });
+
         return NextResponse.json(
-            { error: 'Internal server error' },
+            {
+                error: 'Internal server error',
+                requestId,
+                debug: process.env.NODE_ENV !== 'production' ? {
+                    message: error instanceof Error ? error.message : String(error),
+                } : undefined
+            },
             { status: 500 }
         );
     }
@@ -84,23 +125,44 @@ export async function GET(request: NextRequest) {
  * Update user profile fields
  */
 export async function PUT(request: NextRequest) {
+    const requestId = getOrCreateRequestId(request.headers);
+    const logger = createRequestLogger(requestId);
+
+    logger.startOperation('profile:update');
+
     try {
+        logger.info('Authenticating user for profile update', { requestId });
         const session = await auth();
 
         if (!session?.user?.id) {
+            logger.warn('Profile update failed - no session', { requestId });
+            logAuthOperation('profile:update:unauthorized', undefined, false);
             return NextResponse.json(
-                { error: 'Unauthorized' },
+                { error: 'Unauthorized', requestId },
                 { status: 401 }
             );
         }
 
         const userId = session.user.id;
+        logger.info('User authenticated for update', { requestId, userId });
+        logAuthOperation('profile:update:authenticated', userId, true);
+
         const body = await request.json();
+        logger.debug('Profile update request body', {
+            requestId,
+            userId,
+            fields: Object.keys(body),
+            hasName: 'name' in body,
+            hasImage: 'image' in body,
+        });
 
         // Extract updateable fields
         const { name, image } = body;
 
         // Update user
+        logger.info('Updating user in database', { requestId, userId, fields: { name: !!name, image: !!image } });
+        logDbOperation('update', 'User', { userId, fields: Object.keys(body) });
+
         const updatedUser = await prisma.user.update({
             where: { id: userId },
             data: {
@@ -116,11 +178,32 @@ export async function PUT(request: NextRequest) {
             },
         });
 
-        return NextResponse.json(updatedUser);
+        logger.info('Profile updated successfully', {
+            requestId,
+            userId,
+            updatedFields: Object.keys(body),
+        });
+
+        logger.endOperation('profile:update');
+
+        return NextResponse.json({ ...updatedUser, requestId });
     } catch (error) {
-        console.error('Profile PUT error:', error);
+        logger.failOperation('profile:update', error);
+        logger.error('Profile PUT error details', {
+            requestId,
+            errorType: error instanceof Error ? error.constructor.name : typeof error,
+            errorMessage: error instanceof Error ? error.message : String(error),
+            code: (error as { code?: string }).code,
+        });
+
         return NextResponse.json(
-            { error: 'Internal server error' },
+            {
+                error: 'Internal server error',
+                requestId,
+                debug: process.env.NODE_ENV !== 'production' ? {
+                    message: error instanceof Error ? error.message : String(error),
+                } : undefined
+            },
             { status: 500 }
         );
     }

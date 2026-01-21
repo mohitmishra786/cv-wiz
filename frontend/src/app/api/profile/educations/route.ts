@@ -5,47 +5,98 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import prisma from '@/lib/prisma';
 
-export async function GET() {
+import prisma from '@/lib/prisma';
+import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
+
+export async function GET(request: NextRequest) {
+    const requestId = getOrCreateRequestId(request.headers);
+    const logger = createRequestLogger(requestId);
+
+    logger.startOperation('educations:list');
+
     try {
+        logger.info('Authenticating user for educations list');
         const session = await auth();
+
         if (!session?.user?.id) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            logger.warn('Educations list failed - no session');
+            logAuthOperation('educations:list:unauthorized', undefined, false);
+            return NextResponse.json({ error: 'Unauthorized', requestId }, { status: 401 });
         }
 
+        const userId = session.user.id;
+        logger.info('Fetching educations', { requestId, userId });
+        logDbOperation('findMany', 'Education', { userId });
+
         const educations = await prisma.education.findMany({
-            where: { userId: session.user.id },
+            where: { userId },
             orderBy: { startDate: 'desc' },
         });
 
-        return NextResponse.json(educations);
+        logger.info('Educations fetched successfully', {
+            requestId,
+            userId,
+            count: educations.length,
+            degrees: educations.map(e => e.degree),
+        });
+
+        logger.endOperation('educations:list');
+        return NextResponse.json({ data: educations, requestId });
     } catch (error) {
-        console.error('Educations GET error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        logger.failOperation('educations:list', error);
+        return NextResponse.json({ error: 'Internal server error', requestId }, { status: 500 });
     }
 }
 
 export async function POST(request: NextRequest) {
+    const requestId = getOrCreateRequestId(request.headers);
+    const logger = createRequestLogger(requestId);
+
+    logger.startOperation('educations:create');
+
     try {
         const session = await auth();
         if (!session?.user?.id) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            logger.warn('Education create failed - no session');
+            logAuthOperation('educations:create:unauthorized', undefined, false);
+            return NextResponse.json({ error: 'Unauthorized', requestId }, { status: 401 });
         }
 
+        const userId = session.user.id;
         const body = await request.json();
         const { institution, degree, field, startDate, endDate, gpa, honors } = body;
 
+        logger.info('Creating education', {
+            requestId,
+            userId,
+            institution: institution || 'missing',
+            degree: degree || 'missing',
+            field: field || 'missing',
+        });
+
         if (!institution || !degree || !field || !startDate) {
+            logger.warn('Education create validation  failed', {
+                requestId,
+                userId,
+                missingFields: [
+                    !institution && 'institution',
+                    !degree && 'degree',
+                    !field && 'field',
+                    !startDate && 'startDate',
+                ].filter(Boolean),
+            });
             return NextResponse.json(
-                { error: 'Institution, degree, field, and start date are required' },
+                { error: 'Institution, degree, field, and start date are required', requestId },
                 { status: 400 }
             );
         }
 
+        logDbOperation('create', 'Education', { userId, institution, degree, field });
+
         const education = await prisma.education.create({
             data: {
-                userId: session.user.id,
+                userId,
                 institution,
                 degree,
                 field,
@@ -56,34 +107,64 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        return NextResponse.json(education, { status: 201 });
+        logger.info('Education created successfully', {
+            requestId,
+            userId,
+            educationId: education.id,
+            institution: education.institution,
+            degree: education.degree,
+        });
+
+        logger.endOperation('educations:create');
+        return NextResponse.json({ data: education, requestId }, { status: 201 });
     } catch (error) {
-        console.error('Educations POST error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        logger.failOperation('educations:create', error);
+        return NextResponse.json({ error: 'Internal server error', requestId }, { status: 500 });
     }
 }
 
 export async function PUT(request: NextRequest) {
+    const requestId = getOrCreateRequestId(request.headers);
+    const logger = createRequestLogger(requestId);
+
+    logger.startOperation('educations:update');
+
     try {
         const session = await auth();
         if (!session?.user?.id) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            logger.warn('Education update failed - no session');
+            logAuthOperation('educations:update:unauthorized', undefined, false);
+            return NextResponse.json({ error: 'Unauthorized', requestId }, { status: 401 });
         }
 
+        const userId = session.user.id;
         const body = await request.json();
         const { id, ...data } = body;
 
         if (!id) {
-            return NextResponse.json({ error: 'Education ID is required' }, { status: 400 });
+            logger.warn('Education update failed - no ID', { requestId, userId });
+            return NextResponse.json({ error: 'Education ID is required', requestId }, { status: 400 });
         }
 
+        logger.info('Verifying education ownership', { requestId, userId, educationId: id });
+        logDbOperation('findFirst', 'Education', { userId, id });
+
         const existing = await prisma.education.findFirst({
-            where: { id, userId: session.user.id },
+            where: { id, userId },
         });
 
         if (!existing) {
-            return NextResponse.json({ error: 'Education not found' }, { status: 404 });
+            logger.warn('Education not found or not owned', { requestId, userId, educationId: id });
+            return NextResponse.json({ error: 'Education not found', requestId }, { status: 404 });
         }
+
+        logger.info('Updating education', {
+            requestId,
+            userId,
+            educationId: id,
+            fields: Object.keys(data),
+        });
+        logDbOperation('update', 'Education', { userId, id, fields: Object.keys(data) });
 
         const education = await prisma.education.update({
             where: { id },
@@ -98,40 +179,61 @@ export async function PUT(request: NextRequest) {
             },
         });
 
-        return NextResponse.json(education);
+        logger.info('Education updated successfully', { requestId, userId, educationId: id });
+        logger.endOperation('educations:update');
+        return NextResponse.json({ data: education, requestId });
     } catch (error) {
-        console.error('Educations PUT error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        logger.failOperation('educations:update', error);
+        return NextResponse.json({ error: 'Internal server error', requestId }, { status: 500 });
     }
 }
 
 export async function DELETE(request: NextRequest) {
+    const requestId = getOrCreateRequestId(request.headers);
+    const logger = createRequestLogger(requestId);
+
+    logger.startOperation('educations:delete');
+
     try {
         const session = await auth();
         if (!session?.user?.id) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            logger.warn('Education delete failed - no session');
+            logAuthOperation('educations:delete:unauthorized', undefined, false);
+            return NextResponse.json({ error: 'Unauthorized', requestId }, { status: 401 });
         }
 
+        const userId = session.user.id;
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 
         if (!id) {
-            return NextResponse.json({ error: 'Education ID is required' }, { status: 400 });
+            logger.warn('Education delete failed - no ID', { requestId, userId });
+            return NextResponse.json({ error: 'Education ID is required', requestId }, { status: 400 });
         }
 
+        logger.info('Verifying education ownership for delete', { requestId, userId, educationId: id });
+        logDbOperation('findFirst', 'Education', { userId, id });
+
         const existing = await prisma.education.findFirst({
-            where: { id, userId: session.user.id },
+            where: { id, userId },
         });
 
         if (!existing) {
-            return NextResponse.json({ error: 'Education not found' }, { status: 404 });
+            logger.warn('Education not found or not owned for delete', { requestId, userId, educationId: id });
+            return NextResponse.json({ error: 'Education not found', requestId }, { status: 404 });
         }
+
+        logger.info('Deleting education', { requestId, userId, educationId: id, institution: existing.institution });
+        logDbOperation('delete', 'Education', { userId, id });
 
         await prisma.education.delete({ where: { id } });
 
-        return NextResponse.json({ message: 'Education deleted' });
+        logger.info('Education deleted successfully', { requestId, userId, educationId: id });
+        logger.endOperation('educations:delete');
+
+        return NextResponse.json({ message: 'Education deleted', requestId });
     } catch (error) {
-        console.error('Educations DELETE error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        logger.failOperation('educations:delete', error);
+        return NextResponse.json({ error: 'Internal server error', requestId }, { status: 500 });
     }
 }

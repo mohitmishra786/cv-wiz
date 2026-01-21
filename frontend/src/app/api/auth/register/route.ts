@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
         if (existingUser) {
             logger.warn('Registration failed: user already exists');
-            logAuthOperation('register:duplicate', undefined, existingUser.id);
+            logAuthOperation('register:duplicate', existingUser.id, false);
             return NextResponse.json(
                 { error: 'User with this email already exists', requestId },
                 { status: 409 }
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         }
 
         logger.info('User created successfully', { userId: user.id });
-        logAuthOperation('register:success', { userId: user.id }, user.id);
+        logAuthOperation('register:success', user.id, true);
 
         // Create default settings
         logger.info('Creating default user settings...');
