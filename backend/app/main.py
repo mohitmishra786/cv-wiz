@@ -93,11 +93,13 @@ async def lifespan(app: FastAPI):
     logger.info("[SHUTDOWN] CV-Wiz API shutdown complete")
 
 
+
 app = FastAPI(
     title="CV-Wiz API",
     description="Career Resume Compiler - Generate tailored resumes and cover letters",
     version="1.0.0",
     lifespan=lifespan,
+    root_path="/api/py",  # For Vercel deployment with Next.js rewrites
 )
 
 # Add logging middleware FIRST
