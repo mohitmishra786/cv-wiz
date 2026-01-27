@@ -48,9 +48,9 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
+       {/* Hero Section */}
+       <section className="pt-24 pb-16 px-4 sm:pt-32 sm:pb-20">
+         <div className="max-w-4xl mx-auto text-center px-4">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6" style={{
             background: 'var(--muted)',
             color: 'var(--primary)'
@@ -62,17 +62,17 @@ export default function Home() {
             Powered by AI
           </div>
 
-          <h1 className="text-5xl md:text-6xl font-bold leading-tight" style={{ color: 'var(--foreground)' }}>
-            Tailored Resumes for
-            <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent"> Every Job</span>
-          </h1>
+           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight" style={{ color: 'var(--foreground)' }}>
+             Tailored Resumes for
+             <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent"> Every Job</span>
+           </h1>
 
           <p className="mt-6 text-xl max-w-2xl mx-auto" style={{ color: 'var(--muted-foreground)' }}>
             Build your career profile once. Generate perfectly tailored resumes and cover letters
             for each job application with one click.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
+           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 sm:mt-10">
             <Link
               href="/register"
               className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all text-lg"
@@ -94,9 +94,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4" style={{ background: 'var(--muted)' }}>
-        <div className="max-w-6xl mx-auto">
+       {/* Features Section */}
+       <section id="features" className="py-16 px-4 sm:py-20" style={{ background: 'var(--muted)' }}>
+         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold" style={{ color: 'var(--foreground)' }}>
               How It Works
@@ -106,7 +106,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Step 1 */}
             <div className="relative p-6 rounded-2xl shadow-sm" style={{ background: 'var(--card)' }}>
               <div className="absolute -top-4 -left-4 w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white font-bold">
@@ -164,10 +164,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="py-20 px-4" style={{ background: 'var(--background)' }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-8">
+       {/* Features Grid */}
+       <section className="py-16 px-4 sm:py-20" style={{ background: 'var(--background)' }}>
+         <div className="max-w-6xl mx-auto px-4">
+           <div className="grid sm:grid-cols-2 gap-6 sm:gap-8">
             <div className="p-8 rounded-2xl shadow-sm border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
               <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
                 <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -220,9 +220,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4" style={{ background: 'var(--muted)' }}>
-        <div className="max-w-4xl mx-auto text-center">
+       {/* CTA Section */}
+       <section className="py-16 px-4 sm:py-20" style={{ background: 'var(--muted)' }}>
+         <div className="max-w-4xl mx-auto text-center px-4">
           <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-12">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Ready to Land Your Dream Job?
@@ -240,9 +240,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-4 border-t" style={{ borderColor: 'var(--border)', background: 'var(--background)' }}>
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+       {/* Footer */}
+       <footer className="py-8 px-4 sm:py-12 border-t" style={{ borderColor: 'var(--border)', background: 'var(--background)' }}>
+         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 px-4">
           <div className="flex items-center gap-3">
             <Image
               src="/logo.png"

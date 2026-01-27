@@ -77,30 +77,30 @@ export default function TemplatesPage() {
             {/* Header */}
             <header className="bg-white border-b border-gray-200">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href="/profile" className="text-gray-400 hover:text-gray-600">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                        </Link>
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                    <polyline points="14 2 14 8 20 8" />
-                                </svg>
-                            </div>
-                            <span className="text-xl font-bold text-gray-900">Resume Templates</span>
-                        </div>
-                    </div>
+                     <div className="flex items-center gap-2 sm:gap-4">
+                         <Link href="/profile" className="text-gray-400 hover:text-gray-600">
+                             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                             </svg>
+                         </Link>
+                         <div className="flex items-center gap-2 sm:gap-3">
+                             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                                 <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                     <polyline points="14 2 14 8 20 8" />
+                                 </svg>
+                             </div>
+                             <span className="text-lg sm:text-xl font-bold text-gray-900">Resume Templates</span>
+                         </div>
+                     </div>
 
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="px-5 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all disabled:opacity-50"
-                    >
-                        {saving ? 'Saving...' : 'Save Selection'}
-                    </button>
+                     <button
+                         onClick={handleSave}
+                         disabled={saving}
+                         className="px-4 py-2 sm:px-5 sm:py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all disabled:opacity-50 text-sm sm:text-base"
+                     >
+                         {saving ? 'Saving...' : 'Save Selection'}
+                     </button>
                 </div>
             </header>
 
@@ -113,7 +113,7 @@ export default function TemplatesPage() {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                 <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
                     {TEMPLATES.map((template) => (
                         <button
                             key={template.id}
@@ -133,7 +133,7 @@ export default function TemplatesPage() {
                             )}
 
                             {/* Template preview */}
-                            <div className={`w-full h-32 rounded-xl bg-gradient-to-br ${template.color} mb-4 p-4`}>
+                             <div className={`w-full h-24 sm:h-32 rounded-xl bg-gradient-to-br ${template.color} mb-4 p-3 sm:p-4`}>
                                 <div className="space-y-2">
                                     <div className="h-3 w-2/3 bg-white/30 rounded" />
                                     <div className="h-2 w-1/2 bg-white/20 rounded" />

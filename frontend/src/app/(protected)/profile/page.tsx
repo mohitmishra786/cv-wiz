@@ -315,51 +315,51 @@ export default function ProfilePage() {
                         </button>
                     </div>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100">
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{profile?.experiences?.length || 0}</div>
-                            <div className="text-sm text-gray-500">Experiences</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{profile?.projects?.length || 0}</div>
-                            <div className="text-sm text-gray-500">Projects</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{profile?.skills?.length || 0}</div>
-                            <div className="text-sm text-gray-500">Skills</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{profile?.educations?.length || 0}</div>
-                            <div className="text-sm text-gray-500">Education</div>
-                        </div>
+                 {/* Stats */}
+                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-gray-100">
+                         <div className="text-center">
+                             <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.experiences?.length || 0}</div>
+                             <div className="text-xs sm:text-sm text-gray-500">Experiences</div>
+                         </div>
+                         <div className="text-center">
+                             <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.projects?.length || 0}</div>
+                             <div className="text-xs sm:text-sm text-gray-500">Projects</div>
+                         </div>
+                         <div className="text-center">
+                             <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.skills?.length || 0}</div>
+                             <div className="text-xs sm:text-sm text-gray-500">Skills</div>
+                         </div>
+                         <div className="text-center">
+                             <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.educations?.length || 0}</div>
+                             <div className="text-xs sm:text-sm text-gray-500">Education</div>
+                         </div>
                     </div>
                 </div>
 
                 {/* Tabs */}
                 <div className="bg-white rounded-2xl shadow-sm">
                     <div className="border-b border-gray-200">
-                        <nav className="flex gap-4 px-6">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => {
-                                        logger.debug('[ProfilePage] Tab switched', { tab: tab.id });
-                                        setActiveTab(tab.id);
-                                    }}
-                                    className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                                        }`}
-                                >
-                                    {tab.label}
-                                    {tab.id !== 'cover-letters' && (
-                                        <span className="ml-2 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">
-                                            {tab.count}
-                                        </span>
-                                    )}
-                                </button>
-                            ))}
+                         <nav className="flex gap-2 sm:gap-4 px-4 sm:px-6 overflow-x-auto">
+                             {tabs.map((tab) => (
+                                 <button
+                                     key={tab.id}
+                                     onClick={() => {
+                                         logger.debug('[ProfilePage] Tab switched', { tab: tab.id });
+                                         setActiveTab(tab.id);
+                                     }}
+                                     className={`py-3 px-1 sm:px-2 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
+                                         ? 'border-indigo-500 text-indigo-600'
+                                         : 'border-transparent text-gray-500 hover:text-gray-700'
+                                         }`}
+                                 >
+                                     {tab.label}
+                                     {tab.id !== 'cover-letters' && (
+                                         <span className="ml-1 sm:ml-2 px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">
+                                             {tab.count}
+                                         </span>
+                                     )}
+                                 </button>
+                             ))}
                         </nav>
                     </div>
 
