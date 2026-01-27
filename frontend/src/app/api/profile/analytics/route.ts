@@ -10,16 +10,43 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
 
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-            experiences: true,
-            projects: true,
-            educations: true,
-            skills: true,
-            coverLetters: true,
-        }
-    });
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const [user, weeklyApplicationsCount] = await Promise.all([
+        prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                name: true,
+                image: true,
+                _count: {
+                    select: {
+                        experiences: true,
+                        projects: true,
+                        educations: true,
+                        skills: true,
+                        coverLetters: true,
+                    }
+                },
+                coverLetters: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 5,
+                    select: {
+                        id: true,
+                        jobTitle: true,
+                        companyName: true,
+                        createdAt: true,
+                    }
+                }
+            }
+        }),
+        prisma.coverLetter.count({
+            where: {
+                userId,
+                createdAt: { gte: sevenDaysAgo }
+            }
+        })
+    ]);
 
     if (!user) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -29,21 +56,22 @@ export async function GET(request: NextRequest) {
     let completeness = 0;
     if (user.name) completeness += 10;
     if (user.image) completeness += 5;
-    if (user.experiences.length > 0) completeness += 25;
-    if (user.educations.length > 0) completeness += 20;
-    if (user.skills.length > 0) completeness += 20;
-    if (user.projects.length > 0) completeness += 20;
+    if (user._count.experiences > 0) completeness += 25;
+    if (user._count.educations > 0) completeness += 20;
+    if (user._count.skills > 0) completeness += 20;
+    if (user._count.projects > 0) completeness += 20;
 
     // Cap at 100
     completeness = Math.min(completeness, 100);
 
     return NextResponse.json({
         completeness,
-        experienceCount: user.experiences.length,
-        projectCount: user.projects.length,
-        skillCount: user.skills.length,
-        educationCount: user.educations.length,
-        coverLetterCount: user.coverLetters.length,
+        experienceCount: user._count.experiences,
+        projectCount: user._count.projects,
+        skillCount: user._count.skills,
+        educationCount: user._count.educations,
+        coverLetterCount: user._count.coverLetters,
+        weeklyApplicationsCount,
         // Mock data for charts
         activity: [
             { name: 'Mon', applications: 2 },
@@ -54,7 +82,7 @@ export async function GET(request: NextRequest) {
             { name: 'Sat', applications: 1 },
             { name: 'Sun', applications: 0 },
         ],
-        recentActivity: user.coverLetters.slice(0, 5).map(cl => ({
+        recentActivity: user.coverLetters.map(cl => ({
             id: cl.id,
             type: 'Cover Letter',
             title: `Cover Letter for ${cl.jobTitle || 'Job Application'}`,

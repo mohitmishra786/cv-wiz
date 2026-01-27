@@ -31,12 +31,13 @@ interface AnalyticsData {
     skillCount: number;
     educationCount: number;
     coverLetterCount: number;
+    weeklyApplicationsCount: number;
     activity: ActivityData[];
     recentActivity: RecentActivity[];
 }
 
 export default function DashboardPage() {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     const { t } = useLanguage();
     const [data, setData] = useState<AnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -58,16 +59,22 @@ export default function DashboardPage() {
 
         if (session) {
             fetchData();
+        } else if (status !== 'loading') {
+            setLoading(false);
         }
-    }, [session]);
+    }, [session, status]);
 
     if (loading) {
         return <DashboardSkeleton />;
     }
 
     if (!data) {
-        return <div className="p-8 text-center text-red-500">Failed to load dashboard data.</div>;
+        return <div className="p-8 text-center text-red-500">Failed to load dashboard data. Please sign in.</div>;
     }
+
+    const applicationsTrend = data.weeklyApplicationsCount > 0 
+        ? `+${data.weeklyApplicationsCount} this week` 
+        : 'No apps this week';
 
     return (
         <div className="min-h-screen" style={{ background: 'var(--background)' }}>
@@ -163,7 +170,7 @@ export default function DashboardPage() {
                             </svg>
                         }
                         color="bg-blue-50"
-                        trend="+2 this week"
+                        trend={applicationsTrend}
                     />
                     <StatCard 
                         title="Skills" 
@@ -213,7 +220,7 @@ export default function DashboardPage() {
                                     <div className="relative w-full flex items-end justify-center h-48">
                                         <div 
                                             className="w-full max-w-[40px] bg-indigo-500 rounded-t-lg transition-all duration-500 hover:bg-indigo-600 relative group-hover:scale-105"
-                                            style={{ height: `${Math.max(item.applications * 20, 5)}%` }}
+                                            style={{ height: `${Math.min(Math.max(item.applications * 20, 5), 100)}%` }}
                                         >
                                             <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
                                                 {item.applications} Apps

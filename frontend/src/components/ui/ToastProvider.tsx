@@ -21,12 +21,17 @@ export function useToast() {
   return context;
 }
 
+const MAX_TOASTS = 5;
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: ToastType; duration?: number }>>([]);
 
   const addToast = useCallback((message: string, type: ToastType, duration = 3000) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    setToasts((prev) => [...prev, { id, message, type, duration }]);
+    const id = Math.random().toString(36).substring(2, 11);
+    setToasts((prev) => {
+      const newToasts = [...prev, { id, message, type, duration }];
+      return newToasts.slice(-MAX_TOASTS);
+    });
   }, []);
 
   const dismissToast = useCallback((id: string) => {

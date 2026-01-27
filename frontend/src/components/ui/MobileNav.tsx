@@ -81,6 +81,9 @@ export default function MobileNav() {
         </Link>
 
         <button
+          aria-expanded={isOpen}
+          aria-controls="mobile-nav-menu"
+          aria-haspopup="menu"
           className="flex flex-col items-center gap-1 text-gray-600 hover:text-indigo-600 transition-colors"
           style={{ color: 'var(--muted-foreground)' }}
           onClick={() => {
@@ -97,7 +100,11 @@ export default function MobileNav() {
 
       {/* Mobile menu dropdown */}
       {isOpen && (
-        <div className="absolute bottom-16 left-0 right-0 bg-white border-t border-gray-200 shadow-lg rounded-t-xl" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+        <div 
+          id="mobile-nav-menu"
+          className="absolute bottom-16 left-0 right-0 bg-white border-t border-gray-200 shadow-lg rounded-t-xl" 
+          style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+        >
           <div className="py-4 px-4 space-y-3">
             {session ? (
               <>

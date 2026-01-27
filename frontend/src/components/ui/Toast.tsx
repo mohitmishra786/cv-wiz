@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -14,22 +14,36 @@ export interface ToastProps {
 
 export default function Toast({ id, message, type, duration = 3000, onDismiss }: ToastProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const enterTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const autoDismissTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
     // Small delay to allow enter animation
-    const timer = setTimeout(() => setIsVisible(true), 10);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
+    enterTimerRef.current = setTimeout(() => setIsVisible(true), 10);
+    
+    // Auto-dismiss timer
+    autoDismissTimerRef.current = setTimeout(() => {
       setIsVisible(false);
-      // Wait for exit animation to finish before removing
-      setTimeout(() => onDismiss(id), 300);
+      exitTimerRef.current = setTimeout(() => onDismiss(id), 300);
     }, duration);
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
+      if (autoDismissTimerRef.current) clearTimeout(autoDismissTimerRef.current);
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    };
   }, [duration, id, onDismiss]);
+
+  const handleManualDismiss = () => {
+    // Cancel the auto-dismiss timer to prevent double onDismiss calls
+    if (autoDismissTimerRef.current) {
+      clearTimeout(autoDismissTimerRef.current);
+    }
+    setIsVisible(false);
+    // Set a short timer for the exit animation before calling onDismiss
+    exitTimerRef.current = setTimeout(() => onDismiss(id), 300);
+  };
 
   const bgColors = {
     success: 'bg-green-50 border-green-200 text-green-800',
@@ -68,21 +82,18 @@ export default function Toast({ id, message, type, duration = 3000, onDismiss }:
       } ${bgColors[type]}`}
       role="alert"
     >
-      <div className="inline-flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-lg bg-white bg-opacity-50">
+      <div className="inline-flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-lg bg-white/50">
         {icons[type]}
       </div>
       <div className="ml-3 text-sm font-medium break-words">{message}</div>
       <button
         type="button"
-        className={`ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 hover:bg-black hover:bg-opacity-5 focus:ring-2 focus:ring-gray-300 transition-colors ${
+        className={`ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 hover:bg-black/5 focus:ring-2 focus:ring-gray-300 transition-colors ${
             type === 'success' ? 'text-green-500' : 
             type === 'error' ? 'text-red-500' : 
             type === 'warning' ? 'text-yellow-500' : 'text-blue-500'
         }`}
-        onClick={() => {
-          setIsVisible(false);
-          setTimeout(() => onDismiss(id), 300);
-        }}
+        onClick={handleManualDismiss}
         aria-label="Close"
       >
         <span className="sr-only">Close</span>
