@@ -4,7 +4,8 @@ Validates JWT tokens for protected endpoints.
 """
 
 from typing import Optional
-from jose import jwt, JWTError
+import jwt
+from jwt.exceptions import PyJWTError as JWTError
 from fastapi import HTTPException, Header, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
