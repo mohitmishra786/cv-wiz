@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
         // Monorepo: construct absolute URL from request
         const protocol = request.headers.get('x-forwarded-proto') || 'http';
         const host = request.headers.get('host') || 'localhost:3000';
-        // Map /api/upload/resume -> /api/py/upload/resume
-        return `${protocol}://${host}/api/py${path}`;
+        // Map /api/upload/resume -> /upload/resume (backend has root_path=/api/py)
+        return `${protocol}://${host}${path}`;
     };
 
 
