@@ -11,6 +11,8 @@ interface TemplatePreviewProps {
     description: string;
     sections: string[];
     color: string;
+    category?: string;
+    bestFor?: string[];
     selected: boolean;
     onSelect: (id: string) => void;
 }
@@ -54,16 +56,36 @@ export default function TemplatePreview({
                 </div>
             </div>
 
-            <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
-            <p className="text-sm text-gray-600 mt-1">{description}</p>
+             <div className="flex items-center gap-2">
+                 <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
+                 {category && (
+                     <span className="px-2 py-1 bg-indigo-100 text-indigo-600 text-xs rounded-full font-medium">
+                         {category}
+                     </span>
+                 )}
+             </div>
+             <p className="text-sm text-gray-600 mt-1">{description}</p>
 
-            <div className="flex flex-wrap gap-2 mt-4">
-                {sections.map((section, i) => (
-                    <span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                        {section}
-                    </span>
-                ))}
-            </div>
+             {bestFor && bestFor.length > 0 && (
+                 <div className="mt-2">
+                     <p className="text-xs text-gray-500 mb-1">Best for:</p>
+                     <div className="flex flex-wrap gap-1">
+                         {bestFor.map((role, i) => (
+                             <span key={i} className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded">
+                                 {role}
+                             </span>
+                         ))}
+                     </div>
+                 </div>
+             )}
+
+             <div className="flex flex-wrap gap-2 mt-3">
+                 {sections.map((section, i) => (
+                     <span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                         {section}
+                     </span>
+                 ))}
+             </div>
         </button>
     );
 }

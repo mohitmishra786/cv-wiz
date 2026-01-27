@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import TemplatePreview from '@/components/templates/TemplatePreview';
 
 const TEMPLATES = [
     {
@@ -16,27 +17,89 @@ const TEMPLATES = [
         description: 'Best for experienced professionals. Emphasizes work history and technical skills with selected projects.',
         sections: ['Experience', 'Skills', 'Projects', 'Education'],
         color: 'from-blue-500 to-indigo-600',
+        category: 'Professional',
+        bestFor: ['Executives', 'Managers', 'Senior Professionals'],
     },
     {
         id: 'education-research-skills',
         name: 'Academic',
         description: 'Ideal for academics, researchers, and recent graduates. Highlights education, publications, and research.',
-        sections: ['Education', 'Publications', 'Experience', 'Skills'],
+        sections: ['Education', 'Publications', 'Research', 'Experience', 'Skills'],
         color: 'from-emerald-500 to-teal-600',
+        category: 'Academic',
+        bestFor: ['Professors', 'Researchers', 'PhD Candidates', 'Recent Graduates'],
     },
     {
         id: 'projects-skills-experience',
         name: 'Developer',
         description: 'Great for developers and makers. Leads with project portfolio and technical skills.',
-        sections: ['Projects', 'Skills', 'Experience', 'Education'],
+        sections: ['Projects', 'Skills', 'Technologies', 'Experience', 'Education'],
         color: 'from-purple-500 to-pink-600',
+        category: 'Technical',
+        bestFor: ['Software Engineers', 'Web Developers', 'Freelancers'],
     },
     {
         id: 'compact-technical',
         name: 'Technical',
         description: 'Maximizes technical skill visibility. Compact layout for roles requiring specific expertise.',
-        sections: ['Skills', 'Experience', 'Projects', 'Education'],
+        sections: ['Skills', 'Technologies', 'Experience', 'Projects', 'Certifications'],
         color: 'from-orange-500 to-red-600',
+        category: 'Technical',
+        bestFor: ['Data Scientists', 'DevOps Engineers', 'Cybersecurity Specialists'],
+    },
+    {
+        id: 'creative-portfolio',
+        name: 'Creative',
+        description: 'Showcase your creative work with visual emphasis. Perfect for designers and artists.',
+        sections: ['Portfolio', 'Skills', 'Experience', 'Education', 'Awards'],
+        color: 'from-rose-500 to-pink-600',
+        category: 'Creative',
+        bestFor: ['Designers', 'Artists', 'Creative Directors', 'Marketing Professionals'],
+    },
+    {
+        id: 'executive-leadership',
+        name: 'Executive',
+        description: 'Highlight leadership achievements and strategic impact. Board-ready format.',
+        sections: ['Leadership Summary', 'Board Experience', 'Career Highlights', 'Education', 'Awards'],
+        color: 'from-slate-600 to-slate-800',
+        category: 'Professional',
+        bestFor: ['CEOs', 'CFOs', 'Board Members', 'Senior Executives'],
+    },
+    {
+        id: 'healthcare-medical',
+        name: 'Healthcare',
+        description: 'Specialized format for medical professionals with emphasis on certifications and clinical experience.',
+        sections: ['Certifications', 'Clinical Experience', 'Education', 'Research', 'Skills'],
+        color: 'from-cyan-500 to-blue-600',
+        category: 'Professional',
+        bestFor: ['Doctors', 'Nurses', 'Medical Researchers', 'Healthcare Administrators'],
+    },
+    {
+        id: 'finance-analyst',
+        name: 'Finance',
+        description: 'Quantitative focus with emphasis on financial achievements and analytical skills.',
+        sections: ['Financial Summary', 'Professional Experience', 'Education', 'Certifications', 'Skills'],
+        color: 'from-green-500 to-emerald-600',
+        category: 'Professional',
+        bestFor: ['Financial Analysts', 'Accountants', 'Investment Bankers', 'CFOs'],
+    },
+    {
+        id: 'minimalist-modern',
+        name: 'Minimalist',
+        description: 'Clean, modern design with maximum readability. ATS-friendly layout.',
+        sections: ['Experience', 'Skills', 'Education', 'Projects'],
+        color: 'from-gray-600 to-gray-800',
+        category: 'Modern',
+        bestFor: ['All Professionals', 'Career Changers', 'Recent Graduates'],
+    },
+    {
+        id: 'international-multilingual',
+        name: 'International',
+        description: 'Multilingual support with international format standards. Ideal for global job seekers.',
+        sections: ['Professional Summary', 'International Experience', 'Education', 'Languages', 'Skills'],
+        color: 'from-indigo-500 to-purple-600',
+        category: 'Global',
+        bestFor: ['Expatriates', 'International Professionals', 'Multilingual Candidates'],
     },
 ];
 
@@ -44,6 +107,8 @@ export default function TemplatesPage() {
     const { data: session } = useSession();
     const [selectedTemplate, setSelectedTemplate] = useState('experience-skills-projects');
     const [saving, setSaving] = useState(false);
+    const [filterCategory, setFilterCategory] = useState('All');
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         // Load current setting
@@ -71,6 +136,16 @@ export default function TemplatesPage() {
             setSaving(false);
         }
     };
+
+    const filteredTemplates = TEMPLATES.filter(template => {
+        const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              template.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              template.bestFor?.some(role => role.toLowerCase().includes(searchQuery.toLowerCase()));
+        
+        const matchesCategory = filterCategory === 'All' || template.category === filterCategory;
+        
+        return matchesSearch && matchesCategory;
+    });
 
     return (
         <div className="min-h-screen">
@@ -106,57 +181,74 @@ export default function TemplatesPage() {
 
             {/* Main Content */}
             <main className="max-w-6xl mx-auto px-4 py-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Choose Your Template</h1>
-                    <p className="text-gray-600 mt-2">
-                        Select the resume layout that best highlights your strengths
-                    </p>
-                </div>
+                 <div className="text-center mb-6">
+                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Choose Your Template</h1>
+                     <p className="text-gray-600 mt-2 text-sm sm:text-base">
+                         Select the resume layout that best highlights your strengths
+                     </p>
+                 </div>
+
+                 {/* Filter Controls */}
+                 <div className="mb-6 bg-white rounded-xl shadow-sm p-4">
+                     <div className="flex flex-col sm:flex-row gap-4 items-center">
+                         <div className="flex-1 w-full">
+                             <label htmlFor="template-search" className="sr-only">Search templates</label>
+                             <div className="relative">
+                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                     <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                     </svg>
+                                 </div>
+                                 <input
+                                     id="template-search"
+                                     type="text"
+                                     placeholder="Search templates..."
+                                     value={searchQuery}
+                                     onChange={(e) => setSearchQuery(e.target.value)}
+                                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                 />
+                             </div>
+                         </div>
+
+                         <div className="flex gap-2">
+                             <select
+                                 value={filterCategory}
+                                 onChange={(e) => setFilterCategory(e.target.value)}
+                                 className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                             >
+                                 <option value="All">All Categories</option>
+                                 <option value="Professional">Professional</option>
+                                 <option value="Academic">Academic</option>
+                                 <option value="Technical">Technical</option>
+                                 <option value="Creative">Creative</option>
+                                 <option value="Modern">Modern</option>
+                                 <option value="Global">Global</option>
+                             </select>
+                         </div>
+                     </div>
+                 </div>
 
                  <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
-                    {TEMPLATES.map((template) => (
-                        <button
-                            key={template.id}
-                            onClick={() => setSelectedTemplate(template.id)}
-                            className={`relative p-6 rounded-2xl border-2 text-left transition-all ${selectedTemplate === template.id
-                                    ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-200'
-                                    : 'border-gray-200 bg-white hover:border-gray-300'
-                                }`}
-                        >
-                            {/* Selection indicator */}
-                            {selectedTemplate === template.id && (
-                                <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center">
-                                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                            )}
-
-                            {/* Template preview */}
-                             <div className={`w-full h-24 sm:h-32 rounded-xl bg-gradient-to-br ${template.color} mb-4 p-3 sm:p-4`}>
-                                <div className="space-y-2">
-                                    <div className="h-3 w-2/3 bg-white/30 rounded" />
-                                    <div className="h-2 w-1/2 bg-white/20 rounded" />
-                                    <div className="flex gap-2 mt-4">
-                                        {template.sections.slice(0, 3).map((section, i) => (
-                                            <div key={i} className="h-2 w-12 bg-white/20 rounded" />
-                                        ))}
-                                    </div>
-                                </div>
+                    {filteredTemplates.length > 0 ? (
+                        filteredTemplates.map((template) => (
+                            <TemplatePreview
+                                key={template.id}
+                                {...template}
+                                selected={selectedTemplate === template.id}
+                                onSelect={setSelectedTemplate}
+                            />
+                        ))
+                    ) : (
+                        <div className="col-span-2 text-center py-12">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-4">
+                                <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
                             </div>
-
-                            <h3 className="text-lg font-semibold text-gray-900">{template.name}</h3>
-                            <p className="text-sm text-gray-600 mt-1">{template.description}</p>
-
-                            <div className="flex flex-wrap gap-2 mt-4">
-                                {template.sections.map((section, i) => (
-                                    <span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                                        {section}
-                                    </span>
-                                ))}
-                            </div>
-                        </button>
-                    ))}
+                            <h3 className="text-lg font-medium text-gray-900 mb-1">No templates found</h3>
+                            <p className="text-gray-500">Try adjusting your search or filter to find what you're looking for.</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Preview Section */}
