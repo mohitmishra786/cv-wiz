@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { createLogger } from '@/lib/logger';
 import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import HelpFAQ from '@/components/ui/HelpFAQ';
 
 const logger = createLogger({ component: 'DashboardPage' });
 
@@ -261,6 +262,11 @@ export default function DashboardPage() {
                             </Link>
                         </div>
                     </div>
+                </div>
+
+                {/* Help & Support */}
+                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                    <HelpFAQ />
                 </div>
             </main>
         </div>

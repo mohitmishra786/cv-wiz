@@ -4,6 +4,7 @@ CV-Wiz Resume Compiler API
 """
 
 import time
+import psutil
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +20,18 @@ from app.utils.logger import (
     clear_request_context,
     log_api_request
 )
+
+
+class SecurityMiddleware(BaseHTTPMiddleware):
+    """Middleware to add security headers to all responses"""
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none';"
+        return response
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
@@ -104,6 +117,7 @@ app = FastAPI(
 
 # Add logging middleware FIRST
 app.add_middleware(LoggingMiddleware)
+app.add_middleware(SecurityMiddleware)
 
 # Configure CORS
 # In monorepo Vercel deployment, frontend and backend are on the same domain
@@ -150,8 +164,14 @@ async def health_check():
     
     health_status = {
         "status": "healthy",
+        "timestamp": time.time(),
         "database": "unknown",
         "redis": "unknown",
+        "system": {
+            "cpu_percent": psutil.cpu_percent(),
+            "memory_percent": psutil.virtual_memory().percent,
+            "disk_usage_percent": psutil.disk_usage('/').percent
+        },
         "config": {
             "groq_api_key": "configured" if settings.groq_api_key else "NOT SET",
             "database_url": "configured" if settings.database_url else "NOT SET",
