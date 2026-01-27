@@ -105,4 +105,10 @@ export type TemplateType =
     | 'experience-skills-projects'
     | 'education-research-skills'
     | 'projects-skills-experience'
-    | 'compact-technical';
+    | 'compact-technical'
+    | 'creative-portfolio'
+    | 'executive-leadership'
+    | 'healthcare-medical'
+    | 'finance-analyst'
+    | 'minimalist-modern'
+    | 'international-multilingual';

@@ -280,6 +280,9 @@ export default function ProfilePage() {
                         >
                             Upload Resume
                         </button>
+                        <a href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium">
+                            Dashboard
+                        </a>
                         <a href="/templates" className="text-gray-600 hover:text-gray-900 font-medium">
                             Templates
                         </a>

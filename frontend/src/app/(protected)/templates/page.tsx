@@ -165,7 +165,15 @@ export default function TemplatesPage() {
             <header className="bg-white border-b border-gray-200">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
                      <div className="flex items-center gap-2 sm:gap-4">
-                         <Link href="/profile" className="text-gray-400 hover:text-gray-600">
+                         <div className="flex gap-4 mr-4">
+                             <Link href="/dashboard" className="text-gray-500 hover:text-gray-900 font-medium hidden sm:block">
+                                 Dashboard
+                             </Link>
+                             <Link href="/profile" className="text-gray-500 hover:text-gray-900 font-medium hidden sm:block">
+                                 Profile
+                             </Link>
+                         </div>
+                         <Link href="/profile" className="text-gray-400 hover:text-gray-600 sm:hidden">
                              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                              </svg>
