@@ -10,6 +10,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import TemplatePreview from '@/components/templates/TemplatePreview';
 import { useToast } from '@/components/ui/ToastProvider';
+import TemplatesSkeleton from '@/components/skeletons/TemplatesSkeleton';
 
 const TEMPLATES = [
     {
@@ -109,11 +110,13 @@ export default function TemplatesPage() {
     const { success, error: toastError } = useToast();
     const [selectedTemplate, setSelectedTemplate] = useState('experience-skills-projects');
     const [saving, setSaving] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [filterCategory, setFilterCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         // Load current setting
+        setLoading(true);
         fetch('/api/profile/settings')
             .then((res) => res.json())
             .then((data) => {
@@ -121,7 +124,8 @@ export default function TemplatesPage() {
                     setSelectedTemplate(data.selectedTemplate);
                 }
             })
-            .catch(console.error);
+            .catch(console.error)
+            .finally(() => setLoading(false));
     }, []);
 
     const handleSave = async () => {
@@ -150,6 +154,10 @@ export default function TemplatesPage() {
         
         return matchesSearch && matchesCategory;
     });
+
+    if (status === 'loading' || loading) {
+        return <TemplatesSkeleton />;
+    }
 
     return (
         <div className="min-h-screen">

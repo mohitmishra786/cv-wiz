@@ -12,6 +12,7 @@ import type { UserProfile, Experience, Project, Skill, Education } from '@/types
 import { createLogger } from '@/lib/logger';
 import { useToast } from '@/components/ui/ToastProvider';
 import Modal from '@/components/ui/Modal';
+import ProfileSkeleton from '@/components/skeletons/ProfileSkeleton';
 import ExperienceForm from '@/components/forms/ExperienceForm';
 import ProjectForm from '@/components/forms/ProjectForm';
 import SkillForm from '@/components/forms/SkillForm';
@@ -242,11 +243,7 @@ export default function ProfilePage() {
     };
 
     if (status === 'loading' || loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-            </div>
-        );
+        return <ProfileSkeleton />;
     }
 
     const tabs = [

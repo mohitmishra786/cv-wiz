@@ -5,6 +5,8 @@
 
 'use client';
 
+import { memo } from 'react';
+
 interface TemplatePreviewProps {
     id: string;
     name: string;
@@ -17,12 +19,14 @@ interface TemplatePreviewProps {
     onSelect: (id: string) => void;
 }
 
-export default function TemplatePreview({
+function TemplatePreview({
     id,
     name,
     description,
     sections,
     color,
+    category,
+    bestFor,
     selected,
     onSelect,
 }: TemplatePreviewProps) {
@@ -89,3 +93,5 @@ export default function TemplatePreview({
         </button>
     );
 }
+
+export default memo(TemplatePreview);
