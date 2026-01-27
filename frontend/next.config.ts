@@ -1,11 +1,12 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  /* config options here */
-  reactCompiler: true,
+import { withSentryConfig } from "@sentry/nextjs";
 
-  // Rewrite /api/py/* to the FastAPI function
-  // Vercel detects Python functions in /api directory
+const nextConfig: NextConfig = {
+  reactCompiler: true,
+  experimental: {
+    // serverActions: true, // No longer needed in Next.js 15
+  },
   async rewrites() {
     return [
       {
@@ -46,4 +47,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "cv-wiz",
+  project: "frontend",
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  disableLogger: true,
+  automaticVercelMonitors: true,
+});

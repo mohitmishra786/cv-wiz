@@ -74,6 +74,7 @@ model User {
   skills        Skill[]
   publications  Publication[]
   coverLetters  CoverLetter[]
+  feedbacks     Feedback[]
   settings      UserSettings?
 }
 
@@ -190,6 +191,18 @@ model CoverLetter {
   companyName String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  rating    Int
+  comment   String   @db.Text
+  category  String   // e.g., "UI", "AI", "Bug", "Other"
+  createdAt DateTime @default(now())
 
   @@index([userId])
 }

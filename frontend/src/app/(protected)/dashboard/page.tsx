@@ -8,6 +8,8 @@ import { createLogger } from '@/lib/logger';
 import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import HelpFAQ from '@/components/ui/HelpFAQ';
+import FeedbackForm from '@/components/forms/FeedbackForm';
+import OnboardingTour from '@/components/OnboardingTour';
 
 const logger = createLogger({ component: 'DashboardPage' });
 
@@ -78,6 +80,7 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen" style={{ background: 'var(--background)' }}>
+            <OnboardingTour />
              {/* Header */}
             <header className="bg-white border-b border-gray-200">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -272,8 +275,13 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Help & Support */}
-                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                    <HelpFAQ />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                        <HelpFAQ />
+                    </div>
+                    <div>
+                        <FeedbackForm />
+                    </div>
                 </div>
             </main>
         </div>
