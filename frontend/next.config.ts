@@ -54,6 +54,6 @@ export default withSentryConfig(nextConfig, {
   project: "frontend",
   silent: !process.env.CI,
   widenClientFileUpload: true,
-  disableLogger: true,
-  automaticVercelMonitors: true,
+  // New Sentry configuration structure to avoid deprecation warnings
+  tunnelRoute: "/monitoring",
 });

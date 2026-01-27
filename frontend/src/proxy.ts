@@ -7,11 +7,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 // Protected paths configuration
-const protectedPages = ['/profile', '/templates', '/settings'];
+const protectedPages = ['/profile', '/templates', '/settings', '/dashboard', '/interview-prep'];
 const protectedAPIs = ['/api/profile'];
 const authPages = ['/login', '/register'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Check for session token (NextAuth stores it in cookies)
