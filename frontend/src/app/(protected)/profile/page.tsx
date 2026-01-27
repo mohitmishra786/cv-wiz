@@ -20,6 +20,7 @@ import EducationForm from '@/components/forms/EducationForm';
 import ProfileEditForm from '@/components/forms/ProfileEditForm';
 import CoverLetterSection from '@/components/CoverLetterSection';
 import ResumeUpload from '@/components/ResumeUpload';
+import ShareProfileModal from '@/components/ui/ShareProfileModal';
 
 const logger = createLogger({ component: 'ProfilePage' });
 
@@ -33,6 +34,7 @@ export default function ProfilePage() {
     const [activeTab, setActiveTab] = useState('experiences');
     const [modalType, setModalType] = useState<ModalType>(null);
     const [editingItem, setEditingItem] = useState<Experience | Project | Skill | Education | null>(null);
+    const [shareModalOpen, setShareModalOpen] = useState(false);
 
     const fetchProfile = useCallback(async () => {
         logger.startOperation('ProfilePage:fetchProfile');
@@ -273,6 +275,15 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => {
+                                logger.info('[ProfilePage] Share clicked');
+                                setShareModalOpen(true);
+                            }}
+                            className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-200"
+                        >
+                            Share Profile
+                        </button>
+                        <button
+                            onClick={() => {
                                 logger.info('[ProfilePage] Upload Resume clicked');
                                 openModal('upload');
                             }}
@@ -492,6 +503,30 @@ export default function ProfilePage() {
                     <ResumeUpload onDataExtracted={handleResumeDataExtracted} />
                 </div>
             </Modal>
+
+            {profile && (
+                <ShareProfileModal
+                    isOpen={shareModalOpen}
+                    onClose={() => setShareModalOpen(false)}
+                    userId={profile.id}
+                    isPublicInitial={(profile.settings?.resumePreferences as any)?.isPublic || false}
+                    onUpdate={(isPublic) => {
+                        // Optimistic update
+                        if (profile.settings) {
+                            setProfile({
+                                ...profile,
+                                settings: {
+                                    ...profile.settings,
+                                    resumePreferences: {
+                                        ...(profile.settings.resumePreferences || {}),
+                                        isPublic
+                                    }
+                                }
+                            });
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }
