@@ -5,12 +5,26 @@ CV-Wiz Resume Compiler API
 
 import time
 import psutil
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
+
+# Initialize Sentry
+settings = get_settings()
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        integrations=[FastApiIntegration()],
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+        environment=settings.environment,
+    )
+
 from app.routers import compile, cover_letter, upload, ai
 from app.utils.redis_cache import redis_client
 from app.utils.logger import (

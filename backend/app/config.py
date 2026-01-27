@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     # PDF settings
     max_resume_pages: int = 1
     
+    # Monitoring
+    sentry_dsn: str = Field(default="", validation_alias="SENTRY_DSN")
+    environment: str = Field(default="development", validation_alias="APP_ENV")
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
