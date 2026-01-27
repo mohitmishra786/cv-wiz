@@ -1,0 +1,39 @@
+{
+    "common": {
+        "dashboard": "Dashboard",
+        "profile": "Profile",
+        "templates": "Templates",
+        "settings": "Settings",
+        "sign_out": "Sign out",
+        "save": "Save",
+        "cancel": "Cancel",
+        "loading": "Loading..."
+    },
+    "dashboard": {
+        "welcome": "Hello",
+        "completeness": "Your career profile is {percent}% complete.",
+        "complete_now": "Complete your profile to unlock full AI potential.",
+        "ready": "You're all set to apply for your dream job!",
+        "stats": {
+            "applications": "Applications",
+            "skills": "Skills",
+            "projects": "Projects",
+            "experience": "Experience"
+        },
+        "activity": "Application Activity",
+        "recent": "Recent Activity"
+    },
+    "profile": {
+        "title": "Career Profile",
+        "edit": "Edit Profile",
+        "share": "Share Profile",
+        "upload": "Upload Resume",
+        "tabs": {
+            "experience": "Experience",
+            "projects": "Projects",
+            "skills": "Skills",
+            "education": "Education",
+            "cover_letters": "Cover Letters"
+        }
+    }
+}

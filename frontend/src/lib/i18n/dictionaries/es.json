@@ -1,0 +1,39 @@
+{
+    "common": {
+        "dashboard": "Panel",
+        "profile": "Perfil",
+        "templates": "Plantillas",
+        "settings": "Ajustes",
+        "sign_out": "Cerrar sesión",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "loading": "Cargando..."
+    },
+    "dashboard": {
+        "welcome": "Hola",
+        "completeness": "Tu perfil profesional está al {percent}%.",
+        "complete_now": "Completa tu perfil para desbloquear todo el potencial de la IA.",
+        "ready": "¡Estás listo para solicitar el trabajo de tus sueños!",
+        "stats": {
+            "applications": "Solicitudes",
+            "skills": "Habilidades",
+            "projects": "Proyectos",
+            "experience": "Experiencia"
+        },
+        "activity": "Actividad de Solicitudes",
+        "recent": "Actividad Reciente"
+    },
+    "profile": {
+        "title": "Perfil Profesional",
+        "edit": "Editar Perfil",
+        "share": "Compartir Perfil",
+        "upload": "Subir Currículum",
+        "tabs": {
+            "experience": "Experiencia",
+            "projects": "Proyectos",
+            "skills": "Habilidades",
+            "education": "Educación",
+            "cover_letters": "Cartas de Presentación"
+        }
+    }
+}

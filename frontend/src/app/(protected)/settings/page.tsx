@@ -9,9 +9,11 @@ import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import type { UserSettings } from '@/types';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function SettingsPage() {
     const { data: session } = useSession();
+    const { language, setLanguage } = useLanguage();
     const [settings, setSettings] = useState<UserSettings | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -95,6 +97,40 @@ export default function SettingsPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-500 mb-1">Name</label>
                             <p className="text-gray-900">{session?.user?.name || 'Not set'}</p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Language Section */}
+                <section className="bg-white rounded-2xl shadow-sm p-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Language</h2>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                App Language
+                            </label>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setLanguage('en')}
+                                    className={`px-4 py-2 rounded-lg border-2 transition-all ${
+                                        language === 'en' 
+                                            ? 'border-indigo-600 bg-indigo-50 text-indigo-600' 
+                                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                    }`}
+                                >
+                                    English
+                                </button>
+                                <button
+                                    onClick={() => setLanguage('es')}
+                                    className={`px-4 py-2 rounded-lg border-2 transition-all ${
+                                        language === 'es' 
+                                            ? 'border-indigo-600 bg-indigo-50 text-indigo-600' 
+                                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                    }`}
+                                >
+                                    Español
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </section>

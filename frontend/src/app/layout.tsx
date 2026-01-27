@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import MobileNav from "@/components/ui/MobileNav";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -45,12 +46,14 @@ export default function RootLayout({
         </a>
         <SessionProvider>
           <ThemeProvider>
-            <ToastProvider>
-              <div id="main-content">
-                {children}
-              </div>
-              <MobileNav />
-            </ToastProvider>
+            <LanguageProvider>
+              <ToastProvider>
+                <div id="main-content">
+                  {children}
+                </div>
+                <MobileNav />
+              </ToastProvider>
+            </LanguageProvider>
           </ThemeProvider>
         </SessionProvider>
         <Analytics />

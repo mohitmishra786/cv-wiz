@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { createLogger } from '@/lib/logger';
 import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 const logger = createLogger({ component: 'DashboardPage' });
 
@@ -35,6 +36,7 @@ interface AnalyticsData {
 
 export default function DashboardPage() {
     const { data: session } = useSession();
+    const { t } = useLanguage();
     const [data, setData] = useState<AnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -101,19 +103,19 @@ export default function DashboardPage() {
                 {/* Welcome & Completeness */}
                 <div className="flex flex-col md:flex-row justify-between items-center bg-gradient-to-r from-indigo-600 to-purple-700 rounded-3xl p-8 text-white shadow-lg">
                     <div className="mb-6 md:mb-0">
-                        <h1 className="text-3xl font-bold mb-2">Hello, {session?.user?.name?.split(' ')[0] || 'There'}! 👋</h1>
+                        <h1 className="text-3xl font-bold mb-2">{t('dashboard.welcome')}, {session?.user?.name?.split(' ')[0] || 'There'}! 👋</h1>
                         <p className="text-indigo-100 opacity-90 max-w-lg">
-                            Your career profile is <span className="font-bold">{data.completeness}% complete</span>. 
+                            {t('dashboard.completeness', { percent: data.completeness })} 
                             {data.completeness < 100 
-                                ? " Complete your profile to unlock full AI potential." 
-                                : " You're all set to apply for your dream job!"}
+                                ? ` ${t('dashboard.complete_now')}` 
+                                : ` ${t('dashboard.ready')}`}
                         </p>
                         <div className="mt-6 flex gap-3">
                             <Link href="/profile" className="px-5 py-2.5 bg-white text-indigo-700 font-semibold rounded-xl hover:bg-indigo-50 transition-colors shadow-sm">
-                                Edit Profile
+                                {t('profile.edit')}
                             </Link>
                             <Link href="/templates" className="px-5 py-2.5 bg-indigo-500 bg-opacity-30 text-white font-semibold rounded-xl hover:bg-opacity-40 transition-colors backdrop-blur-sm border border-white/20">
-                                Browse Templates
+                                {t('common.templates')}
                             </Link>
                         </div>
                     </div>
