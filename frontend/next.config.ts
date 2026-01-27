@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/py/:path*",
-        destination: "/api/",  // Vercel routes to /api/index.py automatically
+        destination: "/api/index.py",  // Explicitly point to the Vercel entry point
       },
     ];
   },
