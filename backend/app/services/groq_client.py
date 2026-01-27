@@ -4,7 +4,8 @@ Wrapper for the Groq API for generating cover letters.
 """
 
 import time
-from typing import Optional
+import json
+from typing import Optional, List, Dict, Any
 from groq import Groq
 
 from app.config import get_settings
@@ -80,7 +81,7 @@ class GroqClient:
             )
             api_duration = (time.time() - api_start) * 1000
             
-            generated_text = response.choices[0].message.content.strip()
+            generated_text = (response.choices[0].message.content or "").strip()
             total_duration = (time.time() - start_time) * 1000
             
             # Log LLM usage
@@ -116,6 +117,59 @@ class GroqClient:
                 "duration_ms": total_duration,
             })
             raise
+
+    async def enhance_bullet(self, bullet: str, job_description: Optional[str] = None) -> str:
+        """Rewrite a resume bullet point to be more impactful."""
+        request_id = get_request_id()
+        
+        system_prompt = "You are an expert resume writer. Rewrite the user's bullet point to be more impactful, outcome-oriented, and professional. Use strong action verbs. Keep it concise (one sentence)."
+        if job_description:
+            system_prompt += f" Tailor it slightly to match this job description if relevant: {job_description}"
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": bullet},
+                ],
+                temperature=0.5,
+                max_tokens=150,
+            )
+            return (response.choices[0].message.content or "").strip()
+        except Exception as e:
+            logger.error(f"Groq enhance_bullet error: {str(e)}", {"request_id": request_id})
+            return bullet
+
+    async def generate_interview_prep(self, candidate_info: str, job_description: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Generate interview questions and suggested answers."""
+        request_id = get_request_id()
+        
+        system_prompt = """You are an expert interviewer. Based on the candidate's profile and the job description, generate 5 relevant interview questions.
+For each question, provide a suggested answer and 3 key points the candidate should emphasize.
+Return the result as a JSON array of objects with keys: "question", "suggested_answer", "key_points" (list of strings)."""
+
+        user_content = f"CANDIDATE INFO:\n{candidate_info}"
+        if job_description:
+            user_content += f"\n\nJOB DESCRIPTION:\n{job_description}"
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content},
+                ],
+                temperature=0.7,
+                response_format={"type": "json_object"},
+            )
+            content = response.choices[0].message.content or "{}"
+            data = json.loads(content)
+            # Expecting {"questions": [...]}
+            return data.get("questions", [])
+        except Exception as e:
+            logger.error(f"Groq generate_interview_prep error: {str(e)}", {"request_id": request_id})
+            return []
     
     def _build_system_prompt(self, tone: str, max_words: int) -> str:
         """Build system prompt for cover letter generation."""

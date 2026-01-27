@@ -58,9 +58,12 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
         <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={handleBackdropClick}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
         >
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" />
 
             {/* Modal Content */}
             <div
@@ -69,13 +72,13 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
             >
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+                    <h2 id="modal-title" className="text-xl font-semibold text-gray-900">{title}</h2>
                     <button
                         onClick={() => {
                             logger.debug('[Modal] Closing via X button', { title });
                             onClose();
                         }}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors focus:ring-2 focus:ring-indigo-500 outline-none"
                         aria-label="Close modal"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

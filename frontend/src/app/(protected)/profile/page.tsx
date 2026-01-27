@@ -10,7 +10,9 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import type { UserProfile, Experience, Project, Skill, Education } from '@/types';
 import { createLogger } from '@/lib/logger';
+import { useToast } from '@/components/ui/ToastProvider';
 import Modal from '@/components/ui/Modal';
+import ProfileSkeleton from '@/components/skeletons/ProfileSkeleton';
 import ExperienceForm from '@/components/forms/ExperienceForm';
 import ProjectForm from '@/components/forms/ProjectForm';
 import SkillForm from '@/components/forms/SkillForm';
@@ -18,6 +20,8 @@ import EducationForm from '@/components/forms/EducationForm';
 import ProfileEditForm from '@/components/forms/ProfileEditForm';
 import CoverLetterSection from '@/components/CoverLetterSection';
 import ResumeUpload from '@/components/ResumeUpload';
+import ShareProfileModal from '@/components/ui/ShareProfileModal';
+import GitHubImportModal from '@/components/GitHubImportModal';
 
 const logger = createLogger({ component: 'ProfilePage' });
 
@@ -25,11 +29,14 @@ type ModalType = 'profile' | 'experience' | 'project' | 'skill' | 'education' | 
 
 export default function ProfilePage() {
     const { data: session, status } = useSession();
+    const { success, error: toastError } = useToast();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('experiences');
     const [modalType, setModalType] = useState<ModalType>(null);
     const [editingItem, setEditingItem] = useState<Experience | Project | Skill | Education | null>(null);
+    const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [githubModalOpen, setGithubModalOpen] = useState(false);
 
     const fetchProfile = useCallback(async () => {
         logger.startOperation('ProfilePage:fetchProfile');
@@ -48,6 +55,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             logger.failOperation('ProfilePage:fetchProfile', error);
+            toastError('Failed to load profile data');
         } finally {
             setLoading(false);
         }
@@ -90,6 +98,7 @@ export default function ProfilePage() {
             if (response.ok) {
                 logger.info('[ProfilePage] Experience saved successfully');
                 logger.endOperation('ProfilePage:saveExperience');
+                success(editingItem?.id ? 'Experience updated successfully' : 'Experience added successfully');
                 closeModal();
                 await fetchProfile();
             } else {
@@ -97,6 +106,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             logger.failOperation('ProfilePage:saveExperience', error);
+            toastError('Failed to save experience. Please try again.');
             throw error;
         }
     };
@@ -119,6 +129,7 @@ export default function ProfilePage() {
             if (response.ok) {
                 logger.info('[ProfilePage] Project saved successfully');
                 logger.endOperation('ProfilePage:saveProject');
+                success(editingItem?.id ? 'Project updated successfully' : 'Project added successfully');
                 closeModal();
                 await fetchProfile();
             } else {
@@ -126,6 +137,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             logger.failOperation('ProfilePage:saveProject', error);
+            toastError('Failed to save project. Please try again.');
             throw error;
         }
     };
@@ -148,6 +160,7 @@ export default function ProfilePage() {
             if (response.ok) {
                 logger.info('[ProfilePage] Skill saved successfully');
                 logger.endOperation('ProfilePage:saveSkill');
+                success(editingItem?.id ? 'Skill updated successfully' : 'Skill added successfully');
                 closeModal();
                 await fetchProfile();
             } else {
@@ -155,6 +168,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             logger.failOperation('ProfilePage:saveSkill', error);
+            toastError('Failed to save skill. Please try again.');
             throw error;
         }
     };
@@ -177,6 +191,7 @@ export default function ProfilePage() {
             if (response.ok) {
                 logger.info('[ProfilePage] Education saved successfully');
                 logger.endOperation('ProfilePage:saveEducation');
+                success(editingItem?.id ? 'Education updated successfully' : 'Education added successfully');
                 closeModal();
                 await fetchProfile();
             } else {
@@ -184,6 +199,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             logger.failOperation('ProfilePage:saveEducation', error);
+            toastError('Failed to save education. Please try again.');
             throw error;
         }
     };
@@ -201,6 +217,7 @@ export default function ProfilePage() {
             if (response.ok) {
                 logger.info('[ProfilePage] Profile updated successfully');
                 logger.endOperation('ProfilePage:saveProfile');
+                success('Profile updated successfully');
                 closeModal();
                 await fetchProfile();
             } else {
@@ -208,6 +225,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             logger.failOperation('ProfilePage:saveProfile', error);
+            toastError('Failed to update profile. Please try again.');
             throw error;
         }
     };
@@ -222,17 +240,36 @@ export default function ProfilePage() {
             projectsCount: (data.projects as unknown[])?.length,
             extractionMethod: data.extraction_method,
         });
+        success('Resume uploaded and parsed successfully!');
         closeModal();
         // Refresh profile to show any extracted data that was saved
         await fetchProfile();
     };
 
+    // GitHub Import handler
+    const handleGitHubImport = async (projects: Partial<Project>[]) => {
+        logger.startOperation('ProfilePage:importGitHub');
+        try {
+            // Sequential import to avoid race conditions or rate limits
+            for (const project of projects) {
+                await fetch('/api/profile/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(project),
+                });
+            }
+            logger.info('[ProfilePage] GitHub projects imported');
+            logger.endOperation('ProfilePage:importGitHub');
+            success(`${projects.length} projects imported successfully`);
+            await fetchProfile();
+        } catch (error) {
+            logger.failOperation('ProfilePage:importGitHub', error);
+            toastError('Failed to import some projects');
+        }
+    };
+
     if (status === 'loading' || loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-            </div>
-        );
+        return <ProfileSkeleton />;
     }
 
     const tabs = [
@@ -262,6 +299,15 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => {
+                                logger.info('[ProfilePage] Share clicked');
+                                setShareModalOpen(true);
+                            }}
+                            className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-200"
+                        >
+                            Share Profile
+                        </button>
+                        <button
+                            onClick={() => {
                                 logger.info('[ProfilePage] Upload Resume clicked');
                                 openModal('upload');
                             }}
@@ -269,8 +315,14 @@ export default function ProfilePage() {
                         >
                             Upload Resume
                         </button>
+                        <a href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium">
+                            Dashboard
+                        </a>
                         <a href="/templates" className="text-gray-600 hover:text-gray-900 font-medium">
                             Templates
+                        </a>
+                        <a href="/interview-prep" className="text-gray-600 hover:text-gray-900 font-medium">
+                            Interview Prep
                         </a>
                         <div className="flex items-center gap-3">
                             <span className="text-sm text-gray-600">{session?.user?.email}</span>
@@ -315,51 +367,51 @@ export default function ProfilePage() {
                         </button>
                     </div>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100">
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{profile?.experiences?.length || 0}</div>
-                            <div className="text-sm text-gray-500">Experiences</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{profile?.projects?.length || 0}</div>
-                            <div className="text-sm text-gray-500">Projects</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{profile?.skills?.length || 0}</div>
-                            <div className="text-sm text-gray-500">Skills</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{profile?.educations?.length || 0}</div>
-                            <div className="text-sm text-gray-500">Education</div>
-                        </div>
+                 {/* Stats */}
+                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-gray-100">
+                         <div className="text-center">
+                             <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.experiences?.length || 0}</div>
+                             <div className="text-xs sm:text-sm text-gray-500">Experiences</div>
+                         </div>
+                         <div className="text-center">
+                             <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.projects?.length || 0}</div>
+                             <div className="text-xs sm:text-sm text-gray-500">Projects</div>
+                         </div>
+                         <div className="text-center">
+                             <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.skills?.length || 0}</div>
+                             <div className="text-xs sm:text-sm text-gray-500">Skills</div>
+                         </div>
+                         <div className="text-center">
+                             <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.educations?.length || 0}</div>
+                             <div className="text-xs sm:text-sm text-gray-500">Education</div>
+                         </div>
                     </div>
                 </div>
 
                 {/* Tabs */}
                 <div className="bg-white rounded-2xl shadow-sm">
                     <div className="border-b border-gray-200">
-                        <nav className="flex gap-4 px-6">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => {
-                                        logger.debug('[ProfilePage] Tab switched', { tab: tab.id });
-                                        setActiveTab(tab.id);
-                                    }}
-                                    className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                                        }`}
-                                >
-                                    {tab.label}
-                                    {tab.id !== 'cover-letters' && (
-                                        <span className="ml-2 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">
-                                            {tab.count}
-                                        </span>
-                                    )}
-                                </button>
-                            ))}
+                         <nav className="flex gap-2 sm:gap-4 px-4 sm:px-6 overflow-x-auto">
+                             {tabs.map((tab) => (
+                                 <button
+                                     key={tab.id}
+                                     onClick={() => {
+                                         logger.debug('[ProfilePage] Tab switched', { tab: tab.id });
+                                         setActiveTab(tab.id);
+                                     }}
+                                     className={`py-3 px-1 sm:px-2 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
+                                         ? 'border-indigo-500 text-indigo-600'
+                                         : 'border-transparent text-gray-500 hover:text-gray-700'
+                                         }`}
+                                 >
+                                     {tab.label}
+                                     {tab.id !== 'cover-letters' && (
+                                         <span className="ml-1 sm:ml-2 px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">
+                                             {tab.count}
+                                         </span>
+                                     )}
+                                 </button>
+                             ))}
                         </nav>
                     </div>
 
@@ -377,6 +429,7 @@ export default function ProfilePage() {
                                 projects={profile?.projects || []}
                                 onAdd={() => openModal('project')}
                                 onEdit={(proj) => openModal('project', proj)}
+                                onImportGitHub={() => setGithubModalOpen(true)}
                             />
                         )}
                         {activeTab === 'skills' && (
@@ -478,6 +531,36 @@ export default function ProfilePage() {
                     <ResumeUpload onDataExtracted={handleResumeDataExtracted} />
                 </div>
             </Modal>
+
+            {profile && (
+                <ShareProfileModal
+                    isOpen={shareModalOpen}
+                    onClose={() => setShareModalOpen(false)}
+                    userId={profile.id}
+                    isPublicInitial={(profile.settings?.resumePreferences as any)?.isPublic || false}
+                    onUpdate={(isPublic) => {
+                        // Optimistic update
+                        if (profile.settings) {
+                            setProfile({
+                                ...profile,
+                                settings: {
+                                    ...profile.settings,
+                                    resumePreferences: {
+                                        ...(profile.settings.resumePreferences || {}),
+                                        isPublic
+                                    }
+                                }
+                            });
+                        }
+                    }}
+                />
+            )}
+
+            <GitHubImportModal
+                isOpen={githubModalOpen}
+                onClose={() => setGithubModalOpen(false)}
+                onImport={handleGitHubImport}
+            />
         </div>
     );
 }
@@ -529,7 +612,8 @@ function ExperienceList({
                             </p>
                         </div>
                         <button
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-gray-400 hover:text-gray-600 focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 outline-none"
+                            aria-label={`Edit experience at ${exp.company}`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onEdit(exp);
@@ -569,30 +653,43 @@ function ExperienceList({
 function ProjectList({
     projects,
     onAdd,
-    onEdit
+    onEdit,
+    onImportGitHub
 }: {
     projects: Project[];
     onAdd: () => void;
     onEdit: (proj: Project) => void;
+    onImportGitHub: () => void;
 }) {
     const listLogger = createLogger({ component: 'ProjectList' });
 
     if (projects.length === 0) {
         return (
-            <EmptyState
-                title="No projects yet"
-                description="Showcase your work and side projects"
-                actionLabel="Add Project"
-                onAction={() => {
-                    listLogger.info('[ProjectList] Add Project from empty state');
-                    onAdd();
-                }}
-            />
+            <div className="space-y-4">
+                <EmptyState
+                    title="No projects yet"
+                    description="Showcase your work and side projects"
+                    actionLabel="Add Project"
+                    onAction={() => {
+                        listLogger.info('[ProjectList] Add Project from empty state');
+                        onAdd();
+                    }}
+                />
+                <button
+                    onClick={onImportGitHub}
+                    className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center gap-2"
+                >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 4.238 9.611 9.647 10.674.6.099.817-.26.817-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.44-1.304.806-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.212.685.827.569 5.405-1.065 9.641-5.372 9.641-10.674 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    Import from GitHub
+                </button>
+            </div>
         );
     }
 
     return (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {projects.map((proj) => (
                 <div
                     key={proj.id}
@@ -603,9 +700,10 @@ function ProjectList({
                     }}
                 >
                     <div className="flex justify-between items-start">
-                        <h3 className="font-semibold text-gray-900">{proj.name}</h3>
+                        <h3 className="font-semibold text-gray-900 truncate pr-2">{proj.name}</h3>
                         <button
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-gray-400 hover:text-gray-600 flex-shrink-0 focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 outline-none"
+                            aria-label={`Edit project ${proj.name}`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onEdit(proj);
@@ -636,6 +734,15 @@ function ProjectList({
                 className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center"
             >
                 + Add Project
+            </button>
+            <button
+                onClick={onImportGitHub}
+                className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center gap-2"
+            >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 4.238 9.611 9.647 10.674.6.099.817-.26.817-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.44-1.304.806-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.212.685.827.569 5.405-1.065 9.641-5.372 9.641-10.674 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub Import
             </button>
         </div>
     );

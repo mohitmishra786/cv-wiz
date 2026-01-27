@@ -79,3 +79,26 @@ body {
     --border: #e2e8f0;
   }
 }
+
+/* Mobile responsive utilities */
+@media (max-width: 640px) {
+  /* Smaller text on mobile */
+  .mobile-text-sm {
+    font-size: 0.875rem !important;
+  }
+  
+  /* Adjust padding for mobile */
+  .mobile-p-4 {
+    padding: 1rem !important;
+  }
+  
+  /* Adjust margins for mobile */
+  .mobile-mt-2 {
+    margin-top: 0.5rem !important;
+  }
+  
+  /* Hide elements on mobile if needed */
+  .mobile-hidden {
+    display: none !important;
+  }
+}

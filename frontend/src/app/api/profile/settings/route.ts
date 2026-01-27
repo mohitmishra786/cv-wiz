@@ -92,6 +92,12 @@ export async function PUT(request: NextRequest) {
             'education-research-skills',
             'projects-skills-experience',
             'compact-technical',
+            'creative-portfolio',
+            'executive-leadership',
+            'healthcare-medical',
+            'finance-analyst',
+            'minimalist-modern',
+            'international-multilingual',
         ];
 
         if (selectedTemplate && !validTemplates.includes(selectedTemplate)) {
