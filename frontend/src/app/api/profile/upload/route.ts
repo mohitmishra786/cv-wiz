@@ -13,18 +13,20 @@ import { createRequestLogger, getOrCreateRequestId, logAuthOperation } from '@/l
 export async function POST(request: NextRequest) {
     // Determine the backend endpoint - must be absolute URL for server-side fetch
     const getBackendUrl = (path: string): string => {
-        const BACKEND_URL = process.env.BACKEND_URL;
-
-        if (BACKEND_URL) {
-            // Separate deployment: use explicit backend URL
-            return `${BACKEND_URL}${path}`;
+        // If BACKEND_URL is set, use it (e.g. for separate deployments)
+        if (process.env.BACKEND_URL) {
+            const baseUrl = process.env.BACKEND_URL.endsWith('/') 
+                ? process.env.BACKEND_URL.slice(0, -1) 
+                : process.env.BACKEND_URL;
+            return `${baseUrl}${path}`;
         }
 
-        // Monorepo: construct absolute URL from request
+        // Monorepo/Vercel deployment: construct absolute URL from request
+        // The FastAPI backend is mapped to /api/py via vercel.json rewrites
         const protocol = request.headers.get('x-forwarded-proto') || 'http';
         const host = request.headers.get('host') || 'localhost:3000';
-        // Map /api/upload/resume -> /upload/resume (backend has root_path=/api/py)
-        return `${protocol}://${host}${path}`;
+        
+        return `${protocol}://${host}/api/py${path}`;
     };
 
 

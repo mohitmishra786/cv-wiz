@@ -11,7 +11,9 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/py/:path*",
-        destination: "/api/",  // Vercel routes to /api/index.py automatically
+        destination: process.env.NODE_ENV === 'development' 
+          ? "http://localhost:8000/api/py/:path*" 
+          : "/api/index.py",
       },
     ];
   },
