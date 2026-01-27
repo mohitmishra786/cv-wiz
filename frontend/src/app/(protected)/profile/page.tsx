@@ -21,6 +21,7 @@ import ProfileEditForm from '@/components/forms/ProfileEditForm';
 import CoverLetterSection from '@/components/CoverLetterSection';
 import ResumeUpload from '@/components/ResumeUpload';
 import ShareProfileModal from '@/components/ui/ShareProfileModal';
+import GitHubImportModal from '@/components/GitHubImportModal';
 
 const logger = createLogger({ component: 'ProfilePage' });
 
@@ -35,6 +36,7 @@ export default function ProfilePage() {
     const [modalType, setModalType] = useState<ModalType>(null);
     const [editingItem, setEditingItem] = useState<Experience | Project | Skill | Education | null>(null);
     const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [githubModalOpen, setGithubModalOpen] = useState(false);
 
     const fetchProfile = useCallback(async () => {
         logger.startOperation('ProfilePage:fetchProfile');
@@ -244,6 +246,28 @@ export default function ProfilePage() {
         await fetchProfile();
     };
 
+    // GitHub Import handler
+    const handleGitHubImport = async (projects: Partial<Project>[]) => {
+        logger.startOperation('ProfilePage:importGitHub');
+        try {
+            // Sequential import to avoid race conditions or rate limits
+            for (const project of projects) {
+                await fetch('/api/profile/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(project),
+                });
+            }
+            logger.info('[ProfilePage] GitHub projects imported');
+            logger.endOperation('ProfilePage:importGitHub');
+            success(`${projects.length} projects imported successfully`);
+            await fetchProfile();
+        } catch (error) {
+            logger.failOperation('ProfilePage:importGitHub', error);
+            toastError('Failed to import some projects');
+        }
+    };
+
     if (status === 'loading' || loading) {
         return <ProfileSkeleton />;
     }
@@ -402,6 +426,7 @@ export default function ProfilePage() {
                                 projects={profile?.projects || []}
                                 onAdd={() => openModal('project')}
                                 onEdit={(proj) => openModal('project', proj)}
+                                onImportGitHub={() => setGithubModalOpen(true)}
                             />
                         )}
                         {activeTab === 'skills' && (
@@ -527,6 +552,12 @@ export default function ProfilePage() {
                     }}
                 />
             )}
+
+            <GitHubImportModal
+                isOpen={githubModalOpen}
+                onClose={() => setGithubModalOpen(false)}
+                onImport={handleGitHubImport}
+            />
         </div>
     );
 }
@@ -618,30 +649,43 @@ function ExperienceList({
 function ProjectList({
     projects,
     onAdd,
-    onEdit
+    onEdit,
+    onImportGitHub
 }: {
     projects: Project[];
     onAdd: () => void;
     onEdit: (proj: Project) => void;
+    onImportGitHub: () => void;
 }) {
     const listLogger = createLogger({ component: 'ProjectList' });
 
     if (projects.length === 0) {
         return (
-            <EmptyState
-                title="No projects yet"
-                description="Showcase your work and side projects"
-                actionLabel="Add Project"
-                onAction={() => {
-                    listLogger.info('[ProjectList] Add Project from empty state');
-                    onAdd();
-                }}
-            />
+            <div className="space-y-4">
+                <EmptyState
+                    title="No projects yet"
+                    description="Showcase your work and side projects"
+                    actionLabel="Add Project"
+                    onAction={() => {
+                        listLogger.info('[ProjectList] Add Project from empty state');
+                        onAdd();
+                    }}
+                />
+                <button
+                    onClick={onImportGitHub}
+                    className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center gap-2"
+                >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 4.238 9.611 9.647 10.674.6.099.817-.26.817-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.44-1.304.806-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.212.685.827.569 5.405-1.065 9.641-5.372 9.641-10.674 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    Import from GitHub
+                </button>
+            </div>
         );
     }
 
     return (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {projects.map((proj) => (
                 <div
                     key={proj.id}
@@ -652,9 +696,9 @@ function ProjectList({
                     }}
                 >
                     <div className="flex justify-between items-start">
-                        <h3 className="font-semibold text-gray-900">{proj.name}</h3>
+                        <h3 className="font-semibold text-gray-900 truncate pr-2">{proj.name}</h3>
                         <button
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-gray-400 hover:text-gray-600 flex-shrink-0"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onEdit(proj);
@@ -685,6 +729,15 @@ function ProjectList({
                 className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center"
             >
                 + Add Project
+            </button>
+            <button
+                onClick={onImportGitHub}
+                className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center gap-2"
+            >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 4.238 9.611 9.647 10.674.6.099.817-.26.817-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.44-1.304.806-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.212.685.827.569 5.405-1.065 9.641-5.372 9.641-10.674 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub Import
             </button>
         </div>
     );
