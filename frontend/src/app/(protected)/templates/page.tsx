@@ -172,6 +172,9 @@ export default function TemplatesPage() {
                              <Link href="/profile" className="text-gray-500 hover:text-gray-900 font-medium hidden sm:block">
                                  Profile
                              </Link>
+                             <Link href="/interview-prep" className="text-gray-500 hover:text-gray-900 font-medium hidden sm:block">
+                                 Interview Prep
+                             </Link>
                          </div>
                          <Link href="/profile" className="text-gray-400 hover:text-gray-600 sm:hidden">
                              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

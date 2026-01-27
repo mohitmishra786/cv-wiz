@@ -82,6 +82,11 @@ export default function DashboardPage() {
                         <span className="text-xl font-bold text-gray-900">Dashboard</span>
                     </div>
                     <div className="flex items-center gap-4">
+                        <div className="hidden md:flex gap-4 mr-4">
+                            <Link href="/profile" className="text-gray-500 hover:text-gray-900 font-medium">Profile</Link>
+                            <Link href="/templates" className="text-gray-500 hover:text-gray-900 font-medium">Templates</Link>
+                            <Link href="/interview-prep" className="text-gray-500 hover:text-gray-900 font-medium">Interview Prep</Link>
+                        </div>
                         <div className="flex items-center gap-3">
                             <span className="text-sm text-gray-600 hidden sm:block">Welcome, {session?.user?.name || 'User'}</span>
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">

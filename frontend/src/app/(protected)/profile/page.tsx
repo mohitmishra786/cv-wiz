@@ -321,6 +321,9 @@ export default function ProfilePage() {
                         <a href="/templates" className="text-gray-600 hover:text-gray-900 font-medium">
                             Templates
                         </a>
+                        <a href="/interview-prep" className="text-gray-600 hover:text-gray-900 font-medium">
+                            Interview Prep
+                        </a>
                         <div className="flex items-center gap-3">
                             <span className="text-sm text-gray-600">{session?.user?.email}</span>
                             <button

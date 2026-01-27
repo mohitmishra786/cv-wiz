@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
-from app.routers import compile, cover_letter, upload
+from app.routers import compile, cover_letter, upload, ai
 from app.utils.redis_cache import redis_client
 from app.utils.logger import (
     logger, 
@@ -133,6 +133,7 @@ app.add_middleware(
 app.include_router(compile.router, tags=["Resume"])
 app.include_router(cover_letter.router, tags=["Cover Letter"])
 app.include_router(upload.router, tags=["Upload"])
+app.include_router(ai.router, tags=["AI"])
 
 
 @app.get("/")

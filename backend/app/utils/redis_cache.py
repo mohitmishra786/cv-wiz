@@ -29,6 +29,11 @@ class RedisClient:
             )
         return self._client
     
+    async def ping(self):
+        """Ping Redis server."""
+        client = await self.get_client()
+        return await client.ping()
+    
     async def close(self):
         """Close Redis connection."""
         if self._client:
