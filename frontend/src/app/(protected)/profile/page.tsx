@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import type { UserProfile, Experience, Project, Skill, Education } from '@/types';
 import { createLogger } from '@/lib/logger';
+import { useToast } from '@/components/ui/ToastProvider';
 import Modal from '@/components/ui/Modal';
 import ExperienceForm from '@/components/forms/ExperienceForm';
 import ProjectForm from '@/components/forms/ProjectForm';
@@ -25,6 +26,7 @@ type ModalType = 'profile' | 'experience' | 'project' | 'skill' | 'education' | 
 
 export default function ProfilePage() {
     const { data: session, status } = useSession();
+    const { success, error: toastError } = useToast();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('experiences');
@@ -48,6 +50,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             logger.failOperation('ProfilePage:fetchProfile', error);
+            toastError('Failed to load profile data');
         } finally {
             setLoading(false);
         }
@@ -90,6 +93,7 @@ export default function ProfilePage() {
             if (response.ok) {
                 logger.info('[ProfilePage] Experience saved successfully');
                 logger.endOperation('ProfilePage:saveExperience');
+                success(editingItem?.id ? 'Experience updated successfully' : 'Experience added successfully');
                 closeModal();
                 await fetchProfile();
             } else {
@@ -97,6 +101,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             logger.failOperation('ProfilePage:saveExperience', error);
+            toastError('Failed to save experience. Please try again.');
             throw error;
         }
     };
@@ -119,6 +124,7 @@ export default function ProfilePage() {
             if (response.ok) {
                 logger.info('[ProfilePage] Project saved successfully');
                 logger.endOperation('ProfilePage:saveProject');
+                success(editingItem?.id ? 'Project updated successfully' : 'Project added successfully');
                 closeModal();
                 await fetchProfile();
             } else {
@@ -126,6 +132,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             logger.failOperation('ProfilePage:saveProject', error);
+            toastError('Failed to save project. Please try again.');
             throw error;
         }
     };
@@ -148,6 +155,7 @@ export default function ProfilePage() {
             if (response.ok) {
                 logger.info('[ProfilePage] Skill saved successfully');
                 logger.endOperation('ProfilePage:saveSkill');
+                success(editingItem?.id ? 'Skill updated successfully' : 'Skill added successfully');
                 closeModal();
                 await fetchProfile();
             } else {
@@ -155,6 +163,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             logger.failOperation('ProfilePage:saveSkill', error);
+            toastError('Failed to save skill. Please try again.');
             throw error;
         }
     };
@@ -177,6 +186,7 @@ export default function ProfilePage() {
             if (response.ok) {
                 logger.info('[ProfilePage] Education saved successfully');
                 logger.endOperation('ProfilePage:saveEducation');
+                success(editingItem?.id ? 'Education updated successfully' : 'Education added successfully');
                 closeModal();
                 await fetchProfile();
             } else {
@@ -184,6 +194,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             logger.failOperation('ProfilePage:saveEducation', error);
+            toastError('Failed to save education. Please try again.');
             throw error;
         }
     };
@@ -201,6 +212,7 @@ export default function ProfilePage() {
             if (response.ok) {
                 logger.info('[ProfilePage] Profile updated successfully');
                 logger.endOperation('ProfilePage:saveProfile');
+                success('Profile updated successfully');
                 closeModal();
                 await fetchProfile();
             } else {
@@ -208,6 +220,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             logger.failOperation('ProfilePage:saveProfile', error);
+            toastError('Failed to update profile. Please try again.');
             throw error;
         }
     };
@@ -222,6 +235,7 @@ export default function ProfilePage() {
             projectsCount: (data.projects as unknown[])?.length,
             extractionMethod: data.extraction_method,
         });
+        success('Resume uploaded and parsed successfully!');
         closeModal();
         // Refresh profile to show any extracted data that was saved
         await fetchProfile();

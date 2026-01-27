@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import MobileNav from "@/components/ui/MobileNav";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,8 +39,10 @@ export default function RootLayout({
       >
         <SessionProvider>
           <ThemeProvider>
-            {children}
-            <MobileNav />
+            <ToastProvider>
+              {children}
+              <MobileNav />
+            </ToastProvider>
           </ThemeProvider>
         </SessionProvider>
         <Analytics />

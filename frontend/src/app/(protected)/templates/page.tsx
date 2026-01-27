@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import TemplatePreview from '@/components/templates/TemplatePreview';
+import { useToast } from '@/components/ui/ToastProvider';
 
 const TEMPLATES = [
     {
@@ -105,6 +106,7 @@ const TEMPLATES = [
 
 export default function TemplatesPage() {
     const { data: session } = useSession();
+    const { success, error: toastError } = useToast();
     const [selectedTemplate, setSelectedTemplate] = useState('experience-skills-projects');
     const [saving, setSaving] = useState(false);
     const [filterCategory, setFilterCategory] = useState('All');
@@ -130,8 +132,10 @@ export default function TemplatesPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ selectedTemplate }),
             });
+            success('Template preference saved successfully');
         } catch (error) {
             console.error('Failed to save template:', error);
+            toastError('Failed to save template preference');
         } finally {
             setSaving(false);
         }
