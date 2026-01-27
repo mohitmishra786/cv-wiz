@@ -612,7 +612,8 @@ function ExperienceList({
                             </p>
                         </div>
                         <button
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-gray-400 hover:text-gray-600 focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 outline-none"
+                            aria-label={`Edit experience at ${exp.company}`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onEdit(exp);
@@ -701,7 +702,8 @@ function ProjectList({
                     <div className="flex justify-between items-start">
                         <h3 className="font-semibold text-gray-900 truncate pr-2">{proj.name}</h3>
                         <button
-                            className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                            className="text-gray-400 hover:text-gray-600 flex-shrink-0 focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 outline-none"
+                            aria-label={`Edit project ${proj.name}`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onEdit(proj);
