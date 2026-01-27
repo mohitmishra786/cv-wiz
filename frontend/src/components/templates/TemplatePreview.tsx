@@ -32,6 +32,7 @@ function TemplatePreview({
 }: TemplatePreviewProps) {
     return (
         <button
+            type="button"
             onClick={() => onSelect(id)}
             className={`relative p-6 rounded-2xl border-2 text-left transition-all ${selected
                     ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-200'

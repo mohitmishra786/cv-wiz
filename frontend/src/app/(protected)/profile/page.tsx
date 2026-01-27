@@ -8,6 +8,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import type { UserProfile, Experience, Project, Skill, Education } from '@/types';
 import { createLogger } from '@/lib/logger';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -42,24 +43,28 @@ export default function ProfilePage() {
         logger.startOperation('ProfilePage:fetchProfile');
         try {
             const response = await fetch('/api/profile');
-            if (response.ok) {
-                const data = await response.json();
-                setProfile(data);
-                logger.info('[ProfilePage] Profile fetched', {
-                    experiencesCount: data.experiences?.length,
-                    projectsCount: data.projects?.length,
-                    skillsCount: data.skills?.length,
-                    educationsCount: data.educations?.length,
-                });
-                logger.endOperation('ProfilePage:fetchProfile');
+            if (!response.ok) {
+                const errorBody = await response.json().catch(() => ({}));
+                logger.failOperation('ProfilePage:fetchProfile', errorBody);
+                toastError(errorBody?.message ?? 'Failed to load profile data');
+                return;
             }
+            const data = await response.json();
+            setProfile(data);
+            logger.info('[ProfilePage] Profile fetched', {
+                experiencesCount: data.experiences?.length,
+                projectsCount: data.projects?.length,
+                skillsCount: data.skills?.length,
+                educationsCount: data.educations?.length,
+            });
+            logger.endOperation('ProfilePage:fetchProfile');
         } catch (error) {
             logger.failOperation('ProfilePage:fetchProfile', error);
             toastError('Failed to load profile data');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [toastError]);
 
     useEffect(() => {
         if (status === 'authenticated') {
@@ -315,15 +320,15 @@ export default function ProfilePage() {
                         >
                             Upload Resume
                         </button>
-                        <a href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium">
+                        <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium">
                             Dashboard
-                        </a>
-                        <a href="/templates" className="text-gray-600 hover:text-gray-900 font-medium">
+                        </Link>
+                        <Link href="/templates" className="text-gray-600 hover:text-gray-900 font-medium">
                             Templates
-                        </a>
-                        <a href="/interview-prep" className="text-gray-600 hover:text-gray-900 font-medium">
+                        </Link>
+                        <Link href="/interview-prep" className="text-gray-600 hover:text-gray-900 font-medium">
                             Interview Prep
-                        </a>
+                        </Link>
                         <div className="flex items-center gap-3">
                             <span className="text-sm text-gray-600">{session?.user?.email}</span>
                             <button

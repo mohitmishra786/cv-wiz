@@ -11,6 +11,9 @@ import Link from 'next/link';
 import TemplatePreview from '@/components/templates/TemplatePreview';
 import { useToast } from '@/components/ui/ToastProvider';
 import TemplatesSkeleton from '@/components/skeletons/TemplatesSkeleton';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger({ component: 'TemplatesPage' });
 
 const TEMPLATES = [
     {
@@ -106,7 +109,7 @@ const TEMPLATES = [
 ];
 
 export default function TemplatesPage() {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     const { success, error: toastError } = useToast();
     const [selectedTemplate, setSelectedTemplate] = useState('experience-skills-projects');
     const [saving, setSaving] = useState(false);
@@ -124,7 +127,9 @@ export default function TemplatesPage() {
                     setSelectedTemplate(data.selectedTemplate);
                 }
             })
-            .catch(console.error)
+            .catch((err) => {
+                logger.error('Failed to load settings', { err });
+            })
             .finally(() => setLoading(false));
     }, []);
 
@@ -138,7 +143,7 @@ export default function TemplatesPage() {
             });
             success('Template preference saved successfully');
         } catch (error) {
-            console.error('Failed to save template:', error);
+            logger.error('Failed to save template', { error });
             toastError('Failed to save template preference');
         } finally {
             setSaving(false);

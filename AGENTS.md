@@ -43,7 +43,7 @@ pytest tests/test_file.py::test_function_name
 - **Logging**: Use `app.utils.logger`. NEVER use `print`.
   - Pass structured context (dictionaries) to log methods.
   - specific operations should use `logger.start_operation`, `logger.end_operation`, and `logger.fail_operation`.
-- **Async**: Prefer `async def` for all I/O bound operations (DB, API calls).
+- **Async**: Prefer `async def` for all I/O-bound operations (DB, API calls).
 - **Naming**: `snake_case` for variables/functions. `PascalCase` for classes/Pydantic models.
 - **Error Handling**: Raise `HTTPException` with clear status codes and details. Catch generic exceptions in routers and log them before raising 500s.
 - **Architecture**:
