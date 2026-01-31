@@ -1,9 +1,9 @@
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from datetime import datetime
 from app.services.resume_compiler import ResumeCompiler
-from app.models.user import UserProfile, Experience, Project, Education, Skill, Publication, UserSettings
+from app.models.user import UserProfile, Experience, Project, Education, Skill, UserSettings
 
 @pytest.fixture
 def sample_profile():

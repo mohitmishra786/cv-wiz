@@ -2,7 +2,6 @@
 Unit tests for input validation functionality.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 

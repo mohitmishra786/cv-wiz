@@ -10,7 +10,6 @@ from fastapi.responses import Response
 from app.models.resume import ResumeRequest, ResumeResponse
 from app.services.profile_service import ProfileService
 from app.services.resume_compiler import ResumeCompiler
-from app.middleware.auth import verify_auth_token
 from app.utils.logger import logger, get_request_id, log_auth_operation
 from app.utils.rate_limiter import limiter, RateLimitConfig
 

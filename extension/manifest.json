@@ -44,6 +44,15 @@
                 "content/job-extractor.js"
             ],
             "run_at": "document_idle"
+        },
+        {
+            "matches": [
+                "*://*.linkedin.com/in/*"
+            ],
+            "js": [
+                "content/profile-extractor.js"
+            ],
+            "run_at": "document_idle"
         }
     ],
     "action": {

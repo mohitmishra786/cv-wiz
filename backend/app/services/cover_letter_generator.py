@@ -4,7 +4,6 @@ Orchestrates cover letter generation using Groq LLM.
 """
 
 import time
-from typing import Optional
 
 from app.models.user import UserProfile
 from app.models.cover_letter import CoverLetterResponse
