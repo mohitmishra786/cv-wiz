@@ -3,10 +3,8 @@
  * Handles popup UI interactions and communication with background
  */
 
-// Configuration
-const CONFIG = {
-    FRONTEND_URL: 'http://localhost:3000',
-};
+// State
+let currentConfig = null;
 
 // State
 let currentJob = null;
@@ -121,10 +119,26 @@ function sendMessage(type, payload = {}) {
 }
 
 /**
+ * Get configuration from background script
+ */
+async function getConfig() {
+    if (currentConfig) {
+        return currentConfig;
+    }
+    const response = await sendMessage('GET_CONFIG');
+    if (response.success) {
+        currentConfig = response.config;
+        return currentConfig;
+    }
+    throw new Error('Failed to load configuration');
+}
+
+/**
  * Handle login button click
  */
-function handleLogin() {
-    chrome.tabs.create({ url: `${CONFIG.FRONTEND_URL}/login` });
+async function handleLogin() {
+    const config = await getConfig();
+    chrome.tabs.create({ url: `${config.FRONTEND_URL}/login` });
 }
 
 /**
@@ -297,6 +311,14 @@ function showNotification(message, type = 'success') {
 async function init() {
     console.log('[CV-Wiz Popup] Initializing...');
 
+    // Load configuration first
+    try {
+        await getConfig();
+        console.log('[CV-Wiz Popup] Config loaded:', currentConfig.environment);
+    } catch (error) {
+        console.error('[CV-Wiz Popup] Failed to load config:', error);
+    }
+
     // Set up event listeners
     elements.loginBtn?.addEventListener('click', handleLogin);
     elements.extractBtn?.addEventListener('click', handleExtract);
@@ -315,9 +337,10 @@ async function init() {
         sendMessage('OPEN_PROFILE');
     });
 
-    elements.settingsLink?.addEventListener('click', (e) => {
+    elements.settingsLink?.addEventListener('click', async (e) => {
         e.preventDefault();
-        chrome.tabs.create({ url: `${CONFIG.FRONTEND_URL}/settings` });
+        const config = await getConfig();
+        chrome.tabs.create({ url: `${config.FRONTEND_URL}/settings` });
     });
 
     // Check auth status

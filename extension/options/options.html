@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV-Wiz Extension Options</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="../assets/icon48.png" alt="CV-Wiz Logo" class="logo">
+            <h1>CV-Wiz Extension Settings</h1>
+        </header>
+
+        <main>
+            <section class="settings-section">
+                <h2>Environment Configuration</h2>
+                <p class="description">Select the environment or configure custom API URLs.</p>
+
+                <div class="form-group">
+                    <label for="environment">Environment</label>
+                    <select id="environment" name="environment">
+                        <option value="development">Development (localhost)</option>
+                        <option value="staging">Staging</option>
+                        <option value="production">Production</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                    <span class="help-text">Select a preset or choose "Custom" to enter your own URLs</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="api-base-url">API Base URL</label>
+                    <input type="url" id="api-base-url" name="apiBaseUrl" placeholder="https://api.example.com/api">
+                    <span class="help-text">The base URL for the CV-Wiz backend API</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="frontend-url">Frontend URL</label>
+                    <input type="url" id="frontend-url" name="frontendUrl" placeholder="https://app.example.com">
+                    <span class="help-text">The URL for the CV-Wiz web application</span>
+                </div>
+
+                <div class="validation-status" id="validation-status"></div>
+            </section>
+
+            <section class="settings-section">
+                <h2>Current Configuration</h2>
+                <div class="config-display" id="config-display">
+                    <p>Loading configuration...</p>
+                </div>
+            </section>
+
+            <section class="actions">
+                <button type="button" id="save-btn" class="btn-primary">Save Settings</button>
+                <button type="button" id="reset-btn" class="btn-secondary">Reset to Defaults</button>
+                <button type="button" id="test-btn" class="btn-secondary">Test Connection</button>
+            </section>
+
+            <div class="notification" id="notification"></div>
+        </main>
+
+        <footer>
+            <p>CV-Wiz Extension v1.1.0</p>
+        </footer>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html>
