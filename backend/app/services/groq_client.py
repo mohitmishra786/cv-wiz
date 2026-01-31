@@ -170,6 +170,30 @@ Return the result as a JSON array of objects with keys: "question", "suggested_a
         except Exception as e:
             logger.error(f"Groq generate_interview_prep error: {str(e)}", {"request_id": request_id})
             return []
+
+    async def suggest_skills(self, experience_text: str) -> List[str]:
+        """Suggest skills based on work experience description."""
+        request_id = get_request_id()
+        
+        system_prompt = """You are a career expert. Analyze the provided work experience and extract/infer relevant technical and soft skills.
+Return the result as a JSON object with a key "skills" containing a list of strings. Limit to top 15 most relevant skills."""
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"EXPERIENCE:\n{experience_text}"},
+                ],
+                temperature=0.5,
+                response_format={"type": "json_object"},
+            )
+            content = response.choices[0].message.content or "{}"
+            data = json.loads(content)
+            return data.get("skills", [])
+        except Exception as e:
+            logger.error(f"Groq suggest_skills error: {str(e)}", {"request_id": request_id})
+            return []
     
     def _build_system_prompt(self, tone: str, max_words: int) -> str:
         """Build system prompt for cover letter generation."""
