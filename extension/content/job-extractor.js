@@ -141,11 +141,85 @@
 
         // Clean up whitespace
         text = text
-            .replace(/\s+/g, ' ')
-            .replace(/\n\s*\n/g, '\n\n')
+            .replace(/[ \t]+/g, ' ') // Collapse horizontal whitespace
+            .replace(/\n\s*\n/g, '\n\n') // Normalize paragraph breaks
+            .replace(/[ \t]+\n/g, '\n') // Remove trailing space before newline
+            .replace(/\n[ \t]+/g, '\n') // Remove leading space after newline
             .trim();
 
         return text || null;
+    }
+
+    /**
+     * Send telemetry data
+     */
+    function sendTelemetry(event, data) {
+        try {
+            chrome.runtime.sendMessage({
+                type: 'TELEMETRY_EVENT',
+                payload: {
+                    event: event,
+                    data: data,
+                    timestamp: new Date().toISOString(),
+                    url: window.location.href
+                }
+            });
+        } catch (e) {
+            console.error('[CV-Wiz] Telemetry failed:', e);
+        }
+    }
+
+    /**
+     * Enable manual text selection mode
+     */
+    function enableManualSelection() {
+        document.body.style.cursor = 'crosshair';
+        
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.1);
+            z-index: 999998;
+            pointer-events: none;
+        `;
+        document.body.appendChild(overlay);
+        
+        function onMouseUp() {
+            const selection = window.getSelection();
+            const text = selection.toString().trim();
+            
+            if (text && text.length > 50) {
+                const data = {
+                    jobDescription: text,
+                    title: document.title,
+                    company: "Manual Selection",
+                    url: window.location.href,
+                    jobBoard: "manual",
+                    extractedAt: new Date().toISOString()
+                };
+                sendToBackground(data);
+                showNotification('Manual selection successful! Opening CV-Wiz...');
+                sendTelemetry('manual_extraction_success', { length: text.length });
+            } else if (text) {
+                showNotification('Selected text is too short. Please select the full description.', 'error');
+            }
+            
+            // Cleanup
+            document.body.style.cursor = 'default';
+            document.removeEventListener('mouseup', onMouseUp);
+            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        }
+        
+        // Use timeout to avoid capturing the click on the button itself
+        setTimeout(() => {
+            document.addEventListener('mouseup', onMouseUp);
+        }, 100);
+        
+        showNotification('Select the job description text on the page.', 'info');
     }
 
     /**
@@ -161,6 +235,7 @@
 
         if (!description || description.length < 50) {
             console.log('[CV-Wiz] Could not find job description');
+            sendTelemetry('extraction_failed', { reason: 'not_found_or_short', jobBoard });
             return null;
         }
 
@@ -172,6 +247,8 @@
         const companyElement = findElement(selectors.company);
         const company = extractText(companyElement);
 
+        sendTelemetry('extraction_success', { jobBoard, length: description.length });
+
         return {
             jobDescription: description,
             title: title,
@@ -181,6 +258,7 @@
             extractedAt: new Date().toISOString(),
         };
     }
+
 
     /**
      * Send extracted data to background script
@@ -257,7 +335,8 @@
                 sendToBackground(data);
                 showNotification('Job description extracted! Opening CV-Wiz...');
             } else {
-                showNotification('Could not extract job description from this page.', 'error');
+                showNotification('Auto-extraction failed. Click to select text manually.', 'error');
+                enableManualSelection();
             }
         });
 
@@ -269,13 +348,19 @@
      */
     function showNotification(message, type = 'success') {
         const notification = document.createElement('div');
+        const colors = {
+            success: '#10b981',
+            error: '#ef4444',
+            info: '#3b82f6'
+        };
+        
         notification.style.cssText = `
       position: fixed;
       top: 20px;
       right: 20px;
       z-index: 999999;
       padding: 16px 24px;
-      background: ${type === 'success' ? '#10b981' : '#ef4444'};
+      background: ${colors[type] || colors.success};
       color: white;
       border-radius: 8px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -351,4 +436,13 @@
     }
 
     init();
+
+    // Export for testing
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = {
+            JOB_SELECTORS,
+            detectJobBoard,
+            extractText
+        };
+    }
 })();
