@@ -38,9 +38,31 @@ async def compile_resume(
     request_id = get_request_id()
     start_time = time.time()
     
+    # Validate job description length
+    job_description_length = len(request.job_description)
+    if job_description_length < 50:
+        logger.warning("Job description too short", {
+            "request_id": request_id,
+            "length": job_description_length,
+        })
+        raise HTTPException(
+            status_code=400,
+            detail=f"Job description is too short ({job_description_length} characters). Minimum required: 50 characters.",
+        )
+    
+    if job_description_length > 50000:
+        logger.warning("Job description too long", {
+            "request_id": request_id,
+            "length": job_description_length,
+        })
+        raise HTTPException(
+            status_code=400,
+            detail=f"Job description is too long ({job_description_length} characters). Maximum allowed: 50,000 characters.",
+        )
+    
     logger.start_operation("compile_resume", {
         "request_id": request_id,
-        "job_description_length": len(request.job_description),
+        "job_description_length": job_description_length,
         "template": request.template,
         "has_auth_token": bool(request.auth_token),
     })
@@ -124,9 +146,31 @@ async def compile_resume_pdf(
     request_id = get_request_id()
     start_time = time.time()
     
+    # Validate job description length
+    job_description_length = len(request.job_description)
+    if job_description_length < 50:
+        logger.warning("Job description too short for PDF", {
+            "request_id": request_id,
+            "length": job_description_length,
+        })
+        raise HTTPException(
+            status_code=400,
+            detail=f"Job description is too short ({job_description_length} characters). Minimum required: 50 characters.",
+        )
+    
+    if job_description_length > 50000:
+        logger.warning("Job description too long for PDF", {
+            "request_id": request_id,
+            "length": job_description_length,
+        })
+        raise HTTPException(
+            status_code=400,
+            detail=f"Job description is too long ({job_description_length} characters). Maximum allowed: 50,000 characters.",
+        )
+    
     logger.start_operation("compile_resume_pdf", {
         "request_id": request_id,
-        "job_description_length": len(request.job_description),
+        "job_description_length": job_description_length,
     })
     
     try:
