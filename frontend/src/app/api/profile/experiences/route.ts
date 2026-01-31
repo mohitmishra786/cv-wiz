@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
 import { parsePaginationParams, createPaginatedResponse, calculateSkip } from '@/lib/pagination';
+import { sanitizeExperienceData } from '@/lib/sanitization';
 
 /**
  * GET /api/profile/experiences
@@ -103,7 +104,10 @@ export async function POST(request: NextRequest) {
 
         const userId = session.user.id;
         const body = await request.json();
-        const { company, title, location, startDate, endDate, current, description, highlights, keywords } = body;
+
+        // Sanitize input data
+        const sanitizedData = sanitizeExperienceData(body);
+        const { company, title, location, startDate, endDate, current, description, highlights, keywords } = sanitizedData;
 
         logger.info('Creating experience', {
             requestId,
@@ -139,8 +143,8 @@ export async function POST(request: NextRequest) {
                 company,
                 title,
                 location: location || null,
-                startDate: new Date(startDate),
-                endDate: endDate ? new Date(endDate) : null,
+                startDate: new Date(startDate as string),
+                endDate: endDate ? new Date(endDate as string) : null,
                 current: current || false,
                 description,
                 highlights: highlights || [],

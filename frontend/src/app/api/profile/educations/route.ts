@@ -5,10 +5,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-
 import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
 import { parsePaginationParams, createPaginatedResponse, calculateSkip } from '@/lib/pagination';
+import { sanitizeEducationData } from '@/lib/sanitization';
 
 export async function GET(request: NextRequest) {
     const requestId = getOrCreateRequestId(request.headers);
@@ -98,7 +98,10 @@ export async function POST(request: NextRequest) {
 
         const userId = session.user.id;
         const body = await request.json();
-        const { institution, degree, field, startDate, endDate, gpa, honors } = body;
+
+        // Sanitize input data
+        const sanitizedData = sanitizeEducationData(body);
+        const { institution, degree, field, startDate, endDate, gpa, honors } = sanitizedData;
 
         logger.info('Creating education', {
             requestId,
@@ -133,8 +136,8 @@ export async function POST(request: NextRequest) {
                 institution,
                 degree,
                 field,
-                startDate: new Date(startDate),
-                endDate: endDate ? new Date(endDate) : null,
+                startDate: new Date(startDate as string),
+                endDate: endDate ? new Date(endDate as string) : null,
                 gpa: gpa || null,
                 honors: honors || [],
             },

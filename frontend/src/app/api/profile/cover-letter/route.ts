@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
+import { sanitizeCoverLetterData } from '@/lib/sanitization';
 
 /**
  * GET /api/profile/cover-letter
@@ -104,16 +105,19 @@ export async function POST(request: NextRequest) {
         logAuthOperation('cover-letter:create:authenticated', userId, true);
 
         const body = await request.json();
+
+        // Sanitize input data
+        const sanitizedData = sanitizeCoverLetterData(body);
         logger.debug('Cover letter creation request body', {
             requestId,
             userId,
-            hasContent: 'content' in body,
-            contentLength: body.content?.length,
-            hasJobTitle: 'jobTitle' in body,
-            hasCompanyName: 'companyName' in body,
+            hasContent: 'content' in sanitizedData,
+            contentLength: sanitizedData.content?.length,
+            hasJobTitle: 'jobTitle' in sanitizedData,
+            hasCompanyName: 'companyName' in sanitizedData,
         });
 
-        const { content, jobTitle, companyName } = body;
+        const { content, jobTitle, companyName } = sanitizedData;
 
         if (!content || typeof content !== 'string' || !content.trim()) {
             logger.warn('Cover letter creation failed - no content', { requestId, userId });

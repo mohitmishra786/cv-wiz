@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
+import { sanitizeProfileData } from '@/lib/sanitization';
 
 /**
  * GET /api/profile
@@ -156,8 +157,12 @@ export async function PUT(request: NextRequest) {
             hasImage: 'image' in body,
         });
 
+        // Sanitize input data
+        const sanitizedData = sanitizeProfileData(body);
+        logger.debug('Profile data sanitized', { requestId, userId });
+
         // Extract updateable fields
-        const { name, image } = body;
+        const { name, image } = sanitizedData;
 
         // Update user
         logger.info('Updating user in database', { requestId, userId, fields: { name: !!name, image: !!image } });
