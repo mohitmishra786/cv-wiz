@@ -3,11 +3,9 @@ Rate Limiting Utilities
 Provides rate limiting for API endpoints using slowapi.
 """
 
-from typing import Optional
-from functools import wraps
 import time
 
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi import Request, HTTPException

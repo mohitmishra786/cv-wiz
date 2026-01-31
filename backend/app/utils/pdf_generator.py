@@ -5,7 +5,6 @@ Generates ATS-friendly resume PDFs using WeasyPrint.
 
 import base64
 from io import BytesIO
-from typing import Optional
 
 from jinja2 import Environment, BaseLoader
 from weasyprint import HTML, CSS

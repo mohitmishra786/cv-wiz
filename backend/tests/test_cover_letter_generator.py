@@ -1,9 +1,9 @@
 
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import patch, AsyncMock
 from datetime import datetime
 from app.services.cover_letter_generator import CoverLetterGenerator
-from app.models.user import UserProfile, Experience, Project, Education, Skill, Publication, UserSettings
+from app.models.user import UserProfile, Experience, Project, Education, Skill, UserSettings
 
 
 @pytest.fixture

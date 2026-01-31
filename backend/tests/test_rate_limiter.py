@@ -7,10 +7,8 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 
 from app.utils.rate_limiter import (
-    limiter,
     RateLimitConfig,
     get_user_identifier,
-    rate_limit_exceeded_handler,
 )
 
 

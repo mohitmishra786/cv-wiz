@@ -6,7 +6,7 @@ Validates JWT tokens for protected endpoints.
 from typing import Optional
 import jwt
 from jwt.exceptions import PyJWTError as JWTError
-from fastapi import HTTPException, Header, Depends
+from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.config import get_settings
