@@ -9,6 +9,7 @@ import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
 import { parsePaginationParams, createPaginatedResponse, calculateSkip } from '@/lib/pagination';
 import { sanitizeExperienceData } from '@/lib/sanitization';
+import { auditCreate, auditUpdate, auditDelete } from '@/lib/audit';
 
 /**
  * GET /api/profile/experiences
@@ -159,6 +160,9 @@ export async function POST(request: NextRequest) {
             company: experience.company,
         });
 
+        // Audit log
+        await auditCreate(request, userId, 'Experience', experience.id, experience);
+
         logger.endOperation('experiences:create');
         return NextResponse.json({ data: experience, requestId }, { status: 201 });
     } catch (error) {
@@ -233,6 +237,9 @@ export async function PUT(request: NextRequest) {
             experienceId: id,
         });
 
+        // Audit log
+        await auditUpdate(request, userId, 'Experience', id, existing, experience);
+
         logger.endOperation('experiences:update');
         return NextResponse.json({ data: experience, requestId });
     } catch (error) {
@@ -282,6 +289,9 @@ export async function DELETE(request: NextRequest) {
         logDbOperation('delete', 'Experience', { userId, id });
 
         await prisma.experience.delete({ where: { id } });
+
+        // Audit log
+        await auditDelete(request, userId, 'Experience', id, existing);
 
         logger.info('Experience deleted successfully', { requestId, userId, experienceId: id });
         logger.endOperation('experiences:delete');
