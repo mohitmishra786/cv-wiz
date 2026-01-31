@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import MobileNav from "@/components/ui/MobileNav";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
+import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -44,18 +45,20 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <SessionProvider>
-          <ThemeProvider>
-            <LanguageProvider>
-              <ToastProvider>
-                <div id="main-content">
-                  {children}
-                </div>
-                <MobileNav />
-              </ToastProvider>
-            </LanguageProvider>
-          </ThemeProvider>
-        </SessionProvider>
+        <GlobalErrorBoundary>
+          <SessionProvider>
+            <ThemeProvider>
+              <LanguageProvider>
+                <ToastProvider>
+                  <div id="main-content">
+                    {children}
+                  </div>
+                  <MobileNav />
+                </ToastProvider>
+              </LanguageProvider>
+            </ThemeProvider>
+          </SessionProvider>
+        </GlobalErrorBoundary>
         <Analytics />
       </body>
     </html>
