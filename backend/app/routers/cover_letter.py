@@ -4,12 +4,13 @@ API endpoint for generating tailored cover letters.
 """
 
 import time
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 
 from app.models.cover_letter import CoverLetterRequest, CoverLetterResponse
 from app.services.profile_service import ProfileService
 from app.services.cover_letter_generator import CoverLetterGenerator
 from app.utils.logger import logger, get_request_id, log_auth_operation
+from app.utils.rate_limiter import limiter, RateLimitConfig
 
 
 router = APIRouter()
@@ -25,8 +26,10 @@ def get_cover_letter_generator() -> CoverLetterGenerator:
 
 
 @router.post("/cover-letter", response_model=CoverLetterResponse)
+@limiter.limit(RateLimitConfig.GENERATE_COVER_LETTER)
 async def generate_cover_letter(
-    request: CoverLetterRequest,
+    request: Request,
+    cover_request: CoverLetterRequest,
     profile_service: ProfileService = Depends(get_profile_service),
     generator: CoverLetterGenerator = Depends(get_cover_letter_generator),
 ) -> CoverLetterResponse:
@@ -37,7 +40,7 @@ async def generate_cover_letter(
     start_time = time.time()
     
     # Validate job description length
-    job_description_length = len(request.job_description)
+    job_description_length = len(cover_request.job_description)
     if job_description_length < 50:
         logger.warning("Job description too short for cover letter", {
             "request_id": request_id,
@@ -61,15 +64,15 @@ async def generate_cover_letter(
     logger.start_operation("generate_cover_letter", {
         "request_id": request_id,
         "job_description_length": job_description_length,
-        "tone": request.tone,
-        "max_words": request.max_words,
-        "has_auth_token": bool(request.auth_token),
+        "tone": cover_request.tone,
+        "max_words": cover_request.max_words,
+        "has_auth_token": bool(cover_request.auth_token),
     })
     
     try:
         # Validate auth token and get user profile
         logger.info("Fetching user profile for cover letter", {"request_id": request_id})
-        profile = await profile_service.get_profile(request.auth_token)
+        profile = await profile_service.get_profile(cover_request.auth_token)
         
         if profile is None:
             logger.warning("Cover letter auth failed - invalid token", {"request_id": request_id})
@@ -104,10 +107,10 @@ async def generate_cover_letter(
         
         # Validate tone
         valid_tones = {"professional", "enthusiastic", "formal"}
-        if request.tone and request.tone not in valid_tones:
+        if cover_request.tone and cover_request.tone not in valid_tones:
             logger.warning("Invalid tone specified", {
                 "request_id": request_id,
-                "tone": request.tone,
+                "tone": cover_request.tone,
                 "valid_tones": list(valid_tones),
             })
             raise HTTPException(
@@ -119,15 +122,15 @@ async def generate_cover_letter(
         logger.info("Starting cover letter generation", {
             "request_id": request_id,
             "user_id": profile.id,
-            "tone": request.tone or "professional",
-            "max_words": request.max_words or 400,
+            "tone": cover_request.tone or "professional",
+            "max_words": cover_request.max_words or 400,
         })
         
         response = await generator.generate(
             profile=profile,
-            job_description=request.job_description,
-            tone=request.tone or "professional",
-            max_words=request.max_words or 400,
+            job_description=cover_request.job_description,
+            tone=cover_request.tone or "professional",
+            max_words=cover_request.max_words or 400,
         )
         
         duration_ms = (time.time() - start_time) * 1000
@@ -151,8 +154,10 @@ async def generate_cover_letter(
 
 
 @router.post("/cover-letter/preview")
+@limiter.limit(RateLimitConfig.GET_PROFILE)  # Use moderate limits for preview
 async def preview_prompt(
-    request: CoverLetterRequest,
+    request: Request,
+    cover_request: CoverLetterRequest,
     profile_service: ProfileService = Depends(get_profile_service),
     generator: CoverLetterGenerator = Depends(get_cover_letter_generator),
 ) -> dict:
@@ -163,7 +168,7 @@ async def preview_prompt(
     start_time = time.time()
     
     # Validate job description length for preview
-    job_description_length = len(request.job_description)
+    job_description_length = len(cover_request.job_description)
     if job_description_length < 50:
         logger.warning("Job description too short for preview", {
             "request_id": request_id,
@@ -187,7 +192,7 @@ async def preview_prompt(
     logger.start_operation("preview_cover_letter_prompt", {"request_id": request_id})
     
     try:
-        profile = await profile_service.get_profile(request.auth_token)
+        profile = await profile_service.get_profile(cover_request.auth_token)
         
         if profile is None:
             logger.warning("Preview auth failed", {"request_id": request_id})
@@ -201,7 +206,7 @@ async def preview_prompt(
         # Import scorer to get relevant items
         from app.utils.relevance_scorer import RelevanceScorer
         
-        scorer = RelevanceScorer(request.job_description)
+        scorer = RelevanceScorer(cover_request.job_description)
         selected = scorer.select_top_items(
             profile,
             max_experiences=3,

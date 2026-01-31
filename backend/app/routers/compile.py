@@ -4,7 +4,7 @@ API endpoint for generating tailored resumes.
 """
 
 import time
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import Response
 
 from app.models.resume import ResumeRequest, ResumeResponse
@@ -12,6 +12,7 @@ from app.services.profile_service import ProfileService
 from app.services.resume_compiler import ResumeCompiler
 from app.middleware.auth import verify_auth_token
 from app.utils.logger import logger, get_request_id, log_auth_operation
+from app.utils.rate_limiter import limiter, RateLimitConfig
 
 
 router = APIRouter()
@@ -27,8 +28,10 @@ def get_resume_compiler() -> ResumeCompiler:
 
 
 @router.post("/compile", response_model=ResumeResponse)
+@limiter.limit(RateLimitConfig.COMPILE_RESUME)
 async def compile_resume(
-    request: ResumeRequest,
+    request: Request,
+    resume_request: ResumeRequest,
     profile_service: ProfileService = Depends(get_profile_service),
     compiler: ResumeCompiler = Depends(get_resume_compiler),
 ) -> ResumeResponse:
@@ -39,7 +42,7 @@ async def compile_resume(
     start_time = time.time()
     
     # Validate job description length
-    job_description_length = len(request.job_description)
+    job_description_length = len(resume_request.job_description)
     if job_description_length < 50:
         logger.warning("Job description too short", {
             "request_id": request_id,
@@ -63,14 +66,14 @@ async def compile_resume(
     logger.start_operation("compile_resume", {
         "request_id": request_id,
         "job_description_length": job_description_length,
-        "template": request.template,
-        "has_auth_token": bool(request.auth_token),
+        "template": resume_request.template,
+        "has_auth_token": bool(resume_request.auth_token),
     })
     
     try:
         # Validate auth token and get user profile
         logger.info("Fetching user profile", {"request_id": request_id})
-        profile = await profile_service.get_profile(request.auth_token)
+        profile = await profile_service.get_profile(resume_request.auth_token)
         
         if profile is None:
             logger.warning("Profile fetch failed - invalid token", {"request_id": request_id})
@@ -106,13 +109,13 @@ async def compile_resume(
         logger.info("Starting resume compilation", {
             "request_id": request_id,
             "user_id": profile.id,
-            "template": request.template,
+            "template": resume_request.template,
         })
         
         response = await compiler.compile(
             profile=profile,
-            job_description=request.job_description,
-            template=request.template,
+            job_description=resume_request.job_description,
+            template=resume_request.template,
         )
         
         duration_ms = (time.time() - start_time) * 1000
@@ -135,8 +138,10 @@ async def compile_resume(
 
 
 @router.post("/compile/pdf")
+@limiter.limit(RateLimitConfig.COMPILE_RESUME)
 async def compile_resume_pdf(
-    request: ResumeRequest,
+    request: Request,
+    resume_request: ResumeRequest,
     profile_service: ProfileService = Depends(get_profile_service),
     compiler: ResumeCompiler = Depends(get_resume_compiler),
 ) -> Response:
@@ -147,7 +152,7 @@ async def compile_resume_pdf(
     start_time = time.time()
     
     # Validate job description length
-    job_description_length = len(request.job_description)
+    job_description_length = len(resume_request.job_description)
     if job_description_length < 50:
         logger.warning("Job description too short for PDF", {
             "request_id": request_id,
@@ -175,7 +180,7 @@ async def compile_resume_pdf(
     
     try:
         # Validate auth token and get user profile
-        profile = await profile_service.get_profile(request.auth_token)
+        profile = await profile_service.get_profile(resume_request.auth_token)
         
         if profile is None:
             logger.warning("PDF compile failed - invalid token", {"request_id": request_id})
@@ -196,8 +201,8 @@ async def compile_resume_pdf(
         # Compile resume
         response = await compiler.compile(
             profile=profile,
-            job_description=request.job_description,
-            template=request.template,
+            job_description=resume_request.job_description,
+            template=resume_request.template,
         )
         
         # Check if PDF generation was successful
@@ -258,7 +263,9 @@ async def compile_resume_pdf(
 
 
 @router.get("/templates")
+@limiter.limit(RateLimitConfig.GET_TEMPLATES)
 async def get_templates(
+    request: Request,
     compiler: ResumeCompiler = Depends(get_resume_compiler),
 ) -> dict:
     """

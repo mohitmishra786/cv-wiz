@@ -27,6 +27,7 @@ if settings.sentry_dsn:
 
 from app.routers import compile, cover_letter, upload, ai
 from app.utils.redis_cache import redis_client
+from app.utils.rate_limiter import limiter, apply_rate_limiting, RateLimitConfig
 from app.utils.logger import (
     logger, 
     generate_request_id, 
@@ -128,6 +129,9 @@ app = FastAPI(
     lifespan=lifespan,
     root_path="/api/py",  # For Vercel deployment with Next.js rewrites
 )
+
+# Initialize rate limiting
+apply_rate_limiting(app)
 
 # Add logging middleware FIRST
 app.add_middleware(LoggingMiddleware)
