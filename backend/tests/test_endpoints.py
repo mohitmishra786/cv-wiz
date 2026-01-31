@@ -86,7 +86,7 @@ def test_compile_resume(client, mock_profile_service, mock_compiler, sample_prof
     })
     
     assert response.status_code == 200
-    assert response.json()["success"] == True
+    assert response.json()["success"]
     assert response.json()["pdfBase64"] == "base64pdf"
 
 def test_compile_resume_invalid_jd(client):
@@ -114,5 +114,5 @@ def test_generate_cover_letter(client, mock_profile_service, mock_cl_generator, 
     })
     
     assert response.status_code == 200
-    assert response.json()["success"] == True
+    assert response.json()["success"]
     assert response.json()["coverLetter"] == "My Cover Letter"

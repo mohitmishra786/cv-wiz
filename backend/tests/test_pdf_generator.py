@@ -1,6 +1,6 @@
 
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 import pytest
 
 # Mock weasyprint modules BEFORE importing the module under test
@@ -13,9 +13,8 @@ mock_wp_fonts = MagicMock()
 mock_wp_fonts.FontConfiguration = MagicMock()
 sys.modules["weasyprint.text.fonts"] = mock_wp_fonts
 
-from app.utils.pdf_generator import PDFGenerator
-from app.models.resume import CompiledResume
-from app.models.user import Experience, Project, Education, Skill, Publication
+from app.utils.pdf_generator import PDFGenerator  # noqa: E402
+from app.models.resume import CompiledResume  # noqa: E402
 
 @pytest.fixture
 def generator():
