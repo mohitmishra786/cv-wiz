@@ -1,12 +1,13 @@
 /**
  * Skills API Routes
- * CRUD operations for skills
+ * CRUD operations for skills with pagination and search
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
+import { parsePaginationParams, createPaginatedResponse, calculateSkip } from '@/lib/pagination';
 
 export async function GET(request: NextRequest) {
     const requestId = getOrCreateRequestId(request.headers);
@@ -25,12 +26,40 @@ export async function GET(request: NextRequest) {
         }
 
         const userId = session.user.id;
-        logger.info('Fetching skills', { requestId, userId });
-        logDbOperation('findMany', 'Skill', { userId });
-
+        
+        // Parse pagination parameters
+        const { searchParams } = new URL(request.url);
+        const pagination = parsePaginationParams(searchParams);
+        const skip = calculateSkip(pagination.page, pagination.limit);
+        
+        logger.info('Fetching skills with pagination', {
+            requestId,
+            userId,
+            page: pagination.page,
+            limit: pagination.limit,
+            search: pagination.search
+        });
+        
+        // Build where clause with search
+        const where: { userId: string; OR?: Array<{ [key: string]: { contains: string; mode: 'insensitive' } }> } = { userId };
+        if (pagination.search) {
+            where.OR = [
+                { name: { contains: pagination.search, mode: 'insensitive' } },
+                { category: { contains: pagination.search, mode: 'insensitive' } },
+            ];
+        }
+        
+        logDbOperation('findMany', 'Skill', { userId, ...pagination });
+        
+        // Get total count for pagination
+        const total = await prisma.skill.count({ where });
+        
+        // Fetch paginated skills
         const skills = await prisma.skill.findMany({
-            where: { userId },
+            where,
             orderBy: [{ category: 'asc' }, { order: 'asc' }],
+            skip,
+            take: pagination.limit,
         });
 
         // Group by category for logging
@@ -42,12 +71,15 @@ export async function GET(request: NextRequest) {
         logger.info('Skills fetched successfully', {
             requestId,
             userId,
-            totalCount: skills.length,
+            count: skills.length,
+            total,
             categoryCounts,
         });
 
         logger.endOperation('skills:list');
-        return NextResponse.json({ data: skills, requestId });
+        
+        const response = createPaginatedResponse(skills, total, pagination);
+        return NextResponse.json({ ...response, requestId });
     } catch (error) {
         logger.failOperation('skills:list', error);
         return NextResponse.json({ error: 'Internal server error', requestId }, { status: 500 });

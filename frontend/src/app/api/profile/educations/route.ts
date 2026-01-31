@@ -1,6 +1,6 @@
 /**
  * Education API Routes
- * CRUD operations for education entries
+ * CRUD operations for education entries with pagination and search
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth';
 
 import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
+import { parsePaginationParams, createPaginatedResponse, calculateSkip } from '@/lib/pagination';
 
 export async function GET(request: NextRequest) {
     const requestId = getOrCreateRequestId(request.headers);
@@ -26,23 +27,55 @@ export async function GET(request: NextRequest) {
         }
 
         const userId = session.user.id;
-        logger.info('Fetching educations', { requestId, userId });
-        logDbOperation('findMany', 'Education', { userId });
-
+        
+        // Parse pagination parameters
+        const { searchParams } = new URL(request.url);
+        const pagination = parsePaginationParams(searchParams);
+        const skip = calculateSkip(pagination.page, pagination.limit);
+        
+        logger.info('Fetching educations with pagination', {
+            requestId,
+            userId,
+            page: pagination.page,
+            limit: pagination.limit,
+            search: pagination.search
+        });
+        
+        // Build where clause with search
+        const where: { userId: string; OR?: Array<{ [key: string]: { contains: string; mode: 'insensitive' } }> } = { userId };
+        if (pagination.search) {
+            where.OR = [
+                { institution: { contains: pagination.search, mode: 'insensitive' } },
+                { degree: { contains: pagination.search, mode: 'insensitive' } },
+                { field: { contains: pagination.search, mode: 'insensitive' } },
+            ];
+        }
+        
+        logDbOperation('findMany', 'Education', { userId, ...pagination });
+        
+        // Get total count for pagination
+        const total = await prisma.education.count({ where });
+        
+        // Fetch paginated educations
         const educations = await prisma.education.findMany({
-            where: { userId },
+            where,
             orderBy: { startDate: 'desc' },
+            skip,
+            take: pagination.limit,
         });
 
         logger.info('Educations fetched successfully', {
             requestId,
             userId,
             count: educations.length,
+            total,
             degrees: educations.map(e => e.degree),
         });
 
         logger.endOperation('educations:list');
-        return NextResponse.json({ data: educations, requestId });
+        
+        const response = createPaginatedResponse(educations, total, pagination);
+        return NextResponse.json({ ...response, requestId });
     } catch (error) {
         logger.failOperation('educations:list', error);
         return NextResponse.json({ error: 'Internal server error', requestId }, { status: 500 });

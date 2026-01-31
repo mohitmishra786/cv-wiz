@@ -1,15 +1,17 @@
 /**
  * Experiences API Routes
- * CRUD operations for work experiences
+ * CRUD operations for work experiences with pagination and search
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
+import { parsePaginationParams, createPaginatedResponse, calculateSkip } from '@/lib/pagination';
 
 /**
  * GET /api/profile/experiences
+ * Supports pagination, search, and sorting
  */
 export async function GET(request: NextRequest) {
     const requestId = getOrCreateRequestId(request.headers);
@@ -28,23 +30,55 @@ export async function GET(request: NextRequest) {
         }
 
         const userId = session.user.id;
-        logger.info('Fetching experiences', { requestId, userId });
-        logDbOperation('findMany', 'Experience', { userId });
+        
+        // Parse pagination parameters
+        const { searchParams } = new URL(request.url);
+        const pagination = parsePaginationParams(searchParams);
+        const skip = calculateSkip(pagination.page, pagination.limit);
+        
+        logger.info('Fetching experiences with pagination', {
+            requestId,
+            userId,
+            page: pagination.page,
+            limit: pagination.limit,
+            search: pagination.search
+        });
+        
+        // Build where clause with search
+        const where: { userId: string; OR?: Array<{ [key: string]: { contains: string; mode: 'insensitive' } }> } = { userId };
+        if (pagination.search) {
+            where.OR = [
+                { company: { contains: pagination.search, mode: 'insensitive' } },
+                { title: { contains: pagination.search, mode: 'insensitive' } },
+                { description: { contains: pagination.search, mode: 'insensitive' } },
+            ];
+        }
+        
+        logDbOperation('findMany', 'Experience', { userId, ...pagination });
 
+        // Get total count for pagination
+        const total = await prisma.experience.count({ where });
+        
+        // Fetch paginated experiences
         const experiences = await prisma.experience.findMany({
-            where: { userId },
+            where,
             orderBy: [{ current: 'desc' }, { startDate: 'desc' }],
+            skip,
+            take: pagination.limit,
         });
 
         logger.info('Experiences fetched successfully', {
             requestId,
             userId,
             count: experiences.length,
+            total,
             currentCount: experiences.filter(e => e.current).length,
         });
 
         logger.endOperation('experiences:list');
-        return NextResponse.json({ data: experiences, requestId });
+        
+        const response = createPaginatedResponse(experiences, total, pagination);
+        return NextResponse.json({ ...response, requestId });
     } catch (error) {
         logger.failOperation('experiences:list', error);
         return NextResponse.json({ error: 'Internal server error', requestId }, { status: 500 });
