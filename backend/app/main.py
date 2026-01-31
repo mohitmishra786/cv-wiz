@@ -25,10 +25,10 @@ if settings.sentry_dsn:
         environment=settings.environment,
     )
 
-from app.routers import compile, cover_letter, upload, ai
-from app.utils.redis_cache import redis_client
-from app.utils.rate_limiter import limiter, apply_rate_limiting, RateLimitConfig
-from app.utils.logger import (
+from app.routers import compile, cover_letter, upload, ai  # noqa: E402
+from app.utils.redis_cache import redis_client  # noqa: E402
+from app.utils.rate_limiter import apply_rate_limiting  # noqa: E402
+from app.utils.logger import (  # noqa: E402
     logger, 
     generate_request_id, 
     set_request_context, 

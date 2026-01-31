@@ -18,6 +18,7 @@ __all__ = [
     "redis_client",
     "get_cached",
     "set_cached",
+    "generate_cache_key",
     "RelevanceScorer",
     "PDFGenerator",
     "PDF_AVAILABLE",
