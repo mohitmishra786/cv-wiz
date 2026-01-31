@@ -85,6 +85,17 @@ async def test_generate_interview_prep_failure(client, mock_groq):
     result = await client.generate_interview_prep("Candidate Info")
     assert result == []
 
+@pytest.mark.asyncio
+async def test_suggest_skills(client, mock_groq):
+    mock_content = '{"skills": ["Python", "Docker"]}'
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock(message=MagicMock(content=mock_content))]
+    client.client.chat.completions.create.return_value = mock_response
+    
+    result = await client.suggest_skills("I wrote backend code")
+    assert "Python" in result
+    assert "Docker" in result
+
 def test_format_candidate_info(client):
     experiences = [
         Experience(

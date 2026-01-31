@@ -1,5 +1,4 @@
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import patch
 
 def test_enhance_bullet_validation(client):
     """Test validation error for enhance-bullet."""
@@ -30,3 +29,17 @@ def test_interview_prep_success(mock_prep, client):
     assert response.status_code == 200
     assert len(response.json()["questions"]) == 1
     assert response.json()["questions"][0]["question"] == "Tell me about yourself"
+
+@patch("app.services.groq_client.GroqClient.suggest_skills")
+def test_suggest_skills_success(mock_suggest, client):
+    """Test successful skill suggestion."""
+    mock_suggest.return_value = ["Python", "Docker"]
+    
+    response = client.post("/ai/suggest-skills", json={"experience_text": "I coded in Python"})
+    assert response.status_code == 200
+    assert "Python" in response.json()["skills"]
+
+def test_suggest_skills_too_short(client):
+    """Test validation for short text."""
+    response = client.post("/ai/suggest-skills", json={"experience_text": "Short"})
+    assert response.status_code == 400

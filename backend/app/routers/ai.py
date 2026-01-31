@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -22,6 +22,12 @@ class InterviewQuestion(BaseModel):
 
 class InterviewPrepResponse(BaseModel):
     questions: List[InterviewQuestion]
+
+class SkillSuggestionRequest(BaseModel):
+    experience_text: str
+
+class SkillSuggestionResponse(BaseModel):
+    skills: List[str]
 
 @router.post("/enhance-bullet")
 async def enhance_bullet(request: EnhanceBulletRequest):
@@ -50,3 +56,17 @@ async def interview_prep(request: InterviewPrepRequest):
     except Exception as e:
         logger.error(f"Error generating interview prep: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to generate interview prep")
+
+@router.post("/suggest-skills", response_model=SkillSuggestionResponse)
+async def suggest_skills(request: SkillSuggestionRequest):
+    """Suggest skills based on experience description."""
+    if len(request.experience_text) < 10:
+        raise HTTPException(status_code=400, detail="Experience text too short")
+        
+    try:
+        client = GroqClient()
+        skills = await client.suggest_skills(request.experience_text)
+        return {"skills": skills}
+    except Exception as e:
+        logger.error(f"Error suggesting skills: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to suggest skills")
