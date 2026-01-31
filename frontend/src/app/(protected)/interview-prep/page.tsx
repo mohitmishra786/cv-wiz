@@ -14,7 +14,17 @@ interface Question {
     key_points: string[];
 }
 
+interface Experience {
+    title: string;
+    company: string;
+}
+
+interface Skill {
+    name: string;
+}
+
 export default function InterviewPrepPage() {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { data: session } = useSession();
     const { error: toastError } = useToast();
     const [jobDescription, setJobDescription] = useState('');
@@ -32,8 +42,8 @@ export default function InterviewPrepPage() {
                     // Simplified candidate info for LLM
                     const info = `
 Name: ${data.name}
-Experience: ${data.experiences?.map((e: any) => `${e.title} at ${e.company}`).join(', ')}
-Skills: ${data.skills?.map((s: any) => s.name).join(', ')}
+Experience: ${data.experiences?.map((e: Experience) => `${e.title} at ${e.company}`).join(', ')}
+                    Skills: ${data.skills?.map((s: Skill) => s.name).join(', ')}
                     `;
                     setCandidateInfo(info);
                 }
@@ -84,7 +94,7 @@ Skills: ${data.skills?.map((s: any) => s.name).join(', ')}
                 <div className="bg-white rounded-2xl shadow-sm p-6 mb-8 border border-indigo-100">
                     <h2 className="text-lg font-bold text-gray-900 mb-2">Prepare for your next interview</h2>
                     <p className="text-gray-600 mb-6 text-sm">
-                        Our AI analyzes your profile and the job description to generate the most likely interview questions you'll face.
+                        Our AI analyzes your profile and the job description to generate the most likely interview questions you&apos;ll face.
                     </p>
                     
                     <div className="space-y-4">
@@ -137,7 +147,7 @@ Skills: ${data.skills?.map((s: any) => s.name).join(', ')}
                                         <div>
                                             <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-2">Suggested Answer Strategy</h4>
                                             <p className="text-gray-700 text-sm leading-relaxed bg-gray-50 p-4 rounded-xl italic">
-                                                "{q.suggested_answer}"
+                                                &ldquo;{q.suggested_answer}&rdquo;
                                             </p>
                                         </div>
                                         

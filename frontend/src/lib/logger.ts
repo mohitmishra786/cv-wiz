@@ -170,8 +170,8 @@ export function logAuthOperation(operation: string, userId?: string, success: bo
  * Log API operations
  */
 export function logApiOperation(method: string, path: string, status: number, data?: unknown, requestId?: string) {
-    const level = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info';
-    logger.info(`[API] ${method} ${path} -> ${status}`, data, {
+    const logLevel = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info';
+    logger[logLevel](`[API] ${method} ${path} -> ${status}`, data, {
         component: 'api',
         action: `api:${method}:${path}`,
         requestId

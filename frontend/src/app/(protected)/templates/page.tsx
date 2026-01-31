@@ -109,6 +109,7 @@ const TEMPLATES = [
 ];
 
 export default function TemplatesPage() {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { data: session, status } = useSession();
     const { success, error: toastError } = useToast();
     const [selectedTemplate, setSelectedTemplate] = useState('experience-skills-projects');
@@ -274,7 +275,7 @@ export default function TemplatesPage() {
                                 </svg>
                             </div>
                             <h3 className="text-lg font-medium text-gray-900 mb-1">No templates found</h3>
-                            <p className="text-gray-500">Try adjusting your search or filter to find what you're looking for.</p>
+                            <p className="text-gray-500">Try adjusting your search or filter to find what you&apos;re looking for.</p>
                         </div>
                     )}
                 </div>

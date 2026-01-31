@@ -113,6 +113,7 @@ export default function ProfileEditForm({ currentName, currentImage, onSubmit, o
 
             {formData.image && !errors.image && (
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={formData.image}
                         alt="Preview"

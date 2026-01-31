@@ -46,7 +46,7 @@ export default function DashboardSkeleton() {
             </div>
             <div className="flex items-end justify-between h-64 gap-2">
               {[...Array(7)].map((_, i) => (
-                <Skeleton key={i} className="w-full rounded-t-lg" style={{ height: `${Math.random() * 80 + 20}%` }} />
+                <Skeleton key={i} className="w-full rounded-t-lg" style={{ height: `${(i + 1) * 12 + 20}%` }} />
               ))}
             </div>
           </div>

@@ -521,7 +521,8 @@ export const commonShortcuts = {
 export function createListAriaAttributes(
     id: string,
     activeIndex: number,
-    itemCount: number
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _itemCount: number
 ) {
     return {
         role: 'listbox',
@@ -570,7 +571,7 @@ export function createMenuItemAriaAttributes(disabled = false) {
     };
 }
 
-export default {
+const keyboardNavigation = {
     matchesKeyCombo,
     getFocusableElements,
     focusNext,
@@ -588,3 +589,5 @@ export default {
     createMenuAriaAttributes,
     createMenuItemAriaAttributes,
 };
+
+export default keyboardNavigation;

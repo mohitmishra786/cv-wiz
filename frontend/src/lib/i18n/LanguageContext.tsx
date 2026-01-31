@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import en from './dictionaries/en.json';
 import es from './dictionaries/es.json';
 
@@ -17,15 +17,15 @@ const dictionaries: Record<Language, Dictionary> = { en, es };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-    const [language, setLanguage] = useState<Language>('en');
+function getInitialLanguage(): Language {
+    if (typeof window === 'undefined') return 'en';
+    const saved = localStorage.getItem('language') as Language;
+    if (saved && (saved === 'en' || saved === 'es')) return saved;
+    return 'en';
+}
 
-    useEffect(() => {
-        const saved = localStorage.getItem('language') as Language;
-        if (saved && (saved === 'en' || saved === 'es')) {
-            setLanguage(saved);
-        }
-    }, []);
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+    const [language, setLanguage] = useState<Language>(getInitialLanguage);
 
     const handleSetLanguage = (lang: Language) => {
         setLanguage(lang);

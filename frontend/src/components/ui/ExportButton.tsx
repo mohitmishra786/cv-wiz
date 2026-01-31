@@ -16,7 +16,8 @@ import {
     type ExportFormat,
     type ResumeProfile,
 } from '@/lib/export';
-import { useFocusTrap, useKeyboardNavigation } from '@/lib/keyboardNavigation';
+// Note: useFocusTrap and useKeyboardNavigation are available from keyboardNavigation
+// import { useFocusTrap, useKeyboardNavigation } from '@/lib/keyboardNavigation';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));

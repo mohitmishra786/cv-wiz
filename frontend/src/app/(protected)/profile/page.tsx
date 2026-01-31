@@ -542,7 +542,7 @@ export default function ProfilePage() {
                     isOpen={shareModalOpen}
                     onClose={() => setShareModalOpen(false)}
                     userId={profile.id}
-                    isPublicInitial={(profile.settings?.resumePreferences as any)?.isPublic || false}
+                    isPublicInitial={(profile.settings?.resumePreferences as { isPublic?: boolean })?.isPublic || false}
                     onUpdate={(isPublic) => {
                         // Optimistic update
                         if (profile.settings) {

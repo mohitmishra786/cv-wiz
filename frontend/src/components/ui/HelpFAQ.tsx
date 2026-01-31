@@ -54,7 +54,7 @@ export default function HelpFAQ() {
             <div className="mt-8 p-6 bg-indigo-50 rounded-2xl border border-indigo-100 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                     <h3 className="font-bold text-indigo-900">Still need help?</h3>
-                    <p className="text-indigo-700 text-sm">We're here to help you build the best career profile.</p>
+                    <p className="text-indigo-700 text-sm">We&apos;re here to help you build the best career profile.</p>
                 </div>
                 <a 
                     href="mailto:support@cv-wiz.com" 

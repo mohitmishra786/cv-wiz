@@ -5,7 +5,7 @@
  * Input field with real-time validation and visual feedback
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useId } from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useFieldValidation, ValidationRule, commonRules } from '@/lib/validation';
@@ -66,7 +66,8 @@ export const ValidatedInput: React.FC<ValidatedInputProps> = ({
     ...props
 }) => {
     const [isFocused, setIsFocused] = useState(false);
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+    const generatedId = useId();
+    const inputId = id || generatedId;
 
     const {
         value,
@@ -235,7 +236,8 @@ export const ValidatedTextArea: React.FC<ValidatedTextAreaProps> = ({
     ...props
 }) => {
     const [isFocused, setIsFocused] = useState(false);
-    const inputId = id || `textarea-${Math.random().toString(36).substr(2, 9)}`;
+    const generatedId = useId();
+    const inputId = id || generatedId;
 
     const {
         value,
@@ -382,6 +384,7 @@ export const ValidatedTextArea: React.FC<ValidatedTextAreaProps> = ({
 };
 
 // Export common rules for convenience
-export { commonRules, ValidationRule };
+export { commonRules };
+export type { ValidationRule };
 
 export default ValidatedInput;
