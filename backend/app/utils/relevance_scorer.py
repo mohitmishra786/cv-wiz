@@ -78,16 +78,19 @@ class RelevanceScorer:
         # Remove special characters, keep alphanumeric and spaces
         text = re.sub(r"[^\w\s+#.]", " ", text.lower())
         
-        # Split into tokens
-        tokens = text.split()
-        
         # Filter stop words and short tokens
-        tokens = [
-            t for t in tokens
-            if t not in self.STOP_WORDS
-            and len(t) > 1
-            and not t.isdigit()
-        ]
+        tokens = []
+        for t in text.split():
+            # Handle trailing punctuation that might have been preserved (like dots)
+            # but preserve things like .net or node.js
+            # Simple heuristic: if it ends with dot and is not a known acronym, strip it
+            if t.endswith(".") and t != ".net" and len(t) > 1:
+                 t = t.rstrip(".")
+            
+            if (t not in self.STOP_WORDS
+                and len(t) > 1
+                and not t.isdigit()):
+                tokens.append(t)
         
         return tokens
     
