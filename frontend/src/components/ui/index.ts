@@ -11,5 +11,6 @@ export { ShareProfileModal } from './ShareProfileModal';
 export { Pagination } from './Pagination';
 export { ValidatedInput, ValidatedTextArea } from './ValidatedInput';
 export { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
+export { ExportButton } from './ExportButton';
 export { ErrorBoundary } from '../ErrorBoundary';
 export { GlobalErrorBoundary } from '../GlobalErrorBoundary';
