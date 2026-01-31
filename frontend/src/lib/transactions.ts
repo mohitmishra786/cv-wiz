@@ -4,7 +4,7 @@
  */
 
 import prisma from './prisma';
-import type { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 // ============================================================================
 // Types
@@ -125,11 +125,13 @@ export async function updateProfileWithSettings(
                 create: {
                     userId,
                     selectedTemplate: settingsData.selectedTemplate || 'experience-skills-projects',
-                    resumePreferences: settingsData.resumePreferences || null,
+                    resumePreferences: (settingsData.resumePreferences as Prisma.InputJsonValue) || Prisma.JsonNull,
                 },
                 update: {
                     ...(settingsData.selectedTemplate && { selectedTemplate: settingsData.selectedTemplate }),
-                    ...(settingsData.resumePreferences !== undefined && { resumePreferences: settingsData.resumePreferences }),
+                    ...(settingsData.resumePreferences !== undefined && { 
+                        resumePreferences: (settingsData.resumePreferences as Prisma.InputJsonValue) || Prisma.JsonNull 
+                    }),
                 },
             });
         }
@@ -381,11 +383,13 @@ export async function importCompleteProfile(
                 create: {
                     userId,
                     selectedTemplate: data.settings.selectedTemplate || 'experience-skills-projects',
-                    resumePreferences: data.settings.resumePreferences || null,
+                    resumePreferences: (data.settings.resumePreferences as Prisma.InputJsonValue) || Prisma.JsonNull,
                 },
                 update: {
                     ...(data.settings.selectedTemplate && { selectedTemplate: data.settings.selectedTemplate }),
-                    ...(data.settings.resumePreferences !== undefined && { resumePreferences: data.settings.resumePreferences }),
+                    ...(data.settings.resumePreferences !== undefined && { 
+                        resumePreferences: (data.settings.resumePreferences as Prisma.InputJsonValue) || Prisma.JsonNull 
+                    }),
                 },
             });
         }

@@ -17,6 +17,7 @@ import {
 import { createRequestLogger, getOrCreateRequestId } from '@/lib/logger';
 
 // Simple admin check - in production, use proper role-based access control
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function isAdmin(userId: string): Promise<boolean> {
     // For now, allow all authenticated users to view their own logs
     // In production, check against admin roles/permissions

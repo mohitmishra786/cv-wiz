@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
-import { sanitizeCoverLetterData } from '@/lib/sanitization';
+import { sanitizeCoverLetterData, SanitizedCoverLetterData } from '@/lib/sanitization';
 
 /**
  * GET /api/profile/cover-letter
@@ -107,14 +107,14 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
 
         // Sanitize input data
-        const sanitizedData = sanitizeCoverLetterData(body);
+        const sanitizedData: SanitizedCoverLetterData = sanitizeCoverLetterData(body);
         const { content, jobTitle, companyName } = sanitizedData;
         
         logger.debug('Cover letter creation request body', {
             requestId,
             userId,
             hasContent: !!content,
-            contentLength: (content as string)?.length,
+            contentLength: content?.length,
             hasJobTitle: !!jobTitle,
             hasCompanyName: !!companyName,
         });
