@@ -46,7 +46,6 @@ export async function GET(request: NextRequest) {
             where.OR = [
                 { name: { contains: pagination.search, mode: 'insensitive' } },
                 { description: { contains: pagination.search, mode: 'insensitive' } },
-                { technologies: { has: pagination.search } },
             ];
         }
         
