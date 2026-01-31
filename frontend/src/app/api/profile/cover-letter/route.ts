@@ -108,16 +108,16 @@ export async function POST(request: NextRequest) {
 
         // Sanitize input data
         const sanitizedData = sanitizeCoverLetterData(body);
+        const { content, jobTitle, companyName } = sanitizedData;
+        
         logger.debug('Cover letter creation request body', {
             requestId,
             userId,
-            hasContent: 'content' in sanitizedData,
-            contentLength: sanitizedData.content?.length,
-            hasJobTitle: 'jobTitle' in sanitizedData,
-            hasCompanyName: 'companyName' in sanitizedData,
+            hasContent: !!content,
+            contentLength: (content as string)?.length,
+            hasJobTitle: !!jobTitle,
+            hasCompanyName: !!companyName,
         });
-
-        const { content, jobTitle, companyName } = sanitizedData;
 
         if (!content || typeof content !== 'string' || !content.trim()) {
             logger.warn('Cover letter creation failed - no content', { requestId, userId });
