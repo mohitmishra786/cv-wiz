@@ -1,9 +1,10 @@
 'use server'
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { randomBytes } from "crypto"
+import { Prisma } from "@prisma/client"
 
 export async function createShareLink(snapshot?: boolean) {
   const session = await auth()
@@ -11,7 +12,7 @@ export async function createShareLink(snapshot?: boolean) {
 
   const slug = randomBytes(4).toString("hex") // 8 char slug
 
-  let resumeSnapshot = null
+  let resumeSnapshot: Prisma.InputJsonValue | undefined = undefined
   if (snapshot) {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -32,7 +33,7 @@ export async function createShareLink(snapshot?: boolean) {
         educations: user.educations,
         skills: user.skills,
         publications: user.publications,
-      }
+      } as unknown as Prisma.InputJsonValue
     }
   }
 
@@ -41,13 +42,13 @@ export async function createShareLink(snapshot?: boolean) {
       data: {
         userId: session.user.id,
         slug,
-        snapshot: resumeSnapshot as any,
+        snapshot: resumeSnapshot ?? Prisma.JsonNull,
         isActive: true,
       },
     })
     revalidatePath("/resumes/share")
-    return { success: true, url: `/p/${share.slug}` }
-  } catch (error) {
+    return { success: true, url: `/share/${share.slug}` }
+  } catch {
     return { error: "Failed to create share link" }
   }
 }
@@ -99,7 +100,7 @@ export async function getPublicResume(slug: string) {
     data: { views: { increment: 1 } },
   })
 
-  if (share.snapshot) {
+  if (share.snapshot && typeof share.snapshot === 'object' && share.snapshot !== null) {
     return share.snapshot // Static version
   }
 

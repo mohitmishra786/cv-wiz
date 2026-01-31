@@ -1,8 +1,10 @@
 'use server'
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { Prisma } from "@prisma/client"
 
 export async function createResumeSnapshot(name?: string) {
   const session = await auth()
@@ -23,8 +25,7 @@ export async function createResumeSnapshot(name?: string) {
 
     if (!user) return { error: "User not found" }
 
-    // Create snapshot payload (excluding user-specific IDs/Relations that shouldn't be in snapshot if strictly content)
-    // But for restoring, we just need the data.
+    // Create snapshot payload
     const snapshot = {
       experiences: user.experiences,
       projects: user.projects,
@@ -38,7 +39,7 @@ export async function createResumeSnapshot(name?: string) {
       data: {
         userId: session.user.id,
         name: name || `Version ${new Date().toLocaleDateString()}`,
-        snapshot: snapshot as any, // Json type
+        snapshot: snapshot as unknown as Prisma.InputJsonValue,
       },
     })
 
@@ -86,6 +87,7 @@ export async function restoreResumeVersion(versionId: string) {
       // We explicitly map fields to avoid issues with IDs or metadata in snapshot
       if (snapshot.experiences?.length) {
         await tx.experience.createMany({
+           
           data: snapshot.experiences.map((e: any) => ({
             userId,
             company: e.company,
@@ -97,6 +99,67 @@ export async function restoreResumeVersion(versionId: string) {
             description: e.description,
             highlights: e.highlights,
             keywords: e.keywords,
+          })),
+        })
+      }
+
+      if (snapshot.projects?.length) {
+        await tx.project.createMany({
+           
+          data: snapshot.projects.map((p: any) => ({
+            userId,
+            name: p.name,
+            description: p.description,
+            url: p.url,
+            startDate: p.startDate,
+            endDate: p.endDate,
+            technologies: p.technologies,
+            highlights: p.highlights,
+          })),
+        })
+      }
+
+      if (snapshot.educations?.length) {
+        await tx.education.createMany({
+           
+          data: snapshot.educations.map((e: any) => ({
+            userId,
+            institution: e.institution,
+            degree: e.degree,
+            field: e.field,
+            startDate: e.startDate,
+            endDate: e.endDate,
+            gpa: e.gpa,
+            honors: e.honors,
+          })),
+        })
+      }
+
+      if (snapshot.skills?.length) {
+        await tx.skill.createMany({
+           
+          data: snapshot.skills.map((s: any) => ({
+            userId,
+            name: s.name,
+            category: s.category,
+            proficiency: s.proficiency,
+            yearsExp: s.yearsExp,
+          })),
+        })
+      }
+      
+      if (snapshot.publications?.length) {
+        await tx.publication.createMany({
+           
+          data: snapshot.publications.map((p: any) => ({
+            userId,
+            title: p.title,
+            venue: p.venue,
+            authors: p.authors,
+            date: p.date,
+            url: p.url,
+            doi: p.doi,
+            abstract: p.abstract,
           })),
         })
       }

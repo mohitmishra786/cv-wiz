@@ -3,11 +3,22 @@
 import { toggleShareLink } from "@/app/actions/sharing"
 import { useState } from "react"
 
-export function ShareList({ links }: { links: any[] }) {
+import { Prisma } from "@prisma/client"
+
+interface ShareLink {
+  id: string
+  slug: string
+  snapshot: Prisma.JsonValue
+  isActive: boolean
+  views: number
+  createdAt: Date
+}
+
+export function ShareList({ links }: { links: ShareLink[] }) {
   const [copied, setCopied] = useState<string | null>(null)
 
   const copyToClipboard = (slug: string) => {
-    const url = `${window.location.origin}/p/${slug}`
+    const url = `${window.location.origin}/share/${slug}`
     navigator.clipboard.writeText(url)
     setCopied(slug)
     setTimeout(() => setCopied(null), 2000)
@@ -37,8 +48,8 @@ export function ShareList({ links }: { links: any[] }) {
             <p className="text-sm text-gray-500 mt-1">
               Views: {link.views} | Created: {new Date(link.createdAt).toLocaleDateString()}
             </p>
-            <div className="text-sm text-blue-600 mt-1 cursor-pointer hover:underline" onClick={() => window.open(`/p/${link.slug}`, '_blank')}>
-                /p/{link.slug}
+            <div className="text-sm text-blue-600 mt-1 cursor-pointer hover:underline" onClick={() => window.open(`/share/${link.slug}`, '_blank')}>
+                /share/{link.slug}
             </div>
           </div>
           <div className="flex gap-2">

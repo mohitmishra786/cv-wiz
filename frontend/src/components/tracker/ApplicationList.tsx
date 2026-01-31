@@ -1,7 +1,6 @@
 'use client'
 
 import { deleteApplication, updateApplicationStatus } from "@/app/actions/tracker"
-import { useState } from "react"
 
 const statusColors = {
   applied: "bg-blue-100 text-blue-800",
@@ -10,7 +9,16 @@ const statusColors = {
   rejected: "bg-red-100 text-red-800",
 }
 
-export function ApplicationList({ applications }: { applications: any[] }) {
+interface Application {
+  id: string
+  company: string
+  position: string
+  status: string
+  appliedDate: Date
+  url?: string | null
+}
+
+export function ApplicationList({ applications }: { applications: Application[] }) {
   if (applications.length === 0) {
     return (
       <div className="text-center py-12 bg-gray-50 rounded-lg">

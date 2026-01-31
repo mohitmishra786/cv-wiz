@@ -1,4 +1,4 @@
-import { getSharedLinks, createShareLink, toggleShareLink } from "@/app/actions/sharing";
+import { getSharedLinks, createShareLink } from "@/app/actions/sharing";
 import { ShareList } from "@/components/resumes/ShareList";
 
 export const metadata = {

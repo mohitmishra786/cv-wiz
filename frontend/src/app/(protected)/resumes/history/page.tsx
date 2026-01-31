@@ -1,4 +1,4 @@
-import { getResumeVersions, createResumeSnapshot, restoreResumeVersion } from "@/app/actions/resume-history";
+import { getResumeVersions, createResumeSnapshot } from "@/app/actions/resume-history";
 import { HistoryList } from "@/components/resumes/HistoryList";
 
 export const metadata = {
