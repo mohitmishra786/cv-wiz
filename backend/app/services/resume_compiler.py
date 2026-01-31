@@ -163,28 +163,54 @@ class ResumeCompiler:
             
             # Generate PDF (if available)
             pdf_base64 = None
+            pdf_error = None
+            
             if self.pdf_generator:
                 logger.info("Generating PDF", {"request_id": request_id})
                 pdf_start = time.time()
                 
-                pdf_base64 = self.pdf_generator.generate_pdf_base64(
-                    compiled,
-                    max_pages=self.settings.max_resume_pages,
-                )
-                
-                pdf_duration = (time.time() - pdf_start) * 1000
-                logger.info("PDF generation complete", {
-                    "request_id": request_id,
-                    "duration_ms": round(pdf_duration, 2),
-                    "pdf_size_bytes": len(pdf_base64) if pdf_base64 else 0,
-                })
+                try:
+                    pdf_base64 = self.pdf_generator.generate_pdf_base64(
+                        compiled,
+                        max_pages=self.settings.max_resume_pages,
+                    )
+                    
+                    pdf_duration = (time.time() - pdf_start) * 1000
+                    logger.info("PDF generation complete", {
+                        "request_id": request_id,
+                        "duration_ms": round(pdf_duration, 2),
+                        "pdf_size_bytes": len(pdf_base64) if pdf_base64 else 0,
+                    })
+                except Exception as pdf_e:
+                    pdf_duration = (time.time() - pdf_start) * 1000
+                    pdf_error = str(pdf_e)
+                    logger.error("PDF generation failed", {
+                        "request_id": request_id,
+                        "error": pdf_error,
+                        "duration_ms": round(pdf_duration, 2),
+                    })
+                    # Don't fail the entire request - return JSON-only response
             else:
                 logger.warning("PDF generator not available", {"request_id": request_id})
+                pdf_error = "PDF generation is not available. Please ensure WeasyPrint dependencies are installed."
+            
+            # Build response - success if we have at least JSON data
+            response_success = True
+            response_error = None
+            
+            if not pdf_base64 and pdf_error:
+                # PDF failed but we still have JSON data
+                response_error = f"Resume compiled successfully but PDF generation failed: {pdf_error}"
+                logger.warning("Returning partial response - PDF unavailable", {
+                    "request_id": request_id,
+                    "error": pdf_error,
+                })
             
             response = ResumeResponse(
-                success=True,
+                success=response_success,
                 pdf_base64=pdf_base64,
                 resume_json=compiled,
+                error=response_error,
             )
             
             # Cache successful result

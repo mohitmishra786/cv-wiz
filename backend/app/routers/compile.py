@@ -200,16 +200,30 @@ async def compile_resume_pdf(
             template=request.template,
         )
         
-        if not response.success or not response.pdf_base64:
-            logger.error("PDF compilation failed", {
-                "request_id": request_id,
-                "user_id": profile.id,
-                "error": response.error,
-            })
-            raise HTTPException(
-                status_code=500,
-                detail=response.error or "Resume compilation failed",
-            )
+        # Check if PDF generation was successful
+        if not response.pdf_base64:
+            if response.error and "PDF generation" in response.error:
+                # PDF generation failed but compilation succeeded
+                logger.error("PDF generation unavailable", {
+                    "request_id": request_id,
+                    "user_id": profile.id,
+                    "error": response.error,
+                })
+                raise HTTPException(
+                    status_code=503,
+                    detail="PDF generation is currently unavailable. Please try again later or contact support if the issue persists.",
+                )
+            else:
+                # General compilation failure
+                logger.error("PDF compilation failed", {
+                    "request_id": request_id,
+                    "user_id": profile.id,
+                    "error": response.error,
+                })
+                raise HTTPException(
+                    status_code=500,
+                    detail=response.error or "Resume compilation failed",
+                )
         
         # Decode base64 to bytes
         import base64
