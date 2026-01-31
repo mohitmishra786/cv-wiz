@@ -8,5 +8,6 @@ export { ToastProvider } from './ToastProvider';
 export { MobileNav } from './MobileNav';
 export { HelpFAQ } from './HelpFAQ';
 export { ShareProfileModal } from './ShareProfileModal';
+export { Pagination } from './Pagination';
 export { ErrorBoundary } from '../ErrorBoundary';
 export { GlobalErrorBoundary } from '../GlobalErrorBoundary';
