@@ -20,7 +20,8 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 function getInitialTheme(): Theme {
     if (typeof window === 'undefined') return 'light';
     const stored = localStorage.getItem('cv-wiz-theme') as Theme;
-    if (stored) return stored;
+    // Only use stored value if it's a valid user preference (light/dark), not system
+    if (stored === 'light' || stored === 'dark') return stored;
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     return prefersDark ? 'dark' : 'light';
 }
@@ -39,9 +40,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         // Listen for system theme changes
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         const handleChange = (e: MediaQueryListEvent) => {
-            // Only update if user hasn't manually set a preference
+            // Only update if user hasn't manually set a preference (light or dark)
             const userPreference = localStorage.getItem('cv-wiz-theme');
-            if (!userPreference) {
+            if (userPreference !== 'light' && userPreference !== 'dark') {
                 const newTheme: Theme = e.matches ? 'dark' : 'light';
                 setThemeState(newTheme);
                 document.documentElement.setAttribute('data-theme', newTheme);

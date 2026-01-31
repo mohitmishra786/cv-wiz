@@ -154,10 +154,13 @@ export async function GET(_request: NextRequest) {
         const monthlyData: Record<string, number> = {};
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         
-        // Initialize last 6 months with 0
+        // Initialize last 6 months with 0 - normalize to first of month to avoid overflow
         for (let i = 5; i >= 0; i--) {
-            const d = new Date();
-            d.setMonth(d.getMonth() - i);
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() - i;
+            // Use Date constructor with year, month, day to avoid overflow issues
+            const d = new Date(year, month, 1);
             const key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
             monthlyData[key] = 0;
         }
@@ -176,15 +179,29 @@ export async function GET(_request: NextRequest) {
             coverLetters
         }));
 
+        // Fetch cover letters for the last 7 days separately for accurate weeklyActivity
+        const weeklyCoverLetters = await prisma.coverLetter.findMany({
+            where: {
+                userId,
+                createdAt: { gte: sevenDaysAgo }
+            },
+            select: {
+                createdAt: true
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
         // Calculate weekly activity for chart
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const weeklyActivity = days.map(day => ({ name: day, applications: 0 }));
         
-        user.coverLetters.forEach(cl => {
+        weeklyCoverLetters.forEach(cl => {
             const dayIndex = new Date(cl.createdAt).getDay();
             const dayName = days[dayIndex];
             const dayActivity = weeklyActivity.find(d => d.name === dayName);
-            if (dayActivity && new Date(cl.createdAt) >= sevenDaysAgo) {
+            if (dayActivity) {
                 dayActivity.applications++;
             }
         });
