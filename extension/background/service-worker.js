@@ -3,15 +3,13 @@
  * Handles API calls and coordinates between content scripts and popup
  */
 
-// Configuration
-const CONFIG = {
-    API_BASE_URL: 'http://localhost:8000/api',
-    FRONTEND_URL: 'http://localhost:3000',
-};
+// Import configuration module
+importScripts('config.js');
 
 // State
 let currentJobData = null;
 let authToken = null;
+let configCache = null;
 
 /**
  * Listen for messages from content scripts and popup
@@ -56,9 +54,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return true;
 
         case 'OPEN_PROFILE':
-            chrome.tabs.create({ url: `${CONFIG.FRONTEND_URL}/profile` });
+            const config = await getConfigWithCache();
+            chrome.tabs.create({ url: `${config.FRONTEND_URL}/profile` });
             sendResponse({ success: true });
             break;
+
+        case 'GET_CONFIG':
+            getConfigWithCache()
+                .then(cfg => sendResponse({ success: true, config: cfg }))
+                .catch(error => sendResponse({ success: false, error: error.message }));
+            return true;
+
+        case 'SET_CONFIG':
+            saveConfig(message.payload)
+                .then(() => {
+                    configCache = null; // Invalidate cache
+                    sendResponse({ success: true });
+                })
+                .catch(error => sendResponse({ success: false, error: error.message }));
+            return true;
 
         default:
             sendResponse({ success: false, error: 'Unknown message type' });
@@ -87,6 +101,16 @@ function handleJobExtracted(data, sender) {
 }
 
 /**
+ * Get cached config or fetch fresh
+ */
+async function getConfigWithCache() {
+    if (!configCache) {
+        configCache = await getConfig();
+    }
+    return configCache;
+}
+
+/**
  * Compile resume via API
  */
 async function handleCompileResume(payload) {
@@ -99,7 +123,8 @@ async function handleCompileResume(payload) {
         throw new Error('Not authenticated. Please log in first.');
     }
 
-    const response = await fetch(`${CONFIG.API_BASE_URL}/compile`, {
+    const config = await getConfigWithCache();
+    const response = await fetch(`${config.API_BASE_URL}/compile`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -139,7 +164,8 @@ async function handleGenerateCoverLetter(payload) {
         throw new Error('Not authenticated. Please log in first.');
     }
 
-    const response = await fetch(`${CONFIG.API_BASE_URL}/cover-letter`, {
+    const config = await getConfigWithCache();
+    const response = await fetch(`${config.API_BASE_URL}/cover-letter`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -178,9 +204,11 @@ async function getAuthStatus() {
         return { isLoggedIn: false };
     }
 
+    const config = await getConfigWithCache();
+
     // Validate token by fetching profile
     try {
-        const response = await fetch(`${CONFIG.FRONTEND_URL}/api/profile`, {
+        const response = await fetch(`${config.FRONTEND_URL}/api/profile`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
             },
@@ -220,8 +248,16 @@ function getStoredAuthToken() {
 /**
  * Initialize background service worker
  */
-function init() {
+async function init() {
     console.log('[CV-Wiz BG] Service worker initialized');
+
+    // Pre-load config
+    try {
+        configCache = await getConfig();
+        console.log('[CV-Wiz BG] Config loaded:', configCache.environment);
+    } catch (error) {
+        console.error('[CV-Wiz BG] Failed to load config:', error);
+    }
 
     // Load stored auth token
     chrome.storage.local.get(['authToken'], (result) => {
