@@ -26,7 +26,7 @@ export default function FeedbackForm() {
             } else {
                 throw new Error('Failed to submit feedback');
             }
-        } catch (err) {
+        } catch {
             error('Failed to submit feedback. Please try again later.');
         } finally {
             setLoading(false);

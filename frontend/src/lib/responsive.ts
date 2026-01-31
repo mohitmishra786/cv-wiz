@@ -1,9 +1,9 @@
-/"
+/**
  * Responsive Utilities
  * Provides responsive design helpers and breakpoints for mobile-first development
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 // ============================================================================
 // Breakpoints (matching Tailwind defaults)
@@ -53,13 +53,13 @@ export function between(min: Breakpoint, max: Breakpoint): string {
  * Returns true if the media query matches
  */
 export function useMediaQuery(query: string): boolean {
-    const [matches, setMatches] = useState(false);
+    const [matches, setMatches] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return window.matchMedia(query).matches;
+    });
 
     useEffect(() => {
         const media = window.matchMedia(query);
-
-        // Set initial value
-        setMatches(media.matches);
 
         // Create listener
         const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
@@ -170,10 +170,10 @@ export function isTouchDevice(): boolean {
  * Returns true if device supports touch
  */
 export function useTouchDevice(): boolean {
-    const [isTouch, setIsTouch] = useState(false);
+    const [isTouch, setIsTouch] = useState(() => isTouchDevice());
 
     useEffect(() => {
-        setIsTouch(isTouchDevice());
+        requestAnimationFrame(() => setIsTouch(isTouchDevice()));
     }, []);
 
     return isTouch;
@@ -184,11 +184,13 @@ export function useTouchDevice(): boolean {
  * Returns true if device supports hover (non-touch)
  */
 export function useHoverCapability(): boolean {
-    const [canHover, setCanHover] = useState(true);
+    const [canHover, setCanHover] = useState(() => {
+        if (typeof window === 'undefined') return true;
+        return window.matchMedia('(hover: hover)').matches;
+    });
 
     useEffect(() => {
         const media = window.matchMedia('(hover: hover)');
-        setCanHover(media.matches);
 
         const listener = (e: MediaQueryListEvent) => setCanHover(e.matches);
         media.addEventListener('change', listener);
@@ -236,7 +238,6 @@ export function getResponsiveValue<T>(
  * Returns the appropriate value for the current viewport
  */
 export function useResponsiveValue<T>(value: ResponsiveValue<T>): T {
-    const isSm = useBreakpoint('sm');
     const isMd = useBreakpoint('md');
     const isLg = useBreakpoint('lg');
     const isXl = useBreakpoint('xl');
@@ -473,7 +474,7 @@ export function getMarginClasses(spacing: ResponsiveSpacing): string {
     return classes.join(' ');
 }
 
-export default {
+const responsive = {
     breakpoints,
     minWidth,
     maxWidth,
@@ -501,3 +502,5 @@ export default {
     getPaddingClasses,
     getMarginClasses,
 };
+
+export default responsive;

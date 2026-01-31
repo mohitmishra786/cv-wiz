@@ -7,17 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
-interface SkillFrequency {
-    name: string;
-    count: number;
-}
-
-interface MonthlyTrend {
-    month: string;
-    coverLetters: number;
-}
-
-export async function GET(request: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function GET(_request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -129,7 +120,7 @@ export async function GET(request: NextRequest) {
                 where: { userId },
                 select: {
                     name: true,
-                    level: true,
+                    proficiency: true,
                 }
             }),
         ]);

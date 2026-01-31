@@ -93,7 +93,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
 
                         {/* Description */}
                         <p className="mb-6 text-gray-400">
-                            We're sorry, but CV-Wiz encountered an unexpected error. 
+                            We&apos;re sorry, but CV-Wiz encountered an unexpected error. 
                             Please try refreshing the page or contact support if the problem persists.
                         </p>
 

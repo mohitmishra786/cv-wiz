@@ -17,25 +17,24 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function getInitialTheme(): Theme {
+    if (typeof window === 'undefined') return 'light';
+    const stored = localStorage.getItem('cv-wiz-theme') as Theme;
+    if (stored) return stored;
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDark ? 'dark' : 'light';
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-    const [theme, setThemeState] = useState<Theme>('light');
+    const [theme, setThemeState] = useState<Theme>(getInitialTheme);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        // Check localStorage first, then system preference
-        const stored = localStorage.getItem('cv-wiz-theme') as Theme;
-        if (stored) {
-            setThemeState(stored);
-            document.documentElement.setAttribute('data-theme', stored);
-        } else {
-            // Respect system preference as default
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const systemTheme: Theme = prefersDark ? 'dark' : 'light';
-            setThemeState(systemTheme);
-            document.documentElement.setAttribute('data-theme', systemTheme);
-            localStorage.setItem('cv-wiz-theme', systemTheme);
-        }
-        setMounted(true);
+        // Apply theme to document
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('cv-wiz-theme', theme);
+        // Defer setMounted to avoid synchronous setState in effect
+        requestAnimationFrame(() => setMounted(true));
 
         // Listen for system theme changes
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -51,7 +50,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
         mediaQuery.addEventListener('change', handleChange);
         return () => mediaQuery.removeEventListener('change', handleChange);
-    }, []);
+    }, [theme]);
 
     const setTheme = (newTheme: Theme) => {
         setThemeState(newTheme);

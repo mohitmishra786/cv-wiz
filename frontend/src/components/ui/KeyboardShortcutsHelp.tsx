@@ -6,7 +6,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Modal } from './Modal';
+import Modal from './Modal';
 
 interface Shortcut {
     key: string;
@@ -73,8 +73,11 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
     // Reset search when modal opens
     useEffect(() => {
         if (isOpen) {
-            setSearchQuery('');
-            setSelectedCategory(null);
+            // Using requestAnimationFrame to avoid setState during render
+            requestAnimationFrame(() => {
+                setSearchQuery('');
+                setSelectedCategory(null);
+            });
         }
     }, [isOpen]);
 

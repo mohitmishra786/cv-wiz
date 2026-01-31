@@ -260,6 +260,7 @@ describe('useKeyboardShortcutsHelp', () => {
 
     it('should render KeyboardShortcutsHelpComponent', () => {
         function TestComponent() {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { isOpen, openHelp, KeyboardShortcutsHelpComponent } = useKeyboardShortcutsHelp();
             return (
                 <div>

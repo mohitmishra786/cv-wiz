@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { UserProfile } from '@/types';
 
 export default function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -56,9 +57,9 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                             ? 'The user has restricted access to this profile.' 
                             : 'The profile you are looking for does not exist or has been removed.'}
                     </p>
-                    <a href="/" className="mt-6 inline-block px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                    <Link href="/" className="mt-6 inline-block px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                         Go Home
-                    </a>
+                    </Link>
                 </div>
             </div>
         );
@@ -201,10 +202,10 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                         )}
                         
                         <div className="text-center">
-                            <a href="/" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-indigo-600 transition-colors">
+                            <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-indigo-600 transition-colors">
                                 <Image src="/logo.png" alt="CV-Wiz" width={20} height={20} className="rounded" />
                                 Powered by CV-Wiz
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 </div>

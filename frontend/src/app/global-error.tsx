@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 
 export default function GlobalError({
     error,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     reset,
 }: {
     error: Error & { digest?: string };
@@ -140,7 +141,7 @@ export default function GlobalError({
                     </div>
                     <h1>Application Error</h1>
                     <p>
-                        We're sorry, but CV-Wiz encountered a critical error.
+                        We&apos;re sorry, but CV-Wiz encountered a critical error.
                         Please try refreshing the page or contact support if the problem persists.
                     </p>
                     <div className="buttons">

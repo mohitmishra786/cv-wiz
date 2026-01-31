@@ -347,11 +347,11 @@ export function exportResumeToPDF(profile: ResumeProfile, filename?: string): vo
 
         for (const exp of profile.experiences) {
             doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
+            doc.setFont('helvetica', 'bold');
             doc.text(`${exp.title} at ${exp.company}`, 20, yPos);
             yPos += 6;
 
-            doc.setFont(undefined, 'normal');
+            doc.setFont('helvetica', 'normal');
             doc.setFontSize(10);
             const dateRange = `${exp.startDate} - ${exp.endDate || 'Present'}`;
             doc.text(dateRange, 20, yPos);
@@ -381,11 +381,11 @@ export function exportResumeToPDF(profile: ResumeProfile, filename?: string): vo
 
         for (const edu of profile.educations) {
             doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
+            doc.setFont('helvetica', 'bold');
             doc.text(`${edu.degree} - ${edu.institution}`, 20, yPos);
             yPos += 6;
 
-            doc.setFont(undefined, 'normal');
+            doc.setFont('helvetica', 'normal');
             doc.setFontSize(10);
             const dateRange = `${edu.startDate} - ${edu.endDate || 'Present'}`;
             doc.text(dateRange, 20, yPos);
@@ -483,7 +483,7 @@ export function exportResumeToWord(profile: ResumeProfile, filename?: string): v
     downloadBlob(blob, filename || 'resume.doc');
 }
 
-export default {
+const exportModule = {
     exportToJSON,
     exportToCSV,
     exportToPDF,
@@ -493,3 +493,5 @@ export default {
     exportResumeToPDF,
     exportResumeToWord,
 };
+
+export default exportModule;

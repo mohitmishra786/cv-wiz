@@ -180,13 +180,13 @@ export function useValidation<T extends Record<string, unknown>>(
                     break;
 
                 case 'minLength':
-                    if (typeof value === 'string' && !minLength(stringValue, rule.value as number)) {
+                    if (typeof value === 'string' && !minLength(stringValue, Number(rule.value))) {
                         return rule.message;
                     }
                     break;
 
                 case 'maxLength':
-                    if (typeof value === 'string' && !maxLength(stringValue, rule.value as number)) {
+                    if (typeof value === 'string' && !maxLength(stringValue, Number(rule.value))) {
                         return rule.message;
                     }
                     break;
@@ -412,14 +412,14 @@ export function useFieldValidation<T = string>(
                     break;
 
                 case 'minLength':
-                    if (typeof val === 'string' && stringValue.length < (rule.value as number)) {
+                    if (typeof val === 'string' && stringValue.length < Number(rule.value)) {
                         setIsValidating(false);
                         return rule.message;
                     }
                     break;
 
                 case 'maxLength':
-                    if (typeof val === 'string' && stringValue.length > (rule.value as number)) {
+                    if (typeof val === 'string' && stringValue.length > Number(rule.value)) {
                         setIsValidating(false);
                         return rule.message;
                     }
@@ -457,8 +457,19 @@ export function useFieldValidation<T = string>(
 
     useEffect(() => {
         if (validateOnChange && isDirty) {
-            validate(value).then(setError);
+            let isCancelled = false;
+            // Async validation is a legitimate pattern - this effect synchronizes validation state with external validation logic
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            validate(value).then((errorMsg) => {
+                if (!isCancelled) {
+                    setError(errorMsg);
+                }
+            });
+            return () => {
+                isCancelled = true;
+            };
         }
+        return undefined;
     }, [value, validateOnChange, isDirty, validate]);
 
     const onChange = useCallback((newValue: T) => {

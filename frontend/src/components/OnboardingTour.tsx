@@ -101,7 +101,7 @@ export default function OnboardingTour({ forceShow = false, onComplete }: Onboar
                 popover: {
                     title: 'You\'re All Set! 🎉',
                     description: 'You\'re ready to build amazing resumes and ace your interviews. Need help? Press "?" anytime for keyboard shortcuts.',
-                    side: "center",
+                    side: "over",
                     align: 'center'
                 }
             }
@@ -128,7 +128,6 @@ export default function OnboardingTour({ forceShow = false, onComplete }: Onboar
             nextBtnText: 'Next →',
             prevBtnText: '← Previous',
             doneBtnText: 'Finish',
-            closeBtnText: 'Skip Tour',
             steps: validSteps,
             onDestroyed: () => {
                 // Mark tour as completed
@@ -197,22 +196,22 @@ export default function OnboardingTour({ forceShow = false, onComplete }: Onboar
 /**
  * Hook to control the onboarding tour
  */
-export function useOnboardingTour() {
-    const [hasCompletedTour, setHasCompletedTour] = useState<boolean | null>(null);
-
-    useEffect(() => {
-        const tourData = localStorage.getItem(TOUR_STORAGE_KEY);
-        if (tourData) {
-            try {
-                const parsed = JSON.parse(tourData);
-                setHasCompletedTour(parsed.completed === true);
-            } catch {
-                setHasCompletedTour(false);
-            }
-        } else {
-            setHasCompletedTour(false);
+function getHasCompletedTour(): boolean {
+    if (typeof window === 'undefined') return false;
+    const tourData = localStorage.getItem(TOUR_STORAGE_KEY);
+    if (tourData) {
+        try {
+            const parsed = JSON.parse(tourData);
+            return parsed.completed === true;
+        } catch {
+            return false;
         }
-    }, []);
+    }
+    return false;
+}
+
+export function useOnboardingTour() {
+    const [hasCompletedTour, setHasCompletedTour] = useState<boolean>(getHasCompletedTour);
 
     const restartTour = useCallback(() => {
         // Clear tour data to force showing

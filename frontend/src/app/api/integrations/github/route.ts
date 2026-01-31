@@ -23,10 +23,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Failed to fetch from GitHub' }, { status: res.status });
         }
         
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const repos = await res.json();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const projects = repos.map((repo: any) => ({
+        const projects = repos.map((repo: { name: string; description: string | null; html_url: string; language: string | null; stargazers_count: number; forks_count: number; updated_at: string; created_at: string }) => ({
             name: repo.name,
             description: repo.description || '',
             url: repo.html_url,
