@@ -1,0 +1,302 @@
+/**
+ * Onboarding Tour Tests
+ * Tests for interactive onboarding tour functionality
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import OnboardingTour, { useOnboardingTour, RestartTourButton } from '../../OnboardingTour';
+
+// Mock driver.js
+const mockDrive = vi.fn();
+const mockDestroy = vi.fn();
+
+vi.mock('driver.js', () => ({
+    driver: vi.fn(() => ({
+        drive: mockDrive,
+        destroy: mockDestroy,
+    })),
+}));
+
+// Mock localStorage
+const localStorageMock = {
+    getItem: vi.fn(),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+};
+Object.defineProperty(window, 'localStorage', {
+    value: localStorageMock,
+});
+
+// Mock window.location.reload
+const reloadMock = vi.fn();
+Object.defineProperty(window, 'location', {
+    value: { reload: reloadMock },
+    writable: true,
+});
+
+describe('OnboardingTour', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('should not show tour if already completed', () => {
+        localStorageMock.getItem.mockReturnValue(JSON.stringify({
+            completed: true,
+            version: '2.0',
+            completedAt: new Date().toISOString()
+        }));
+
+        render(<OnboardingTour />);
+        
+        act(() => {
+            vi.advanceTimersByTime(2000);
+        });
+
+        expect(mockDrive).not.toHaveBeenCalled();
+    });
+
+    it('should show tour if not completed', () => {
+        localStorageMock.getItem.mockReturnValue(null);
+
+        render(<OnboardingTour />);
+        
+        act(() => {
+            vi.advanceTimersByTime(2000);
+        });
+
+        expect(mockDrive).toHaveBeenCalled();
+    });
+
+    it('should show tour if version changed', () => {
+        localStorageMock.getItem.mockReturnValue(JSON.stringify({
+            completed: true,
+            version: '1.0',
+            completedAt: new Date().toISOString()
+        }));
+
+        render(<OnboardingTour />);
+        
+        act(() => {
+            vi.advanceTimersByTime(2000);
+        });
+
+        expect(mockDrive).toHaveBeenCalled();
+    });
+
+    it('should force show tour when forceShow is true', () => {
+        localStorageMock.getItem.mockReturnValue(JSON.stringify({
+            completed: true,
+            version: '2.0',
+            completedAt: new Date().toISOString()
+        }));
+
+        render(<OnboardingTour forceShow={true} />);
+        
+        act(() => {
+            vi.advanceTimersByTime(2000);
+        });
+
+        expect(mockDrive).toHaveBeenCalled();
+    });
+
+    it('should call onComplete callback when tour is destroyed', () => {
+        const onComplete = vi.fn();
+        localStorageMock.getItem.mockReturnValue(null);
+
+        render(<OnboardingTour onComplete={onComplete} />);
+        
+        act(() => {
+            vi.advanceTimersByTime(2000);
+        });
+
+        // Get the onDestroyed callback from driver config
+        const driverConfig = vi.mocked(await import('driver.js')).driver.mock.calls[0][0];
+        driverConfig.onDestroyed();
+
+        expect(localStorageMock.setItem).toHaveBeenCalled();
+        expect(onComplete).toHaveBeenCalled();
+    });
+});
+
+describe('useOnboardingTour', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('should return hasCompletedTour as false when no tour data', async () => {
+        localStorageMock.getItem.mockReturnValue(null);
+
+        function TestComponent() {
+            const { hasCompletedTour } = useOnboardingTour();
+            return <div data-testid="completed">{hasCompletedTour === null ? 'loading' : String(hasCompletedTour)}</div>;
+        }
+
+        render(<TestComponent />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('completed').textContent).toBe('false');
+        });
+    });
+
+    it('should return hasCompletedTour as true when tour is completed', async () => {
+        localStorageMock.getItem.mockReturnValue(JSON.stringify({
+            completed: true,
+            version: '2.0',
+            completedAt: new Date().toISOString()
+        }));
+
+        function TestComponent() {
+            const { hasCompletedTour } = useOnboardingTour();
+            return <div data-testid="completed">{hasCompletedTour === null ? 'loading' : String(hasCompletedTour)}</div>;
+        }
+
+        render(<TestComponent />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('completed').textContent).toBe('true');
+        });
+    });
+
+    it('should restart tour when restartTour is called', () => {
+        localStorageMock.getItem.mockReturnValue(JSON.stringify({
+            completed: true,
+            version: '2.0',
+            completedAt: new Date().toISOString()
+        }));
+
+        function TestComponent() {
+            const { restartTour } = useOnboardingTour();
+            return <button onClick={restartTour}>Restart</button>;
+        }
+
+        render(<TestComponent />);
+        
+        fireEvent.click(screen.getByText('Restart'));
+
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith('cv_wiz_tour_v2');
+        expect(reloadMock).toHaveBeenCalled();
+    });
+
+    it('should mark tour as completed when markTourCompleted is called', async () => {
+        localStorageMock.getItem.mockReturnValue(null);
+
+        function TestComponent() {
+            const { hasCompletedTour, markTourCompleted } = useOnboardingTour();
+            return (
+                <div>
+                    <span data-testid="completed">{hasCompletedTour === null ? 'loading' : String(hasCompletedTour)}</span>
+                    <button onClick={markTourCompleted}>Complete</button>
+                </div>
+            );
+        }
+
+        render(<TestComponent />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('completed').textContent).toBe('false');
+        });
+
+        fireEvent.click(screen.getByText('Complete'));
+
+        expect(localStorageMock.setItem).toHaveBeenCalledWith(
+            'cv_wiz_tour_v2',
+            expect.stringContaining('"completed":true')
+        );
+    });
+
+    it('should reset tour when resetTour is called', async () => {
+        localStorageMock.getItem.mockReturnValue(JSON.stringify({
+            completed: true,
+            version: '2.0',
+            completedAt: new Date().toISOString()
+        }));
+
+        function TestComponent() {
+            const { hasCompletedTour, resetTour } = useOnboardingTour();
+            return (
+                <div>
+                    <span data-testid="completed">{hasCompletedTour === null ? 'loading' : String(hasCompletedTour)}</span>
+                    <button onClick={resetTour}>Reset</button>
+                </div>
+            );
+        }
+
+        render(<TestComponent />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('completed').textContent).toBe('true');
+        });
+
+        fireEvent.click(screen.getByText('Reset'));
+
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith('cv_wiz_tour_v2');
+    });
+});
+
+describe('RestartTourButton', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('should not render when tour status is loading', () => {
+        localStorageMock.getItem.mockReturnValue(null);
+
+        render(<RestartTourButton />);
+
+        expect(screen.queryByText('Restart Tour')).not.toBeInTheDocument();
+    });
+
+    it('should render when tour is completed', async () => {
+        localStorageMock.getItem.mockReturnValue(JSON.stringify({
+            completed: true,
+            version: '2.0',
+            completedAt: new Date().toISOString()
+        }));
+
+        render(<RestartTourButton />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Restart Tour')).toBeInTheDocument();
+        });
+    });
+
+    it('should restart tour when clicked', async () => {
+        localStorageMock.getItem.mockReturnValue(JSON.stringify({
+            completed: true,
+            version: '2.0',
+            completedAt: new Date().toISOString()
+        }));
+
+        render(<RestartTourButton />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Restart Tour')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByText('Restart Tour'));
+
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith('cv_wiz_tour_v2');
+        expect(reloadMock).toHaveBeenCalled();
+    });
+
+    it('should apply custom className', async () => {
+        localStorageMock.getItem.mockReturnValue(JSON.stringify({
+            completed: true,
+            version: '2.0',
+            completedAt: new Date().toISOString()
+        }));
+
+        render(<RestartTourButton className="custom-class" />);
+
+        await waitFor(() => {
+            const button = screen.getByText('Restart Tour');
+            expect(button).toHaveClass('custom-class');
+        });
+    });
+});
