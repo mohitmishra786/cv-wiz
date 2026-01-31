@@ -76,6 +76,7 @@ model User {
   coverLetters  CoverLetter[]
   feedbacks     Feedback[]
   settings      UserSettings?
+  auditLogs     AuditLog[] @relation("AuditLogs")
 }
 
 // ============================================
@@ -205,5 +206,31 @@ model Feedback {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// ============================================
+// Audit Logging
+// ============================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?  // Who performed the action
+  user        User?    @relation("AuditLogs", fields: [userId], references: [id], onDelete: SetNull)
+  action      String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, etc.
+  entityType  String   // User, Experience, Skill, etc.
+  entityId    String?  // ID of the affected entity
+  oldValues   Json?    // Previous values (for updates/deletes)
+  newValues   Json?    // New values (for creates/updates)
+  ipAddress   String?  // IP address of the request
+  userAgent   String?  // User agent string
+  requestId   String?  // Request ID for tracing
+  metadata    Json?    // Additional context
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 

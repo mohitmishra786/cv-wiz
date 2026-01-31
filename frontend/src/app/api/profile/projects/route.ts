@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
 import { parsePaginationParams, createPaginatedResponse, calculateSkip } from '@/lib/pagination';
+import { sanitizeProjectData } from '@/lib/sanitization';
 
 export async function GET(request: NextRequest) {
     const requestId = getOrCreateRequestId(request.headers);
@@ -95,7 +96,10 @@ export async function POST(request: NextRequest) {
 
         const userId = session.user.id;
         const body = await request.json();
-        const { name, description, url, startDate, endDate, technologies, highlights } = body;
+
+        // Sanitize input data
+        const sanitizedData = sanitizeProjectData(body);
+        const { name, description, url, startDate, endDate, technologies, highlights } = sanitizedData;
 
         logger.info('Creating project', {
             requestId,
@@ -124,8 +128,8 @@ export async function POST(request: NextRequest) {
                 name,
                 description,
                 url: url || null,
-                startDate: startDate ? new Date(startDate) : null,
-                endDate: endDate ? new Date(endDate) : null,
+                startDate: startDate ? new Date(startDate as string) : null,
+                endDate: endDate ? new Date(endDate as string) : null,
                 technologies: technologies || [],
                 highlights: highlights || [],
             },

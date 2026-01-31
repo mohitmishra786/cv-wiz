@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { sanitizeFeedbackData } from '@/lib/sanitization';
 
 export async function POST(request: NextRequest) {
     try {
         const session = await auth();
         const body = await request.json();
-        const { rating, comment, category } = body;
+
+        // Sanitize input data
+        const sanitizedData = sanitizeFeedbackData(body);
+        const { rating, comment, category } = sanitizedData;
 
         if (!rating || !comment) {
             return NextResponse.json({ error: 'Rating and comment are required' }, { status: 400 });
@@ -16,8 +20,8 @@ export async function POST(request: NextRequest) {
             data: {
                 userId: session?.user?.id || null,
                 rating: Number(rating),
-                comment,
-                category: category || 'General',
+                comment: comment as string,
+                category: (category as string) || 'General',
             },
         });
 

@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
 import { parsePaginationParams, createPaginatedResponse, calculateSkip } from '@/lib/pagination';
+import { sanitizeSkillData } from '@/lib/sanitization';
 
 export async function GET(request: NextRequest) {
     const requestId = getOrCreateRequestId(request.headers);
@@ -102,7 +103,10 @@ export async function POST(request: NextRequest) {
 
         const userId = session.user.id;
         const body = await request.json();
-        const { name, category, proficiency, yearsExp } = body;
+
+        // Sanitize input data
+        const sanitizedData = sanitizeSkillData(body);
+        const { name, category, proficiency, yearsExp } = sanitizedData;
 
         logger.info('Creating skill', {
             requestId,

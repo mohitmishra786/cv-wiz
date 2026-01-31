@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
+import { updateProfileWithSettings } from '@/lib/transactions';
 
 export async function GET(request: NextRequest) {
     const requestId = getOrCreateRequestId(request.headers);
@@ -113,30 +114,27 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        logger.info('Upserting settings', { requestId, userId });
+        logger.info('Upserting settings with transaction', { requestId, userId });
         logDbOperation('upsert', 'UserSettings', { userId, selectedTemplate });
 
-        const settings = await prisma.userSettings.upsert({
-            where: { userId },
-            create: {
-                userId,
-                selectedTemplate: selectedTemplate || 'experience-skills-projects',
-                resumePreferences: resumePreferences || null,
-            },
-            update: {
-                ...(selectedTemplate && { selectedTemplate }),
-                ...(resumePreferences !== undefined && { resumePreferences }),
-            },
-        });
+        // Use transaction to ensure data consistency
+        const result = await updateProfileWithSettings(
+            userId,
+            {}, // No profile updates in this endpoint
+            {
+                selectedTemplate: selectedTemplate || undefined,
+                resumePreferences: resumePreferences || undefined,
+            }
+        );
 
         logger.info('Settings updated successfully', {
             requestId,
             userId,
-            selectedTemplate: settings.selectedTemplate,
+            selectedTemplate: result.settings?.selectedTemplate,
         });
 
         logger.endOperation('settings:update');
-        return NextResponse.json({ data: settings, requestId });
+        return NextResponse.json({ data: result.settings, requestId });
     } catch (error) {
         logger.failOperation('settings:update', error);
         return NextResponse.json({ error: 'Internal server error', requestId }, { status: 500 });
