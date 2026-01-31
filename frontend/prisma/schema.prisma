@@ -68,15 +68,20 @@ model User {
   sessions Session[]
 
   // CV-Wiz Profile Relations
-  experiences   Experience[]
-  projects      Project[]
-  educations    Education[]
-  skills        Skill[]
-  publications  Publication[]
-  coverLetters  CoverLetter[]
-  feedbacks     Feedback[]
-  settings      UserSettings?
-  auditLogs     AuditLog[] @relation("AuditLogs")
+  experiences      Experience[]
+  projects         Project[]
+  educations       Education[]
+  skills           Skill[]
+  publications     Publication[]
+  coverLetters     CoverLetter[]
+  feedbacks        Feedback[]
+  settings         UserSettings?
+  auditLogs        AuditLog[] @relation("AuditLogs")
+  
+  // New Features
+  jobApplications  JobApplication[]
+  resumeVersions   ResumeVersion[]
+  sharedResumes    SharedResume[]
 }
 
 // ============================================
@@ -209,6 +214,58 @@ model Feedback {
 }
 
 // ============================================
+// New Features
+// ============================================
+
+// Job Application Tracking System (#70)
+model JobApplication {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     String
+  position    String
+  status      String   @default("applied") // applied, interviewing, offer, rejected
+  appliedDate DateTime @default(now())
+  notes       String?  @db.Text
+  url         String?
+  salary      String?
+  location    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Resume Version History (#68)
+model ResumeVersion {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String?  // Optional name like "Google Application"
+  snapshot    Json     // Complete snapshot of profile data
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Shared Resumes (#69)
+model SharedResume {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug        String   @unique // URL friendly identifier
+  isActive    Boolean  @default(true)
+  views       Int      @default(0)
+  snapshot    Json?    // Optional snapshot, otherwise uses live data
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+
+// ============================================
 // Audit Logging
 // ============================================
 
@@ -233,4 +290,3 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
-
