@@ -10,7 +10,16 @@
   --card-rgb: 255, 255, 255;
   --primary: #6366f1;
   --primary-foreground: #ffffff;
+  --primary-hover: #4f46e5;
+  --secondary: #e2e8f0;
+  --secondary-foreground: #334155;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
   --border: #e2e8f0;
+  --ring: #6366f1;
+  --radius: 0.5rem;
 }
 
 [data-theme="dark"] {
@@ -23,12 +32,36 @@
   --card-rgb: 15, 23, 42;
   --primary: #818cf8;
   --primary-foreground: #0f172a;
+  --primary-hover: #6366f1;
+  --secondary: #334155;
+  --secondary-foreground: #e2e8f0;
+  --accent: #334155;
+  --accent-foreground: #f1f5f9;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
   --border: #334155;
+  --ring: #818cf8;
+  --radius: 0.5rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --radius: var(--radius);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -40,7 +73,16 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Light mode card styles */
+/* Smooth transitions for all theme-affected elements */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Card styles with CSS variables */
 .bg-white {
   background-color: var(--card) !important;
 }
@@ -66,17 +108,80 @@ body {
   border-color: var(--border) !important;
 }
 
-/* Force light mode by default - remove system preference */
+/* Primary button styles */
+.bg-indigo-600,
+.bg-blue-600 {
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.bg-indigo-600:hover,
+.bg-blue-600:hover {
+  background-color: var(--primary-hover) !important;
+}
+
+/* Secondary button styles */
+.bg-gray-100,
+.bg-gray-200 {
+  background-color: var(--secondary) !important;
+  color: var(--secondary-foreground) !important;
+}
+
+/* Input styles */
+input,
+textarea,
+select {
+  background-color: var(--card);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--ring);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+/* Link styles */
+a {
+  color: var(--primary);
+}
+
+a:hover {
+  color: var(--primary-hover);
+}
+
+/* Hover backgrounds */
+.hover\:bg-gray-50:hover,
+.hover\:bg-gray-100:hover {
+  background-color: var(--muted) !important;
+}
+
+/* System preference support - respect user's OS theme preference */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="dark"]) {
-    /* Stay in light mode unless explicitly set to dark */
-    --background: #f8fafc;
-    --foreground: #171717;
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
-    --card: #ffffff;
-    --card-foreground: #171717;
-    --border: #e2e8f0;
+  :root:not([data-theme]) {
+    /* Use dark mode if no explicit theme is set and system prefers dark */
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+    --card: #1e293b;
+    --card-foreground: #f1f5f9;
+    --card-rgb: 15, 23, 42;
+    --primary: #818cf8;
+    --primary-foreground: #0f172a;
+    --primary-hover: #6366f1;
+    --secondary: #334155;
+    --secondary-foreground: #e2e8f0;
+    --accent: #334155;
+    --accent-foreground: #f1f5f9;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #334155;
+    --ring: #818cf8;
+    --radius: 0.5rem;
   }
 }
 
