@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
             data: {
                 userId: session?.user?.id || null,
                 rating: Number(rating),
-                comment,
-                category: category || 'General',
+                comment: comment as string,
+                category: (category as string) || 'General',
             },
         });
 
