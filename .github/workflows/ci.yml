@@ -77,6 +77,8 @@ jobs:
       run: npm run lint
 
     - name: Build
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: npm run build
 
     # Frontend tests seem to be using vitest, let's run them if they exist
@@ -93,7 +95,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20.9.0'
         cache: 'npm'
         cache-dependency-path: frontend/package-lock.json
 
@@ -103,4 +105,5 @@ jobs:
       run: npm ci
 
     - name: Run Extension Tests
-      run: node extension/tests/run_tests.js
+      working-directory: ./extension
+      run: node tests/run_tests.js
