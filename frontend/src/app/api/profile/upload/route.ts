@@ -87,6 +87,21 @@ export async function POST(request: NextRequest) {
         const backendFormData = new FormData();
         backendFormData.append('file', file);
         backendFormData.append('file_type', fileType);
+        // Pass auth token for backend authentication
+        const authToken = session.accessToken || session.idToken;
+        if (authToken) {
+            backendFormData.append('auth_token', authToken);
+        } else {
+            logger.warn('[Upload] No auth token in session', { requestId, userId });
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Authentication token not available.',
+                    requestId
+                },
+                { status: 401 }
+            );
+        }
 
         // Determine the backend URL for this request
         // Path should be /upload/resume (FastAPI prefix is /api, rewrite adds /py)
@@ -107,6 +122,7 @@ export async function POST(request: NextRequest) {
                 body: backendFormData,
                 headers: {
                     'X-Request-ID': requestId,
+                    'Authorization': `Bearer ${authToken}`,
                 },
             });
         } catch (fetchError) {

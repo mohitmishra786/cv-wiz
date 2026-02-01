@@ -10,7 +10,8 @@ from fastapi.responses import JSONResponse
 from typing import Optional
 
 from app.services.resume_parser import resume_parser
-from app.utils.logger import logger, get_request_id
+from app.utils.logger import logger, get_request_id, log_auth_operation
+from app.middleware.auth import get_user_id_from_token
 
 
 router = APIRouter()
@@ -53,10 +54,49 @@ def validate_file(file: UploadFile, request_id: str) -> None:
         )
 
 
+def validate_auth_token(auth_token: str, request_id: str) -> str:
+    """Validate auth token and return user ID.
+    
+    Args:
+        auth_token: The authentication token
+        request_id: Request ID for logging
+        
+    Returns:
+        User ID from the token
+        
+    Raises:
+        HTTPException: If token is invalid or missing
+    """
+    if not auth_token:
+        logger.warning("[Upload] Missing auth token", {"request_id": request_id})
+        log_auth_operation("upload:auth_missing", success=False)
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Please provide a valid auth token.",
+        )
+    
+    user_id = get_user_id_from_token(auth_token)
+    if not user_id:
+        logger.warning("[Upload] Invalid auth token", {"request_id": request_id})
+        log_auth_operation("upload:auth_failed", success=False)
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authentication token.",
+        )
+    
+    logger.info("[Upload] Auth token validated", {
+        "request_id": request_id,
+        "user_id": user_id,
+    })
+    log_auth_operation("upload:auth_success", user_id, True)
+    return user_id
+
+
 @router.post("/upload/resume")
 async def upload_resume(
     file: UploadFile = File(...),
     file_type: Optional[str] = Form(default="resume"),
+    auth_token: str = Form(...),
 ) -> JSONResponse:
     """
     Upload and parse a resume file.
@@ -67,9 +107,13 @@ async def upload_resume(
     Args:
         file: The uploaded file
         file_type: "resume" or "cover-letter"
+        auth_token: Authentication token for the user
     """
     request_id = get_request_id()
     start_time = time.time()
+    
+    # Validate authentication first
+    validate_auth_token(auth_token, request_id)
     
     logger.start_operation("upload_resume", {
         "request_id": request_id,
