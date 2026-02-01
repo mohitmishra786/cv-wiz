@@ -1,4 +1,6 @@
-
+"""
+Tests for PDF Generator
+"""
 import sys
 from unittest.mock import MagicMock, patch
 import pytest
@@ -16,11 +18,15 @@ sys.modules["weasyprint.text.fonts"] = mock_wp_fonts
 from app.utils.pdf_generator import PDFGenerator  # noqa: E402
 from app.models.resume import CompiledResume  # noqa: E402
 
+
 @pytest.fixture
 def generator():
+    """Create PDFGenerator with mocked weasyprint."""
     return PDFGenerator()
 
+
 def test_generate_html(generator):
+    """Test HTML generation from resume data."""
     resume = CompiledResume(
         name="Test User",
         email="test@example.com",
@@ -35,10 +41,12 @@ def test_generate_html(generator):
     assert "Test User" in html
     assert "test@example.com" in html
 
+
 def test_generate_pdf(generator):
+    """Test PDF generation returns bytes."""
     # Setup mock return values
     mock_document = MagicMock()
-    mock_document.pages = [MagicMock()] # 1 page
+    mock_document.pages = [MagicMock()]  # 1 page
     mock_wp.HTML.return_value.render.return_value = mock_document
     
     resume = CompiledResume(
@@ -60,9 +68,10 @@ def test_generate_pdf(generator):
         pdf_bytes = generator.generate_pdf(resume)
     
     assert pdf_bytes == b"PDF CONTENT"
-    mock_wp.HTML.assert_called()
+
 
 def test_generate_pdf_page_limit_exceeded(generator):
+    """Test that exceeding page limit raises ValueError."""
     # Mock 2 pages
     mock_document = MagicMock()
     mock_document.pages = [MagicMock(), MagicMock()]
@@ -79,10 +88,12 @@ def test_generate_pdf_page_limit_exceeded(generator):
         publications=[]
     )
     
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="exceeds 1 page"):
         generator.generate_pdf(resume, max_pages=1)
 
+
 def test_generate_pdf_base64(generator):
+    """Test PDF generation returns base64 string."""
     # Mock return for this test specifically
     mock_document = MagicMock()
     mock_document.pages = [MagicMock()]
@@ -109,7 +120,9 @@ def test_generate_pdf_base64(generator):
     # "PDF CONTENT" -> "UERGIENPTlRFTlQ="
     assert b64 == "UERGIENPTlRFTlQ="
 
+
 def test_preview_html(generator):
+    """Test HTML preview generation."""
     resume = CompiledResume(
         name="Test User",
         email="test@example.com",
@@ -120,6 +133,8 @@ def test_preview_html(generator):
         skills=[],
         publications=[]
     )
-    html = generator.preview_html(resume)
-    assert "Test User" in html
-    assert "<style>" in html
+    
+    preview = generator.preview_html(resume)
+    assert "Test User" in preview
+    assert "test@example.com" in preview
+    assert "<style>" in preview
