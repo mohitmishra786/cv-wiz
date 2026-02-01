@@ -143,15 +143,22 @@ app.add_middleware(SecurityMiddleware)
 settings = get_settings()
 
 # Build allowed origins list for standalone deployments
-# For monorepo, we use ["*"] since requests come from same origin
+# NOTE: Wildcard "*" is NOT allowed when allow_credentials=True due to browser security restrictions
+# Only allow specific, configured origins
 _cors_origins = [
-    "*",  # Allow all origins (safe in monorepo - same domain)
-    settings.effective_frontend_url,  # Production frontend URL
+    settings.effective_frontend_url,  # Production frontend URL (from FRONTEND_URL or NEXTAUTH_URL)
     settings.nextauth_url,  # Auth callback URL
-    "https://cv-wiz-psi.vercel.app",  # Explicit production frontend
+    "https://cv-wiz-psi.vercel.app",  # Explicit production deployment
 ]
 # Filter out empty strings and deduplicate
 allowed_origins = list(set(origin for origin in _cors_origins if origin))
+
+# Validate that we have at least one origin configured
+if not allowed_origins:
+    logger.warning(
+        "[CORS] No CORS origins configured! This may cause CORS errors in production. "
+        "Please set FRONTEND_URL or NEXTAUTH_URL environment variable."
+    )
 
 app.add_middleware(
     CORSMiddleware,
