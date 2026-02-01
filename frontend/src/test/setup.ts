@@ -2,16 +2,9 @@ import '@testing-library/jest-dom';
 
 // Polyfill React.act for React 19 compatibility with testing-library
 // This needs to happen before any React imports
-import { act } from 'react';
+import React from 'react';
 
-// @ts-expect-error - Polyfill for React 19
-globalThis.React = globalThis.React || {};
-// @ts-expect-error - Polyfill for React 19
-globalThis.React.act = act;
-
-// Also polyfill the deprecated ReactDOMTestUtils.act for compatibility
-// @ts-expect-error - Polyfill for testing-library compatibility
-if (typeof globalThis.ReactDOMTestUtils === 'undefined') {
-  // @ts-expect-error - Polyfill for testing-library compatibility
-  globalThis.ReactDOMTestUtils = { act };
+// Polyfill for React 19 - React.act is available as a static method
+if (!globalThis.React) {
+  (globalThis as typeof globalThis & { React: typeof React }).React = React;
 }

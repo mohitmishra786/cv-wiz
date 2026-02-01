@@ -8,15 +8,6 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
-    deps: {
-      inline: [/@testing-library\/react/, /react-dom/],
-    },
-    pool: 'vmThreads',
-    poolOptions: {
-      vmThreads: {
-        execArgv: ['--experimental-vm-modules'],
-      },
-    },
   },
   resolve: {
     alias: {

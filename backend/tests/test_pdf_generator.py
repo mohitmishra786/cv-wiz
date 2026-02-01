@@ -1,6 +1,6 @@
 
 import sys
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import pytest
 
 # Mock weasyprint modules BEFORE importing the module under test
@@ -41,10 +41,6 @@ def test_generate_pdf(generator):
     mock_document.pages = [MagicMock()] # 1 page
     mock_wp.HTML.return_value.render.return_value = mock_document
     
-    def write_pdf_side_effect(target):
-        target.write(b"PDF CONTENT")
-    mock_document.write_pdf.side_effect = write_pdf_side_effect
-
     resume = CompiledResume(
         name="Test User",
         email="test@example.com",
@@ -56,7 +52,13 @@ def test_generate_pdf(generator):
         publications=[]
     )
     
-    pdf_bytes = generator.generate_pdf(resume)
+    # Patch BytesIO to capture what gets written
+    mock_buffer = MagicMock()
+    mock_buffer.getvalue.return_value = b"PDF CONTENT"
+    
+    with patch('app.utils.pdf_generator.BytesIO', return_value=mock_buffer):
+        pdf_bytes = generator.generate_pdf(resume)
+    
     assert pdf_bytes == b"PDF CONTENT"
     mock_wp.HTML.assert_called()
 
@@ -85,9 +87,6 @@ def test_generate_pdf_base64(generator):
     mock_document = MagicMock()
     mock_document.pages = [MagicMock()]
     mock_wp.HTML.return_value.render.return_value = mock_document
-    def write_pdf_side_effect(target):
-        target.write(b"PDF CONTENT")
-    mock_document.write_pdf.side_effect = write_pdf_side_effect
     
     resume = CompiledResume(
         name="Test User",
@@ -100,7 +99,13 @@ def test_generate_pdf_base64(generator):
         publications=[]
     )
     
-    b64 = generator.generate_pdf_base64(resume)
+    # Patch BytesIO to return predictable content
+    mock_buffer = MagicMock()
+    mock_buffer.getvalue.return_value = b"PDF CONTENT"
+    
+    with patch('app.utils.pdf_generator.BytesIO', return_value=mock_buffer):
+        b64 = generator.generate_pdf_base64(resume)
+    
     # "PDF CONTENT" -> "UERGIENPTlRFTlQ="
     assert b64 == "UERGIENPTlRFTlQ="
 
