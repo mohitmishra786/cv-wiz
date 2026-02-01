@@ -23,7 +23,10 @@ class CacheStatus(Enum):
 
 class RedisClient:
     """Async Redis client wrapper with connection pooling and health tracking."""
-    
+
+    # Expose CacheStatus as a class attribute for external access
+    CacheStatus = CacheStatus
+
     def __init__(self):
         self._client: Optional[redis.Redis] = None
         self._status = CacheStatus.UNAVAILABLE

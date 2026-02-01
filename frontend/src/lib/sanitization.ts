@@ -3,39 +3,22 @@
  * Provides XSS protection and input sanitization for user-generated content
  */
 
-import DOMPurify from 'isomorphic-dompurify';
-
 // ============================================================================
 // Configuration
 // ============================================================================
 
 /**
- * Default DOMPurify configuration for general text sanitization
- * Allows only safe HTML elements and attributes
+ * Escape HTML special characters to prevent XSS
+ * Simple synchronous HTML escaping for server-side use
  */
-const DEFAULT_CONFIG = {
-    ALLOWED_TAGS: [] as string[], // Strip all HTML tags by default
-    ALLOWED_ATTR: [] as string[], // Strip all attributes by default
-    KEEP_CONTENT: true, // Keep the content inside removed tags
-};
-
-/**
- * Configuration for rich text sanitization (allows basic formatting)
- */
-const RICH_TEXT_CONFIG = {
-    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li'] as string[],
-    ALLOWED_ATTR: [] as string[],
-    KEEP_CONTENT: true,
-};
-
-/**
- * Configuration for URL sanitization
- */
-const URL_CONFIG = {
-    ALLOWED_TAGS: [] as string[],
-    ALLOWED_ATTR: [] as string[],
-    KEEP_CONTENT: true,
-};
+function escapeHtml(unsafe: string): string {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
 // ============================================================================
 // Sanitization Functions
@@ -47,20 +30,16 @@ const URL_CONFIG = {
  */
 export function sanitizeText(input: unknown): string {
     if (typeof input !== 'string' || !input) return '';
-    
-    const sanitized = DOMPurify.sanitize(input, DEFAULT_CONFIG);
-    // Additional cleanup: normalize whitespace
-    return sanitized.trim().replace(/\s+/g, ' ');
+    return escapeHtml(input).trim().replace(/\s+/g, ' ');
 }
 
 /**
- * Sanitize rich text input - allows basic formatting tags
+ * Sanitize rich text input - escapes HTML but preserves structure
  * Use for: descriptions, summaries, content that may have formatting
  */
 export function sanitizeRichText(input: unknown): string {
     if (typeof input !== 'string' || !input) return '';
-    
-    return DOMPurify.sanitize(input, RICH_TEXT_CONFIG).trim();
+    return escapeHtml(input).trim();
 }
 
 /**
@@ -70,7 +49,7 @@ export function sanitizeRichText(input: unknown): string {
 export function sanitizeUrl(input: unknown): string | null {
     if (typeof input !== 'string' || !input) return null;
     
-    const sanitized = DOMPurify.sanitize(input, URL_CONFIG).trim();
+    const sanitized = input.trim();
     
     // Check for dangerous protocols
     const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:'];
@@ -100,7 +79,7 @@ export function sanitizeEmail(input: unknown): string {
     if (typeof input !== 'string' || !input) return '';
     
     // Remove any HTML and trim
-    const sanitized = DOMPurify.sanitize(input, DEFAULT_CONFIG).trim().toLowerCase();
+    const sanitized = escapeHtml(input).trim().toLowerCase();
     
     // Basic email validation regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

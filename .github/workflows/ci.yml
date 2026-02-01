@@ -38,6 +38,18 @@ jobs:
         ruff check .
 
     - name: Run Tests
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        UPSTASH_REDIS_RES_KV_REST_API_TOKEN: ${{ secrets.UPSTASH_REDIS_RES_KV_REST_API_TOKEN }}
+        UPSTASH_REDIS_RES_KV_REST_API_URL: ${{ secrets.UPSTASH_REDIS_RES_KV_REST_API_URL }}
+        UPSTASH_REDIS_RES_KV_URL: ${{ secrets.UPSTASH_REDIS_RES_KV_URL }}
+        UPSTASH_REDIS_RES_REDIS_URL: ${{ secrets.UPSTASH_REDIS_RES_REDIS_URL }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+        NEXTAUTH_URL: http://localhost:3000
+        FRONTEND_URL: http://localhost:3000
+        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       run: |
         PYTHONPATH=. pytest
 
@@ -54,7 +66,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20.9.0'
         cache: 'npm'
         cache-dependency-path: frontend/package-lock.json
 
@@ -65,6 +77,8 @@ jobs:
       run: npm run lint
 
     - name: Build
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: npm run build
 
     # Frontend tests seem to be using vitest, let's run them if they exist
@@ -81,15 +95,14 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20.9.0'
         cache: 'npm'
         cache-dependency-path: frontend/package-lock.json
 
-    # Extension tests depend on jsdom from frontend node_modules
-    - name: Install Frontend dependencies (for shared libs)
-      run: |
-        cd frontend
-        npm ci
+    - name: Install Extension dependencies
+      working-directory: ./extension
+      run: npm ci
 
     - name: Run Extension Tests
-      run: node extension/tests/run_tests.js
+      working-directory: ./extension
+      run: node tests/run_tests.js

@@ -82,8 +82,15 @@ class TestRateLimitEndpoints:
             "jobDescription": "Short",  # Too short
         })
         
-        assert response.status_code == 400
-        assert "too short" in response.json()["detail"].lower()
+        # Pydantic validation returns 422, manual validation returns 400
+        assert response.status_code in [400, 422]
+        detail = response.json()["detail"]
+        # Pydantic returns detail as a list of errors
+        if isinstance(detail, list):
+            detail_str = str(detail).lower()
+        else:
+            detail_str = detail.lower()
+        assert "too short" in detail_str or "at least" in detail_str
 
     def test_job_description_validation_long(self, client: TestClient):
         """Test that very long job descriptions are rejected."""
@@ -92,8 +99,15 @@ class TestRateLimitEndpoints:
             "jobDescription": "A" * 50001,  # Too long
         })
         
-        assert response.status_code == 400
-        assert "too long" in response.json()["detail"].lower()
+        # Pydantic validation returns 422, manual validation returns 400
+        assert response.status_code in [400, 422]
+        detail = response.json()["detail"]
+        # Pydantic returns detail as a list of errors
+        if isinstance(detail, list):
+            detail_str = str(detail).lower()
+        else:
+            detail_str = detail.lower()
+        assert "too long" in detail_str or "at most" in detail_str
 
     def test_job_description_validation_valid_length(self, client: TestClient):
         """Test that valid length job descriptions pass validation."""
