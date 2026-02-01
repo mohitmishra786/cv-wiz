@@ -3,18 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const assert = require('assert');
 
-// Try to load jsdom from frontend node_modules
-let jsdom;
-try {
-    const jsdomPath = path.resolve(__dirname, '../../frontend/node_modules/jsdom');
-    jsdom = require(jsdomPath);
-} catch (e) {
-    console.error('Could not load jsdom. Please ensure dependencies are installed in frontend.');
-    console.error('Error:', e.message);
-    process.exit(1);
-}
-
-const { JSDOM } = jsdom;
+// Load jsdom from extension's own node_modules
+const { JSDOM } = require('jsdom');
 
 // Mock browser
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {

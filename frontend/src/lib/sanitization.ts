@@ -3,21 +3,14 @@
  * Provides XSS protection and input sanitization for user-generated content
  */
 
-let DOMPurify: any = null;
+// ============================================================================
+// Configuration
+// ============================================================================
 
-async function loadDOMPurify() {
-    if (!DOMPurify) {
-        if (typeof window !== 'undefined') {
-            const module = await import('dompurify');
-            DOMPurify = module.default;
-        } else {
-            const module = await import('isomorphic-dompurify');
-            DOMPurify = module.default;
-        }
-    }
-    return DOMPurify;
-}
-
+/**
+ * Escape HTML special characters to prevent XSS
+ * Simple synchronous HTML escaping for server-side use
+ */
 function escapeHtml(unsafe: string): string {
     return unsafe
         .replace(/&/g, "&amp;")
@@ -28,38 +21,6 @@ function escapeHtml(unsafe: string): string {
 }
 
 // ============================================================================
-// Configuration
-// ============================================================================
-
-/**
- * Default DOMPurify configuration for general text sanitization
- * Allows only safe HTML elements and attributes
- */
-const DEFAULT_CONFIG = {
-    ALLOWED_TAGS: [] as string[], // Strip all HTML tags by default
-    ALLOWED_ATTR: [] as string[], // Strip all attributes by default
-    KEEP_CONTENT: true, // Keep the content inside removed tags
-};
-
-/**
- * Configuration for rich text sanitization (allows basic formatting)
- */
-const RICH_TEXT_CONFIG = {
-    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li'] as string[],
-    ALLOWED_ATTR: [] as string[],
-    KEEP_CONTENT: true,
-};
-
-/**
- * Configuration for URL sanitization
- */
-const URL_CONFIG = {
-    ALLOWED_TAGS: [] as string[],
-    ALLOWED_ATTR: [] as string[],
-    KEEP_CONTENT: true,
-};
-
-// ============================================================================
 // Sanitization Functions
 // ============================================================================
 
@@ -67,32 +28,16 @@ const URL_CONFIG = {
  * Sanitize plain text input - removes all HTML tags
  * Use for: names, titles, company names, simple text fields
  */
-export async function sanitizeText(input: unknown): Promise<string> {
-    if (typeof input !== 'string' || !input) return '';
-    
-    const purify = await loadDOMPurify();
-    const sanitized = purify.sanitize(input, DEFAULT_CONFIG);
-    // Additional cleanup: normalize whitespace
-    return sanitized.trim().replace(/\s+/g, ' ');
-}
-
-export function sanitizeTextSync(input: unknown): string {
+export function sanitizeText(input: unknown): string {
     if (typeof input !== 'string' || !input) return '';
     return escapeHtml(input).trim().replace(/\s+/g, ' ');
 }
 
 /**
- * Sanitize rich text input - allows basic formatting tags
+ * Sanitize rich text input - escapes HTML but preserves structure
  * Use for: descriptions, summaries, content that may have formatting
  */
-export async function sanitizeRichText(input: unknown): Promise<string> {
-    if (typeof input !== 'string' || !input) return '';
-    
-    const purify = await loadDOMPurify();
-    return purify.sanitize(input, RICH_TEXT_CONFIG).trim();
-}
-
-export function sanitizeRichTextSync(input: unknown): string {
+export function sanitizeRichText(input: unknown): string {
     if (typeof input !== 'string' || !input) return '';
     return escapeHtml(input).trim();
 }
@@ -101,11 +46,10 @@ export function sanitizeRichTextSync(input: unknown): string {
  * Sanitize URL input
  * Validates and sanitizes URLs to prevent javascript: and data: protocols
  */
-export async function sanitizeUrl(input: unknown): Promise<string | null> {
+export function sanitizeUrl(input: unknown): string | null {
     if (typeof input !== 'string' || !input) return null;
     
-    const purify = await loadDOMPurify();
-    const sanitized = purify.sanitize(input, URL_CONFIG).trim();
+    const sanitized = input.trim();
     
     // Check for dangerous protocols
     const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:'];
@@ -131,12 +75,11 @@ export async function sanitizeUrl(input: unknown): Promise<string | null> {
 /**
  * Sanitize email input
  */
-export async function sanitizeEmail(input: unknown): Promise<string> {
+export function sanitizeEmail(input: unknown): string {
     if (typeof input !== 'string' || !input) return '';
     
-    const purify = await loadDOMPurify();
     // Remove any HTML and trim
-    const sanitized = purify.sanitize(input, DEFAULT_CONFIG).trim().toLowerCase();
+    const sanitized = escapeHtml(input).trim().toLowerCase();
     
     // Basic email validation regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -155,7 +98,7 @@ export function sanitizeStringArray(inputs: (string | null | undefined)[] | null
     if (!inputs || !Array.isArray(inputs)) return [];
     
     return inputs
-        .map(item => sanitizeTextSync(item))
+        .map(item => sanitizeText(item))
         .filter(item => item.length > 0);
 }
 
@@ -219,10 +162,10 @@ export interface SanitizedExperienceData {
  */
 export function sanitizeExperienceData(data: Record<string, unknown>): SanitizedExperienceData {
     return {
-        company: sanitizeTextSync(data.company as string),
-        title: sanitizeTextSync(data.title as string),
-        location: sanitizeTextSync(data.location as string),
-        description: sanitizeRichTextSync(data.description as string),
+        company: sanitizeText(data.company as string),
+        title: sanitizeText(data.title as string),
+        location: sanitizeText(data.location as string),
+        description: sanitizeRichText(data.description as string),
         highlights: sanitizeStringArray(data.highlights as string[]),
         keywords: sanitizeStringArray(data.keywords as string[]),
         startDate: data.startDate,
@@ -249,9 +192,9 @@ export interface SanitizedProjectData {
  */
 export function sanitizeProjectData(data: Record<string, unknown>): SanitizedProjectData {
     return {
-        name: sanitizeTextSync(data.name as string),
-        description: sanitizeRichTextSync(data.description as string),
-        url: null, // URL sanitization would need to be async
+        name: sanitizeText(data.name as string),
+        description: sanitizeRichText(data.description as string),
+        url: sanitizeUrl(data.url as string),
         technologies: sanitizeStringArray(data.technologies as string[]),
         highlights: sanitizeStringArray(data.highlights as string[]),
         startDate: data.startDate,
@@ -277,9 +220,9 @@ export interface SanitizedEducationData {
  */
 export function sanitizeEducationData(data: Record<string, unknown>): SanitizedEducationData {
     return {
-        institution: sanitizeTextSync(data.institution as string),
-        degree: sanitizeTextSync(data.degree as string),
-        field: sanitizeTextSync(data.field as string),
+        institution: sanitizeText(data.institution as string),
+        degree: sanitizeText(data.degree as string),
+        field: sanitizeText(data.field as string),
         gpa: sanitizeNumber(data.gpa, 0, 4, 0),
         honors: sanitizeStringArray(data.honors as string[]),
         startDate: data.startDate,
@@ -302,9 +245,9 @@ export interface SanitizedSkillData {
  */
 export function sanitizeSkillData(data: Record<string, unknown>): SanitizedSkillData {
     return {
-        name: sanitizeTextSync(data.name as string),
-        category: sanitizeTextSync(data.category as string),
-        proficiency: sanitizeTextSync(data.proficiency as string),
+        name: sanitizeText(data.name as string),
+        category: sanitizeText(data.category as string),
+        proficiency: sanitizeText(data.proficiency as string),
         yearsExp: sanitizeNumber(data.yearsExp, 0, 100, 0),
     };
 }
@@ -323,9 +266,9 @@ export interface SanitizedCoverLetterData {
  */
 export function sanitizeCoverLetterData(data: Record<string, unknown>): SanitizedCoverLetterData {
     return {
-        content: sanitizeRichTextSync(data.content as string),
-        jobTitle: sanitizeTextSync(data.jobTitle as string),
-        companyName: sanitizeTextSync(data.companyName as string),
+        content: sanitizeRichText(data.content as string),
+        jobTitle: sanitizeText(data.jobTitle as string),
+        companyName: sanitizeText(data.companyName as string),
     };
 }
 
@@ -342,8 +285,8 @@ export interface SanitizedProfileData {
  */
 export function sanitizeProfileData(data: Record<string, unknown>): SanitizedProfileData {
     return {
-        name: sanitizeTextSync(data.name as string),
-        image: null, // URL sanitization would need to be async
+        name: sanitizeText(data.name as string),
+        image: sanitizeUrl(data.image as string),
     };
 }
 
@@ -362,8 +305,8 @@ export interface SanitizedFeedbackData {
 export function sanitizeFeedbackData(data: Record<string, unknown>): SanitizedFeedbackData {
     return {
         rating: sanitizeNumber(data.rating, 1, 5, 3),
-        comment: sanitizeRichTextSync(data.comment as string),
-        category: sanitizeTextSync(data.category as string),
+        comment: sanitizeRichText(data.comment as string),
+        category: sanitizeText(data.category as string),
     };
 }
 
@@ -383,11 +326,11 @@ export function sanitizeRequestBody<T extends Record<string, unknown>>(body: T):
         
         if (typeof value === 'string') {
             // For most fields, use plain text sanitization
-            (sanitized as Record<string, unknown>)[key] = sanitizeTextSync(value);
+            (sanitized as Record<string, unknown>)[key] = sanitizeText(value);
         } else if (Array.isArray(value)) {
             // Sanitize arrays of strings
             (sanitized as Record<string, unknown>)[key] = value.map(item =>
-                typeof item === 'string' ? sanitizeTextSync(item) : item
+                typeof item === 'string' ? sanitizeText(item) : item
             );
         } else if (typeof value === 'object' && value !== null) {
             // Recursively sanitize nested objects
