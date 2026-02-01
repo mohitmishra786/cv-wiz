@@ -55,12 +55,32 @@ export function isValidEmail(email: string): boolean {
 }
 
 /**
- * Validate URL format
+ * Validate URL format using URL constructor
+ * Allows any valid URL scheme (http, https, ftp, etc.)
  */
 export function isValidUrl(url: string): boolean {
     try {
         new URL(url);
         return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Validate URL with strict protocol allowlist (http/https only)
+ * This is a security-focused function to prevent dangerous URL schemes
+ * like javascript:, data:, or ftp:// that could be used for XSS attacks
+ */
+export function isValidSecureUrl(url: string): boolean {
+    if (!url || typeof url !== 'string') {
+        return false;
+    }
+
+    try {
+        const parsedUrl = new URL(url);
+        // Only allow http and https protocols
+        return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
     } catch {
         return false;
     }

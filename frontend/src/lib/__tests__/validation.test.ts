@@ -5,6 +5,7 @@
 import {
     isValidEmail,
     isValidUrl,
+    isValidSecureUrl,
     isValidDate,
     isValidPhone,
     minLength,
@@ -48,6 +49,41 @@ describe('isValidUrl', () => {
         expect(isValidUrl('')).toBe(false);
         expect(isValidUrl('not-a-url')).toBe(false);
         expect(isValidUrl('example.com')).toBe(false);
+    });
+});
+
+describe('isValidSecureUrl', () => {
+    it('returns true for valid HTTPS URLs', () => {
+        expect(isValidSecureUrl('https://example.com')).toBe(true);
+        expect(isValidSecureUrl('https://github.com/user/repo')).toBe(true);
+        expect(isValidSecureUrl('https://localhost:3000')).toBe(true);
+        expect(isValidSecureUrl('https://example.com/path/to/resource')).toBe(true);
+    });
+
+    it('returns true for valid HTTP URLs', () => {
+        expect(isValidSecureUrl('http://example.com')).toBe(true);
+        expect(isValidSecureUrl('http://localhost:8080')).toBe(true);
+    });
+
+    it('returns false for invalid URLs', () => {
+        expect(isValidSecureUrl('')).toBe(false);
+        expect(isValidSecureUrl('not-a-url')).toBe(false);
+        expect(isValidSecureUrl('example.com')).toBe(false);
+    });
+
+    it('returns false for dangerous URL schemes', () => {
+        expect(isValidSecureUrl('javascript:alert(1)')).toBe(false);
+        expect(isValidSecureUrl('javascript://commentalert(1)')).toBe(false);
+        expect(isValidSecureUrl('data:text/html,<script>alert(1)</script>')).toBe(false);
+        expect(isValidSecureUrl('ftp://files.example.com')).toBe(false);
+        expect(isValidSecureUrl('file:///etc/passwd')).toBe(false);
+        expect(isValidSecureUrl('mailto:test@example.com')).toBe(false);
+    });
+
+    it('returns false for malformed URLs', () => {
+        expect(isValidSecureUrl('https://')).toBe(false);
+        expect(isValidSecureUrl('http://')).toBe(false);
+        expect(isValidSecureUrl('https://example.com:invalid')).toBe(false);
     });
 });
 

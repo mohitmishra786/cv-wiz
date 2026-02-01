@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import type { Project } from '@/types';
 import { createLogger } from '@/lib/logger';
+import { isValidSecureUrl } from '@/lib/validation';
 
 const logger = createLogger({ component: 'ProjectForm' });
 
@@ -44,7 +45,7 @@ export default function ProjectForm({ project, onSubmit, onCancel }: ProjectForm
         if (!formData.description.trim()) {
             newErrors.description = 'Description is required';
         }
-        if (formData.url && !formData.url.match(/^https?:\/\/.+/)) {
+        if (formData.url && !isValidSecureUrl(formData.url)) {
             newErrors.url = 'Please enter a valid URL starting with http:// or https://';
         }
 
