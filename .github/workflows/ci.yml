@@ -38,6 +38,18 @@ jobs:
         ruff check .
 
     - name: Run Tests
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        UPSTASH_REDIS_RES_KV_REST_API_TOKEN: ${{ secrets.UPSTASH_REDIS_RES_KV_REST_API_TOKEN }}
+        UPSTASH_REDIS_RES_KV_REST_API_URL: ${{ secrets.UPSTASH_REDIS_RES_KV_REST_API_URL }}
+        UPSTASH_REDIS_RES_KV_URL: ${{ secrets.UPSTASH_REDIS_RES_KV_URL }}
+        UPSTASH_REDIS_RES_REDIS_URL: ${{ secrets.UPSTASH_REDIS_RES_REDIS_URL }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+        NEXTAUTH_URL: http://localhost:3000
+        FRONTEND_URL: http://localhost:3000
+        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       run: |
         PYTHONPATH=. pytest
 
@@ -87,9 +99,8 @@ jobs:
 
     # Extension tests depend on jsdom from frontend node_modules
     - name: Install Frontend dependencies (for shared libs)
-      run: |
-        cd frontend
-        npm ci
+      working-directory: ./frontend
+      run: npm ci
 
     - name: Run Extension Tests
       run: node extension/tests/run_tests.js
