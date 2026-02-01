@@ -4,6 +4,7 @@ Orchestrates the resume compilation process.
 """
 
 import time
+from concurrent.futures import ProcessPoolExecutor
 from typing import Optional
 
 from app.models.user import UserProfile
@@ -13,6 +14,10 @@ from app.utils import PDFGenerator, PDF_AVAILABLE
 from app.utils.redis_cache import get_cached, set_cached, generate_cache_key
 from app.config import get_settings
 from app.utils.logger import logger, get_request_id, log_cache_operation
+
+
+# Process pool for CPU-bound PDF generation
+_pdf_executor = ProcessPoolExecutor(max_workers=4)
 
 
 # Template configurations defining what sections to include and limits
@@ -174,8 +179,11 @@ class ResumeCompiler:
                 pdf_start = time.time()
                 
                 try:
-                    import anyio
-                    pdf_base64 = await anyio.to_thread.run_sync(
+                    # Use ProcessPoolExecutor for CPU-bound PDF generation
+                    # This avoids blocking the event loop and allows true parallelism
+                    loop = __import__('asyncio').get_event_loop()
+                    pdf_base64 = await loop.run_in_executor(
+                        _pdf_executor,
                         self.pdf_generator.generate_pdf_base64,
                         compiled,
                         self.settings.max_resume_pages

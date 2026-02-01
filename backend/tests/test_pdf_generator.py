@@ -138,3 +138,17 @@ def test_preview_html(generator):
     assert "Test User" in preview
     assert "test@example.com" in preview
     assert "<style>" in preview
+
+
+def test_pdf_generator_uses_process_pool():
+    """Test that PDF generation uses ProcessPoolExecutor for CPU-bound work."""
+    from concurrent.futures import ProcessPoolExecutor
+    from app.services.resume_compiler import _pdf_executor
+    
+    # Verify that the executor is a ProcessPoolExecutor
+    assert isinstance(_pdf_executor, ProcessPoolExecutor), \
+        "PDF generation should use ProcessPoolExecutor for CPU-bound work"
+    
+    # Verify it has reasonable worker count
+    assert _pdf_executor._max_workers >= 2, \
+        "ProcessPoolExecutor should have at least 2 workers for parallel PDF generation"
