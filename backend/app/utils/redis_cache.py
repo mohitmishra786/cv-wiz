@@ -208,7 +208,7 @@ async def set_cached(key: str, value: Any, ttl: Optional[int] = None) -> bool:
 
 async def invalidate_cache(pattern: str) -> int:
     """
-    Invalidate all cache entries matching a pattern.
+    Invalidate all cache entries matching a pattern in batches.
     
     Args:
         pattern: Redis key pattern (e.g., "cvwiz:resume:user123:*")
@@ -225,16 +225,23 @@ async def invalidate_cache(pattern: str) -> int:
         if not client:
             return 0
             
+        total_deleted = 0
         keys = []
         async for key in client.scan_iter(pattern):
             keys.append(key)
+            # Delete in batches of 100 to avoid memory issues and long blocking
+            if len(keys) >= 100:
+                total_deleted += await client.delete(*keys)
+                keys = []
         
         if keys:
-            deleted = await client.delete(*keys)
+            total_deleted += await client.delete(*keys)
+        
+        if total_deleted > 0:
             redis_client.record_success()
-            logger.info(f"Cache invalidated {deleted} keys", {"pattern": pattern})
-            return deleted
-        return 0
+            logger.info(f"Cache invalidated {total_deleted} keys", {"pattern": pattern})
+        
+        return total_deleted
     except Exception as e:
         redis_client.record_failure()
         logger.error(f"Redis invalidate error: {e}", {"pattern": pattern})

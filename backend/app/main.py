@@ -180,16 +180,25 @@ async def health_check():
     """Detailed health check with logging."""
     logger.info("[HEALTH] Health check requested")
     
+    # Safely get system metrics
+    system_metrics = {
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "disk_usage_percent": 0.0
+    }
+    try:
+        system_metrics["cpu_percent"] = psutil.cpu_percent()
+        system_metrics["memory_percent"] = psutil.virtual_memory().percent
+        system_metrics["disk_usage_percent"] = psutil.disk_usage('/').percent
+    except Exception as e:
+        logger.warning(f"[HEALTH] Failed to get system metrics: {e}")
+
     health_status = {
         "status": "healthy",
         "timestamp": time.time(),
         "database": "unknown",
         "redis": "unknown",
-        "system": {
-            "cpu_percent": psutil.cpu_percent(),
-            "memory_percent": psutil.virtual_memory().percent,
-            "disk_usage_percent": psutil.disk_usage('/').percent
-        },
+        "system": system_metrics,
         "config": {
             "groq_api_key": "configured" if settings.groq_api_key else "NOT SET",
             "database_url": "configured" if settings.database_url else "NOT SET",

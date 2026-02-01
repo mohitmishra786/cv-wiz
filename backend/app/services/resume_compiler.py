@@ -87,24 +87,28 @@ class ResumeCompiler:
             "use_cache": use_cache,
         })
         
+        # Prepare cache key if needed
+        cache_key = generate_cache_key(profile.id, job_description, "resume")
+        
         try:
             # Determine template to use
             if template is None:
-                template = (
+                template_val: TemplateType = (
                     profile.settings.selected_template
                     if profile.settings
                     else "experience-skills-projects"
                 )
+            else:
+                template_val = template
             
             logger.debug("Template selected", {
                 "request_id": request_id,
-                "template": template,
+                "template": template_val,
                 "from_profile_settings": template is None,
             })
             
             # Check cache
             if use_cache:
-                cache_key = generate_cache_key(profile.id, job_description, "resume")
                 logger.debug("Checking cache", {"request_id": request_id, "cache_key": cache_key[:50]})
                 
                 cached = await get_cached(cache_key)
@@ -128,7 +132,7 @@ class ResumeCompiler:
             })
             
             scorer = RelevanceScorer(job_description)
-            config = TEMPLATE_CONFIGS.get(template, TEMPLATE_CONFIGS["experience-skills-projects"])
+            config = TEMPLATE_CONFIGS.get(str(template_val), TEMPLATE_CONFIGS["experience-skills-projects"])
             
             selected = scorer.select_top_items(
                 profile,
@@ -151,13 +155,13 @@ class ResumeCompiler:
             # Build compiled resume
             compiled = CompiledResume(
                 name=profile.name or "Candidate",
-                email=profile.email,
+                email=profile.email or "",
                 experiences=selected["experiences"],
                 projects=selected["projects"],
                 educations=selected["educations"],
                 skills=selected["skills"],
                 publications=selected["publications"],
-                template=template,
+                template=template_val,
                 job_title=scorer.job_title or None,
             )
             
@@ -170,9 +174,11 @@ class ResumeCompiler:
                 pdf_start = time.time()
                 
                 try:
-                    pdf_base64 = self.pdf_generator.generate_pdf_base64(
+                    import anyio
+                    pdf_base64 = await anyio.to_thread.run_sync(
+                        self.pdf_generator.generate_pdf_base64,
                         compiled,
-                        max_pages=self.settings.max_resume_pages,
+                        self.settings.max_resume_pages
                     )
                     
                     pdf_duration = (time.time() - pdf_start) * 1000

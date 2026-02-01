@@ -6,7 +6,7 @@ Wrapper for the Groq API for generating cover letters.
 import time
 import json
 from typing import Optional, List, Dict, Any
-from groq import Groq
+from groq import AsyncGroq
 
 from app.config import get_settings
 from app.utils.logger import logger, get_request_id, log_llm_request
@@ -21,7 +21,7 @@ class GroqClient:
     def __init__(self):
         """Initialize Groq client."""
         settings = get_settings()
-        self.client = Groq(api_key=settings.groq_api_key)
+        self.client = AsyncGroq(api_key=settings.groq_api_key)
         self.model = settings.groq_model
         logger.info("GroqClient initialized", {
             "model": self.model,
@@ -69,7 +69,7 @@ class GroqClient:
             })
             
             api_start = time.time()
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -127,7 +127,7 @@ class GroqClient:
             system_prompt += f" Tailor it slightly to match this job description if relevant: {job_description}"
         
         try:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -154,7 +154,7 @@ Return the result as a JSON array of objects with keys: "question", "suggested_a
             user_content += f"\n\nJOB DESCRIPTION:\n{job_description}"
 
         try:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -179,7 +179,7 @@ Return the result as a JSON array of objects with keys: "question", "suggested_a
 Return the result as a JSON object with a key "skills" containing a list of strings. Limit to top 15 most relevant skills."""
         
         try:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},

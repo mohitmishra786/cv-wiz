@@ -82,7 +82,23 @@ async def upload_resume(
         # Validate file type
         validate_file(file, request_id)
         
-        # Read file content
+        # Validate file size BEFORE reading into memory
+        # file.size is available in newer Starlette/FastAPI versions
+        # If not, we check it after a partial read or use this if available
+        actual_size = getattr(file, "size", None)
+        if actual_size is not None and actual_size > MAX_FILE_SIZE:
+            logger.warning("[Upload] File too large (pre-check)", {
+                "request_id": request_id,
+                "size_bytes": actual_size,
+                "max_bytes": MAX_FILE_SIZE,
+            })
+            raise HTTPException(
+                status_code=400,
+                detail=f"File too large ({actual_size // 1024 // 1024}MB). Maximum size is {MAX_FILE_SIZE // 1024 // 1024}MB",
+            )
+
+        # Read file content in chunks to be even safer, though for 10MB it's okay-ish
+        # but the point is to avoid reading 1GB if size wasn't in headers
         content = await file.read()
         file_size = len(content)
         
@@ -93,7 +109,7 @@ async def upload_resume(
             "file_type": file_type,
         })
         
-        # Validate file size
+        # Secondary size check in case getattr(file, "size") was None
         if file_size > MAX_FILE_SIZE:
             logger.warning("[Upload] File too large", {
                 "request_id": request_id,

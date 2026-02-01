@@ -157,7 +157,7 @@ class ResumeParser:
             return {
                 "error": f"Failed to parse resume: {str(e)}",
                 "error_type": type(e).__name__,
-                "traceback": error_traceback if self.settings.debug else None,
+                "traceback": error_traceback if self.settings.environment == "development" else None,
             }
     
     def _extract_text_from_pdf(self, file_content: bytes) -> str:
@@ -318,12 +318,12 @@ class ResumeParser:
     
     async def _llm_extract(self, text: str) -> Dict[str, Any]:
         """Use Groq LLM to extract structured data from resume text."""
-        from groq import Groq
+        from groq import AsyncGroq
         
         logger.start_operation("llm_resume_extract")
         start_time = time.time()
         
-        client = Groq(api_key=self.settings.groq_api_key)
+        client = AsyncGroq(api_key=self.settings.groq_api_key)
         
         prompt = f"""Extract structured data from the following resume text. Return ONLY a valid JSON object with this exact structure:
 
@@ -369,7 +369,7 @@ Resume text:
 Return ONLY the JSON object, no markdown formatting or explanation."""
 
         try:
-            response = client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model=self.settings.groq_model,
                 messages=[
                     {"role": "system", "content": "You are a resume parser. Extract structured data and return valid JSON only. Be thorough and extract all experiences, education, skills, and projects mentioned."},

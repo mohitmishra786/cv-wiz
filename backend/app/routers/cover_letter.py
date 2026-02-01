@@ -241,7 +241,7 @@ async def preview_prompt(
         
         return {
             "candidate_info": candidate_info,
-            "job_description": request.job_description,
+            "job_description": cover_request.job_description,
             "selected_items": {
                 "experiences": len(selected["experiences"]),
                 "projects": len(selected["projects"]),
