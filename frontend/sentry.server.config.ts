@@ -16,4 +16,8 @@ Sentry.init({
   // Enable sending user PII (Personally Identifiable Information)
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
+
+  // Skip OpenTelemetry setup to prevent importing @prisma/instrumentation
+  // which has incompatible Node.js-only dependencies (require-in-the-middle)
+  skipOpenTelemetrySetup: true,
 });

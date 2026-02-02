@@ -5,9 +5,11 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig: NextConfig = {
   serverExternalPackages: [
     "@prisma/client",
+    "@prisma/instrumentation",
     "require-in-the-middle",
     "import-in-the-middle",
     "@opentelemetry/instrumentation",
+    "@opentelemetry/api",
   ],
   experimental: {
     // serverActions: true, // No longer needed in Next.js 15
@@ -16,8 +18,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/py/:path*",
-        destination: process.env.NODE_ENV === 'development' 
-          ? "http://localhost:8000/api/py/:path*" 
+        destination: process.env.NODE_ENV === 'development'
+          ? "http://localhost:8000/api/py/:path*"
           : "/api/index.py",
       },
     ];
