@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["@prisma/client"],
   experimental: {
     // serverActions: true, // No longer needed in Next.js 15
   },
