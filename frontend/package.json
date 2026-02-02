@@ -24,6 +24,7 @@
     "clsx": "^2.1.1",
     "dompurify": "^3.3.1",
     "driver.js": "^1.4.0",
+    "import-in-the-middle": "^3.0.0",
     "isomorphic-dompurify": "^2.35.0",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
@@ -32,12 +33,13 @@
     "prisma": "^6.19.2",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "require-in-the-middle": "^8.0.1",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@alloc/quick-lru": "^5.2.0",
-    "@tailwindcss/postcss": "4.0.0",
+    "@tailwindcss/postcss": "^4.1.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/bcryptjs": "^2.4.6",

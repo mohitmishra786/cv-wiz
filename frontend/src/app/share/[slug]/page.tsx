@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 
 interface Props {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 // Define interface for what getPublicResume returns
@@ -40,7 +40,8 @@ interface ResumeData {
 }
 
 export async function generateMetadata({ params }: Props) {
-  const resume = await getPublicResume(params.slug) as unknown as ResumeData | null;
+  const { slug } = await params;
+  const resume = await getPublicResume(slug) as unknown as ResumeData | null;
   if (!resume) return { title: "Resume Not Found" };
   
   return {
@@ -50,7 +51,8 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function PublicResumePage({ params }: Props) {
-  const resume = await getPublicResume(params.slug) as unknown as ResumeData | null;
+  const { slug } = await params;
+  const resume = await getPublicResume(slug) as unknown as ResumeData | null;
 
   if (!resume) {
     notFound();
