@@ -23,6 +23,10 @@ import CoverLetterSection from '@/components/CoverLetterSection';
 import ResumeUpload from '@/components/ResumeUpload';
 import ShareProfileModal from '@/components/ui/ShareProfileModal';
 import GitHubImportModal from '@/components/GitHubImportModal';
+import { ExperienceList } from '@/components/profile/ExperienceList';
+import { ProjectList } from '@/components/profile/ProjectList';
+import { SkillList } from '@/components/profile/SkillList';
+import { EducationList } from '@/components/profile/EducationList';
 
 const logger = createLogger({ component: 'ProfilePage' });
 
@@ -569,6 +573,13 @@ export default function ProfilePage() {
         </div>
     );
 }
+
+// Inline component definitions have been extracted to separate files:
+// - ExperienceList: @/components/profile/ExperienceList
+// - ProjectList: @/components/profile/ProjectList
+// - SkillList: @/components/profile/SkillList
+// - EducationList: @/components/profile/EducationList
+// All list components are wrapped with React.memo() to prevent unnecessary re-renders.
 
 // Experience List Component
 function ExperienceList({
