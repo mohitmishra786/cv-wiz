@@ -3,7 +3,12 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@prisma/client", "require-in-the-middle", "import-in-the-middle"],
+  serverExternalPackages: [
+    "@prisma/client",
+    "require-in-the-middle",
+    "import-in-the-middle",
+    "@opentelemetry/instrumentation",
+  ],
   experimental: {
     // serverActions: true, // No longer needed in Next.js 15
   },
