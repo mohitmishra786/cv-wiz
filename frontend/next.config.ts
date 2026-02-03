@@ -4,7 +4,8 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: [
-    "@prisma/client",
+    // Note: @prisma/client must NOT be here - it needs to be bundled
+    // Only include instrumentation packages that have Node.js-only dependencies
     "@prisma/instrumentation",
     "require-in-the-middle",
     "import-in-the-middle",

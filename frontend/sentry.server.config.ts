@@ -17,7 +17,15 @@ Sentry.init({
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
 
-  // Skip OpenTelemetry setup to prevent importing @prisma/instrumentation
-  // which has incompatible Node.js-only dependencies (require-in-the-middle)
+  // Disable Prisma integration to prevent build errors on Vercel
+  // The prismaIntegration imports @prisma/instrumentation which has
+  // Node.js-only dependencies (require-in-the-middle) that fail during bundling
+  integrations(integrations) {
+    return integrations.filter(
+      (integration) => integration.name !== "Prisma"
+    );
+  },
+
+  // Skip OpenTelemetry setup to prevent additional instrumentation conflicts
   skipOpenTelemetrySetup: true,
 });
