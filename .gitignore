@@ -41,3 +41,5 @@ npm-debug.log*
 extension/dist/
 my_cover_letter.pdf
 *.pdf
+.vercel
+.env*.local

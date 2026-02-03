@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
     "import-in-the-middle",
     "@opentelemetry/instrumentation",
     "@opentelemetry/api",
+    "@opentelemetry/core",
+    "@opentelemetry/sdk-trace-base",
+    "@opentelemetry/resources",
+    "@opentelemetry/semantic-conventions",
+    "@opentelemetry/sdk-trace-node",
   ],
   experimental: {
     // serverActions: true, // No longer needed in Next.js 15
