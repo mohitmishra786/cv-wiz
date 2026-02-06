@@ -458,8 +458,6 @@ export function useFieldValidation<T = string>(
     useEffect(() => {
         if (validateOnChange && isDirty) {
             let isCancelled = false;
-            // Async validation is a legitimate pattern - this effect synchronizes validation state with external validation logic
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             validate(value).then((errorMsg) => {
                 if (!isCancelled) {
                     setError(errorMsg);

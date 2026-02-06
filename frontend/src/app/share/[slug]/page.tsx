@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 
 interface Props {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 // Define interface for what getPublicResume returns
@@ -40,9 +40,10 @@ interface ResumeData {
 }
 
 export async function generateMetadata({ params }: Props) {
-  const resume = await getPublicResume(params.slug) as unknown as ResumeData | null;
+  const { slug } = await params;
+  const resume = await getPublicResume(slug) as unknown as ResumeData | null;
   if (!resume) return { title: "Resume Not Found" };
-  
+
   return {
     title: `${resume.name}'s Resume | CV-Wiz`,
     description: `Professional resume of ${resume.name}`,
@@ -50,7 +51,8 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function PublicResumePage({ params }: Props) {
-  const resume = await getPublicResume(params.slug) as unknown as ResumeData | null;
+  const { slug } = await params;
+  const resume = await getPublicResume(slug) as unknown as ResumeData | null;
 
   if (!resume) {
     notFound();
@@ -69,7 +71,7 @@ export default async function PublicResumePage({ params }: Props) {
 
         {/* Content */}
         <div className="p-8 space-y-8">
-          
+
           {/* Experience */}
           {resume.experiences && resume.experiences.length > 0 && (
             <section>
@@ -171,9 +173,9 @@ export default async function PublicResumePage({ params }: Props) {
           )}
 
         </div>
-        
+
         <div className="bg-gray-50 p-4 text-center text-sm text-gray-500 border-t">
-            Powered by <Link href="/" className="text-blue-600 hover:underline">CV-Wiz</Link>
+          Powered by <Link href="/" className="text-blue-600 hover:underline">CV-Wiz</Link>
         </div>
       </div>
     </div>
