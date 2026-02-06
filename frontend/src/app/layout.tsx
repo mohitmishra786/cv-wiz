@@ -39,8 +39,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
         style={{ background: 'var(--background)', color: 'var(--foreground)' }}
       >
-        <a 
-          href="#main-content" 
+        <a
+          href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-indigo-600 focus:text-white focus:rounded-lg"
         >
           Skip to content
@@ -59,7 +59,8 @@ export default function RootLayout({
             </ThemeProvider>
           </SessionProvider>
         </GlobalErrorBoundary>
-        <Analytics />
+        {/* Only load Vercel Analytics when deployed on Vercel */}
+        {process.env.NEXT_PUBLIC_VERCEL_ENV && <Analytics />}
       </body>
     </html>
   );
