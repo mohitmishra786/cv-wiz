@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { createLogger } from '@/lib/logger';
 import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
@@ -81,35 +80,7 @@ export default function DashboardPage() {
     return (
         <div className="min-h-screen" style={{ background: 'var(--background)' }}>
             <OnboardingTour />
-            {/* Header */}
-            <header className="bg-white border-b border-gray-200">
-                <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Image
-                            src="/logo.png"
-                            alt="CV-Wiz Logo"
-                            width={40}
-                            height={40}
-                            className="rounded-xl"
-                        />
-                        <span className="text-xl font-bold text-gray-900">Dashboard</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="hidden md:flex gap-4 mr-4">
-                            <Link href="/profile" className="text-gray-500 hover:text-gray-900 font-medium">Profile</Link>
-                            <Link href="/templates" className="text-gray-500 hover:text-gray-900 font-medium">Templates</Link>
-                            <Link href="/interview-prep" className="text-gray-500 hover:text-gray-900 font-medium">Interview Prep</Link>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm text-gray-600 hidden sm:block">Welcome, {session?.user?.name || 'User'}</span>
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                                {session?.user?.email?.[0]?.toUpperCase()}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
+            {/* Using global Navbar - no duplicate header */}
             <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
                 {/* Welcome & Completeness */}
                 <div className="flex flex-col md:flex-row justify-between items-center bg-gradient-to-r from-indigo-600 to-purple-700 rounded-3xl p-8 text-white shadow-lg">

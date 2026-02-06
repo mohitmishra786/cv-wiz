@@ -7,6 +7,7 @@
  * - Persists user choice in localStorage
  * - Smooth CSS transitions
  * - Accessible keyboard navigation
+ * - Syncs with ThemeProvider using data-theme attribute
  */
 
 import React, { useEffect, useState } from 'react';
@@ -20,18 +21,18 @@ const ThemeToggle: React.FC = () => {
     useEffect(() => {
         setMounted(true);
 
-        // Check localStorage first
-        const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+        // Check localStorage first (use same key as ThemeProvider)
+        const savedTheme = localStorage.getItem('cv-wiz-theme') as 'light' | 'dark' | null;
 
         if (savedTheme) {
             setTheme(savedTheme);
-            document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+            document.documentElement.setAttribute('data-theme', savedTheme);
         } else {
             // Fall back to system preference
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const systemTheme = prefersDark ? 'dark' : 'light';
             setTheme(systemTheme);
-            document.documentElement.classList.toggle('dark', prefersDark);
+            document.documentElement.setAttribute('data-theme', systemTheme);
         }
     }, []);
 
@@ -40,24 +41,31 @@ const ThemeToggle: React.FC = () => {
         const newTheme = theme === 'light' ? 'dark' : 'light';
         setTheme(newTheme);
 
-        //  Update document class
-        document.documentElement.classList.toggle('dark');
+        // Update document data-theme attribute (not class)
+        document.documentElement.setAttribute('data-theme', newTheme);
 
-        // Persist to localStorage
-        localStorage.setItem('theme', newTheme);
+        // Persist to localStorage (use same key as ThemeProvider)
+        localStorage.setItem('cv-wiz-theme', newTheme);
     };
 
     // Prevent hydration mismatch
     if (!mounted || theme === null) {
         return (
-            <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse" />
+            <div className="w-10 h-10 rounded-lg animate-pulse" style={{ background: 'var(--muted)' }} />
         );
     }
 
     return (
         <button
             onClick={toggleTheme}
-            className="relative flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+            className="relative flex items-center justify-center w-10 h-10 rounded-lg border transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2"
+            style={{
+                borderColor: 'var(--border)',
+                background: 'var(--card)',
+                color: 'var(--foreground)',
+                '--tw-ring-color': 'var(--primary)',
+                '--tw-ring-offset-color': 'var(--background)'
+            } as React.CSSProperties}
             aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
             title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
         >
