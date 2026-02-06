@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { createLogger } from '@/lib/logger';
+import ThemeToggle from './ThemeToggle';
 
 const logger = createLogger({ component: 'MobileNav' });
 
@@ -17,11 +18,11 @@ export default function MobileNav() {
   };
 
   return (
-    <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200" style={{ background: 'var(--card)' }}>
+    <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700" style={{ background: 'var(--card)' }}>
       <div className="flex justify-around items-center py-3 px-4">
         <Link
           href="/dashboard"
-          className="flex flex-col items-center gap-1 text-gray-600 hover:text-indigo-600 transition-colors"
+          className="flex flex-col items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
           style={{ color: 'var(--muted-foreground)' }}
           onClick={() => {
             logger.info('[MobileNav] Dashboard link clicked');
@@ -36,7 +37,7 @@ export default function MobileNav() {
 
         <Link
           href="/profile"
-          className="flex flex-col items-center gap-1 text-gray-600 hover:text-indigo-600 transition-colors"
+          className="flex flex-col items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
           style={{ color: 'var(--muted-foreground)' }}
           onClick={() => {
             logger.info('[MobileNav] Profile link clicked');
@@ -51,7 +52,7 @@ export default function MobileNav() {
 
         <Link
           href="/templates"
-          className="flex flex-col items-center gap-1 text-gray-600 hover:text-indigo-600 transition-colors"
+          className="flex flex-col items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
           style={{ color: 'var(--muted-foreground)' }}
           onClick={() => {
             logger.info('[MobileNav] Templates link clicked');
@@ -67,7 +68,7 @@ export default function MobileNav() {
 
         <Link
           href="/interview-prep"
-          className="flex flex-col items-center gap-1 text-gray-600 hover:text-indigo-600 transition-colors"
+          className="flex flex-col items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
           style={{ color: 'var(--muted-foreground)' }}
           onClick={() => {
             logger.info('[MobileNav] Interview Prep link clicked');
@@ -84,7 +85,7 @@ export default function MobileNav() {
           aria-expanded={isOpen}
           aria-controls="mobile-nav-menu"
           aria-haspopup="menu"
-          className="flex flex-col items-center gap-1 text-gray-600 hover:text-indigo-600 transition-colors"
+          className="flex flex-col items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
           style={{ color: 'var(--muted-foreground)' }}
           onClick={() => {
             logger.info('[MobileNav] Menu toggle clicked');
@@ -100,17 +101,23 @@ export default function MobileNav() {
 
       {/* Mobile menu dropdown */}
       {isOpen && (
-        <div 
+        <div
           id="mobile-nav-menu"
-          className="absolute bottom-16 left-0 right-0 bg-white border-t border-gray-200 shadow-lg rounded-t-xl" 
+          className="absolute bottom-16 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg rounded-t-xl"
           style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
         >
           <div className="py-4 px-4 space-y-3">
+            {/* Theme Toggle */}
+            <div className="flex items-center justify-between py-2 px-3">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Theme</span>
+              <ThemeToggle />
+            </div>
+
             {session ? (
               <>
                 <Link
                   href="/settings"
-                  className="block py-2 px-3 rounded-lg text-gray-700 hover:bg-indigo-50 transition-colors"
+                  className="block py-2 px-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
                   style={{ color: 'var(--foreground)' }}
                   onClick={() => {
                     logger.info('[MobileNav] Settings link clicked');
@@ -125,7 +132,7 @@ export default function MobileNav() {
                     signOut({ callbackUrl: '/' });
                     setIsOpen(false);
                   }}
-                  className="w-full text-left py-2 px-3 rounded-lg text-gray-700 hover:bg-indigo-50 transition-colors"
+                  className="w-full text-left py-2 px-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
                   style={{ color: 'var(--foreground)' }}
                 >
                   Sign out
@@ -135,7 +142,7 @@ export default function MobileNav() {
               <>
                 <Link
                   href="/login"
-                  className="block py-2 px-3 rounded-lg text-gray-700 hover:bg-indigo-50 transition-colors"
+                  className="block py-2 px-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
                   style={{ color: 'var(--foreground)' }}
                   onClick={() => {
                     logger.info('[MobileNav] Login link clicked');

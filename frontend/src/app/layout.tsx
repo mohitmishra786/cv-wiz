@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import MobileNav from "@/components/ui/MobileNav";
+import Navbar from "@/components/ui/Navbar";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
@@ -50,6 +51,7 @@ export default function RootLayout({
             <ThemeProvider>
               <LanguageProvider>
                 <ToastProvider>
+                  <Navbar />
                   <div id="main-content">
                     {children}
                   </div>

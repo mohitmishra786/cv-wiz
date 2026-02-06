@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ projects });
     } catch (error) {
-        logger.error('[GitHub] API request failed', { error, username });
+        logger.error('[GitHub] API request failed', { error });
         return NextResponse.json({ error: 'Failed to fetch GitHub projects' }, { status: 500 });
     }
 }

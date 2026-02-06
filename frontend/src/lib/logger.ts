@@ -73,21 +73,21 @@ export function createLogger(defaultContext: LogContext = {}) {
         if (isProduction && !isServer) {
             // Import Sentry dynamically to avoid SSR issues
             if (typeof window !== 'undefined' && (window as Window & { Sentry?: unknown }).Sentry) {
-                const Sentry = (window as Window & { Sentry: typeof import('@sentry/nextjs') }).Sentry;
+                const Sentry = (window as unknown as { Sentry: typeof import('@sentry/nextjs') }).Sentry;
 
                 switch (level) {
                     case 'error':
                         Sentry.captureException(data instanceof Error ? data : new Error(message), {
                             level: 'error',
                             contexts: { custom: entry.context },
-                            extra: data instanceof Error ? undefined : data,
+                            extra: data instanceof Error ? undefined : (data as Record<string, unknown>),
                         });
                         break;
                     case 'warn':
                         Sentry.captureMessage(message, {
                             level: 'warning',
                             contexts: { custom: entry.context },
-                            extra: data,
+                            extra: data as Record<string, unknown>,
                         });
                         break;
                     case 'info':
@@ -96,7 +96,7 @@ export function createLogger(defaultContext: LogContext = {}) {
                             Sentry.addBreadcrumb({
                                 message,
                                 level: 'info',
-                                data: { ...context, ...data as object },
+                                data: { ...context, ...(data as Record<string, unknown>) },
                             });
                         }
                         break;
@@ -132,21 +132,20 @@ export function createLogger(defaultContext: LogContext = {}) {
                 if (isServer || !isProduction) {
                     console.error(formattedEntry);
                 }
-                // Server-side: also send to Sentry if available
-                if (isServer && isProduction) {
+                // In production on server-side: Send to Sentry + log to Railway
+                if (isProduction && isServer) {
                     try {
                         // Use dynamic import instead of require for ESLint
                         import('@sentry/nextjs').then(Sentry => {
                             Sentry.captureException(data instanceof Error ? data : new Error(message), {
                                 level: 'error',
                                 contexts: { custom: entry.context },
-                                extra: data instanceof Error ? undefined : data,
+                                extra: data instanceof Error ? undefined : (data as Record<string, unknown>),
                             });
-                        }).catch(() => {
-                            // Sentry not available
                         });
-                    } catch {
-                        // Sentry not available
+                    } catch (sentryError) {
+                        // If Sentry fails, still log to console for Railway
+                        console.error('[Sentry] Failed to send error:', sentryError);
                     }
                 }
                 break;
