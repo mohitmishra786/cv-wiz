@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { createRequestLogger, getOrCreateRequestId, logAuthOperation } from '@/lib/logger';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
     // Determine the backend endpoint - must be absolute URL for server-side fetch
@@ -212,60 +213,86 @@ export async function POST(request: NextRequest) {
 
             const parsedData = backendData.data as Record<string, unknown>;
 
-            // Transform backend data format to match import endpoint schema
-            const importData = {
-                name: parsedData.name as string | undefined,
-                about: parsedData.summary as string | undefined,
-                experiences: (parsedData.experiences as unknown[] || []).map((exp: unknown) => {
-                    const e = exp as Record<string, unknown>;
-                    return {
-                        company: String(e.company || ''),
-                        title: String(e.title || ''),
-                        description: String(e.description || ''),
-                        startDate: e.start_date ? String(e.start_date) : undefined,
-                        endDate: e.end_date ? String(e.end_date) : undefined,
-                        current: Boolean(e.current),
-                        location: e.location ? String(e.location) : undefined,
-                    };
-                }),
-                educations: (parsedData.education as unknown[] || []).map((edu: unknown) => {
-                    const e = edu as Record<string, unknown>;
-                    return {
-                        school: String(e.institution || e.school || ''),
-                        degree: e.degree ? String(e.degree) : undefined,
-                        field: e.field || e.major ? String(e.field || e.major) : undefined,
-                        startDate: e.start_date ? String(e.start_date) : undefined,
-                        endDate: e.end_date ? String(e.end_date) : undefined,
-                    };
-                }),
-                skills: (parsedData.skills as unknown[] || []).map((skill: unknown) => {
-                    if (typeof skill === 'string') return skill;
-                    return String((skill as Record<string, unknown>).name || skill);
-                }),
-            };
-
-            // Call internal import endpoint to save to database
-            const importResponse = await fetch(`${request.nextUrl.origin}/api/profile/import`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Cookie': request.headers.get('cookie') || '', // Forward session cookie
-                },
-                body: JSON.stringify(importData),
-            });
-
-            if (!importResponse.ok) {
-                const importError = await importResponse.json().catch(() => ({ error: 'Unknown error' }));
-                logger.warn('[Upload] Failed to save parsed data to database', {
-                    requestId,
-                    userId,
-                    status: importResponse.status,
-                    error: importError,
+            // Update user profile name if provided
+            if (parsedData.name) {
+                await prisma.user.update({
+                    where: { id: userId },
+                    data: { name: String(parsedData.name) },
                 });
-                // Don't fail the upload - data is still returned to frontend
-            } else {
-                logger.info('[Upload] Successfully saved parsed data to database', { requestId, userId });
+                logger.debug('[Upload] Updated user name', { userId });
             }
+
+            // Save experiences
+            const experiences = parsedData.experiences as unknown[] || [];
+            for (const exp of experiences) {
+                const e = exp as Record<string, unknown>;
+                if (!e.company || !e.title) continue; // Skip invalid entries
+
+                await prisma.experience.create({
+                    data: {
+                        userId,
+                        company: String(e.company),
+                        title: String(e.title),
+                        description: e.description ? String(e.description) : '',
+                        startDate: e.start_date ? new Date(String(e.start_date)) : new Date(),
+                        endDate: e.end_date && !e.current ? new Date(String(e.end_date)) : null,
+                        current: Boolean(e.current),
+                        location: e.location ? String(e.location) : null,
+                        highlights: e.highlights ? (e.highlights as string[]) : [],
+                    },
+                });
+            }
+            logger.debug('[Upload] Saved experiences', { count: experiences.length });
+
+            // Save education
+            const education = parsedData.education as unknown[] || [];
+            for (const edu of education) {
+                const e = edu as Record<string, unknown>;
+                if (!e.institution && !e.school) continue; // Skip invalid entries
+                if (!e.degree || !e.field) continue; // Skip if missing required fields
+
+                await prisma.education.create({
+                    data: {
+                        userId,
+                        institution: String(e.institution || e.school),
+                        degree: String(e.degree),
+                        field: String(e.field || e.major || ''),
+                        startDate: e.start_date ? new Date(String(e.start_date)) : new Date(),
+                        endDate: e.end_date ? new Date(String(e.end_date)) : null,
+                        gpa: e.gpa ? parseFloat(String(e.gpa)) : null,
+                    },
+                });
+            }
+            logger.debug('[Upload] Saved education', { count: education.length });
+
+            // Save skills
+            const skills = parsedData.skills as unknown[] || [];
+            for (const skill of skills) {
+                const skillName = typeof skill === 'string' ? skill : String((skill as Record<string, unknown>).name || skill);
+                if (!skillName) continue; // Skip invalid entries
+
+                // Check if skill already exists
+                const existing = await prisma.skill.findFirst({
+                    where: {
+                        userId,
+                        name: skillName,
+                    },
+                });
+
+                if (!existing) {
+                    await prisma.skill.create({
+                        data: {
+                            userId,
+                            name: skillName,
+                            category: 'technical', // Default category
+                            proficiency: 'intermediate', // Default proficiency
+                        },
+                    });
+                }
+            }
+            logger.debug('[Upload] Saved skills', { count: skills.length });
+
+            logger.info('[Upload] Successfully saved parsed data to database', { requestId, userId });
         } catch (saveError) {
             logger.error('[Upload] Error saving to database', {
                 requestId,

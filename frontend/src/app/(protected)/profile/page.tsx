@@ -5,10 +5,8 @@
  * Main dashboard for managing career profile
  */
 
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
 import type { UserProfile, Experience, Project, Skill, Education } from '@/types';
 import { createLogger } from '@/lib/logger';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -286,66 +284,8 @@ export default function ProfilePage() {
     ];
 
     return (
-        <div className="min-h-screen" style={{ background: 'var(--background)' }}>
-            {/* Header */}
-            <header className="bg-white border-b border-gray-200">
-                <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Image
-                            src="/logo.png"
-                            alt="CV-Wiz Logo"
-                            width={40}
-                            height={40}
-                            className="rounded-xl"
-                        />
-                        <span className="text-xl font-bold text-gray-900">CV-Wiz</span>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => {
-                                logger.info('[ProfilePage] Share clicked');
-                                setShareModalOpen(true);
-                            }}
-                            className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-200"
-                        >
-                            Share Profile
-                        </button>
-                        <button
-                            onClick={() => {
-                                logger.info('[ProfilePage] Upload Resume clicked');
-                                openModal('upload');
-                            }}
-                            className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-200"
-                        >
-                            Upload Resume
-                        </button>
-                        <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium">
-                            Dashboard
-                        </Link>
-                        <Link href="/templates" className="text-gray-600 hover:text-gray-900 font-medium">
-                            Templates
-                        </Link>
-                        <Link href="/interview-prep" className="text-gray-600 hover:text-gray-900 font-medium">
-                            Interview Prep
-                        </Link>
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm text-gray-600">{session?.user?.email}</span>
-                            <button
-                                onClick={() => {
-                                    logger.info('[ProfilePage] Sign out clicked');
-                                    signOut({ callbackUrl: '/' });
-                                }}
-                                className="text-sm text-gray-500 hover:text-gray-700"
-                            >
-                                Sign out
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Content */}
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            {/* Main Content - No duplicate header, using global Navbar */}
             <main className="max-w-6xl mx-auto px-4 py-8">
                 {/* Profile Header */}
                 <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
@@ -372,51 +312,51 @@ export default function ProfilePage() {
                         </button>
                     </div>
 
-                 {/* Stats */}
-                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-gray-100">
-                         <div className="text-center">
-                             <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.experiences?.length || 0}</div>
-                             <div className="text-xs sm:text-sm text-gray-500">Experiences</div>
-                         </div>
-                         <div className="text-center">
-                             <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.projects?.length || 0}</div>
-                             <div className="text-xs sm:text-sm text-gray-500">Projects</div>
-                         </div>
-                         <div className="text-center">
-                             <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.skills?.length || 0}</div>
-                             <div className="text-xs sm:text-sm text-gray-500">Skills</div>
-                         </div>
-                         <div className="text-center">
-                             <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.educations?.length || 0}</div>
-                             <div className="text-xs sm:text-sm text-gray-500">Education</div>
-                         </div>
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-gray-100">
+                        <div className="text-center">
+                            <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.experiences?.length || 0}</div>
+                            <div className="text-xs sm:text-sm text-gray-500">Experiences</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.projects?.length || 0}</div>
+                            <div className="text-xs sm:text-sm text-gray-500">Projects</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.skills?.length || 0}</div>
+                            <div className="text-xs sm:text-sm text-gray-500">Skills</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-xl sm:text-2xl font-bold text-gray-900">{profile?.educations?.length || 0}</div>
+                            <div className="text-xs sm:text-sm text-gray-500">Education</div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Tabs */}
                 <div className="bg-white rounded-2xl shadow-sm">
                     <div className="border-b border-gray-200">
-                         <nav className="flex gap-2 sm:gap-4 px-4 sm:px-6 overflow-x-auto">
-                             {tabs.map((tab) => (
-                                 <button
-                                     key={tab.id}
-                                     onClick={() => {
-                                         logger.debug('[ProfilePage] Tab switched', { tab: tab.id });
-                                         setActiveTab(tab.id);
-                                     }}
-                                     className={`py-3 px-1 sm:px-2 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
-                                         ? 'border-indigo-500 text-indigo-600'
-                                         : 'border-transparent text-gray-500 hover:text-gray-700'
-                                         }`}
-                                 >
-                                     {tab.label}
-                                     {tab.id !== 'cover-letters' && (
-                                         <span className="ml-1 sm:ml-2 px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">
-                                             {tab.count}
-                                         </span>
-                                     )}
-                                 </button>
-                             ))}
+                        <nav className="flex gap-2 sm:gap-4 px-4 sm:px-6 overflow-x-auto">
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => {
+                                        logger.debug('[ProfilePage] Tab switched', { tab: tab.id });
+                                        setActiveTab(tab.id);
+                                    }}
+                                    className={`py-3 px-1 sm:px-2 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
+                                        ? 'border-indigo-500 text-indigo-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    {tab.label}
+                                    {tab.id !== 'cover-letters' && (
+                                        <span className="ml-1 sm:ml-2 px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">
+                                            {tab.count}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
                         </nav>
                     </div>
 
@@ -685,7 +625,7 @@ function ProjectList({
                     className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center gap-2"
                 >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 4.238 9.611 9.647 10.674.6.099.817-.26.817-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.44-1.304.806-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.212.685.827.569 5.405-1.065 9.641-5.372 9.641-10.674 0-6.627-5.373-12-12-12z"/>
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 4.238 9.611 9.647 10.674.6.099.817-.26.817-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.44-1.304.806-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.212.685.827.569 5.405-1.065 9.641-5.372 9.641-10.674 0-6.627-5.373-12-12-12z" />
                     </svg>
                     Import from GitHub
                 </button>
@@ -745,7 +685,7 @@ function ProjectList({
                 className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center gap-2"
             >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 4.238 9.611 9.647 10.674.6.099.817-.26.817-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.44-1.304.806-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.212.685.827.569 5.405-1.065 9.641-5.372 9.641-10.674 0-6.627-5.373-12-12-12z"/>
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 4.238 9.611 9.647 10.674.6.099.817-.26.817-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.44-1.304.806-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.212.685.827.569 5.405-1.065 9.641-5.372 9.641-10.674 0-6.627-5.373-12-12-12z" />
                 </svg>
                 GitHub Import
             </button>
