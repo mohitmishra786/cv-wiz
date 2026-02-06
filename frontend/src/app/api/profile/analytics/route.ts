@@ -153,7 +153,7 @@ export async function GET(_request: NextRequest) {
         // Calculate monthly trends
         const monthlyData: Record<string, number> = {};
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        
+
         // Initialize last 6 months with 0 - normalize to first of month to avoid overflow
         for (let i = 5; i >= 0; i--) {
             const now = new Date();
@@ -196,7 +196,7 @@ export async function GET(_request: NextRequest) {
         // Calculate weekly activity for chart
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const weeklyActivity = days.map(day => ({ name: day, applications: 0 }));
-        
+
         weeklyCoverLetters.forEach(cl => {
             const dayIndex = new Date(cl.createdAt).getDay();
             const dayName = days[dayIndex];
@@ -221,23 +221,24 @@ export async function GET(_request: NextRequest) {
             skillCount: user._count.skills,
             educationCount: user._count.educations,
             coverLetterCount: user._count.coverLetters,
-            
+
             // Application stats
             weeklyApplicationsCount,
             monthlyApplicationsCount,
             totalApplicationsCount,
-            
+
             // Trends
             weeklyActivity: reorderedActivity,
+            activity: reorderedActivity, // Alias for dashboard compatibility
             monthlyTrends: trends,
-            
+
             // Insights
             topCompanies: topCompanies.map(c => ({
                 name: c.companyName || 'Unknown',
                 count: c._count.companyName
             })),
             topSkills,
-            
+
             // Recent activity
             recentActivity: user.coverLetters.map(cl => ({
                 id: cl.id,
@@ -246,7 +247,7 @@ export async function GET(_request: NextRequest) {
                 date: cl.createdAt,
                 company: cl.companyName || 'Unknown Company'
             })),
-            
+
             // Skill gap analysis (placeholder - would need job market data)
             skillGapAnalysis: {
                 strongSkills: topSkills.slice(0, 3).map(s => s.name),

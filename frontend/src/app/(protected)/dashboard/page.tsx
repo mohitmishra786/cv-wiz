@@ -74,14 +74,14 @@ export default function DashboardPage() {
         return <div className="p-8 text-center text-red-500">Failed to load dashboard data. Please sign in.</div>;
     }
 
-    const applicationsTrend = data.weeklyApplicationsCount > 0 
-        ? `+${data.weeklyApplicationsCount} this week` 
+    const applicationsTrend = data.weeklyApplicationsCount > 0
+        ? `+${data.weeklyApplicationsCount} this week`
         : 'No apps this week';
 
     return (
         <div className="min-h-screen" style={{ background: 'var(--background)' }}>
             <OnboardingTour />
-             {/* Header */}
+            {/* Header */}
             <header className="bg-white border-b border-gray-200">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -116,9 +116,9 @@ export default function DashboardPage() {
                     <div className="mb-6 md:mb-0">
                         <h1 className="text-3xl font-bold mb-2">{t('dashboard.welcome')}, {session?.user?.name?.split(' ')[0] || 'There'}! 👋</h1>
                         <p className="text-indigo-100 opacity-90 max-w-lg">
-                            {t('dashboard.completeness', { percent: data.completeness })} 
-                            {data.completeness < 100 
-                                ? ` ${t('dashboard.complete_now')}` 
+                            {t('dashboard.completeness', { percent: data.completeness })}
+                            {data.completeness < 100
+                                ? ` ${t('dashboard.complete_now')}`
                                 : ` ${t('dashboard.ready')}`}
                         </p>
                         <div className="mt-6 flex gap-3">
@@ -130,7 +130,7 @@ export default function DashboardPage() {
                             </Link>
                         </div>
                     </div>
-                    
+
                     {/* Radial Progress */}
                     <div className="relative w-32 h-32 flex-shrink-0">
                         <svg className="w-full h-full transform -rotate-90">
@@ -164,9 +164,9 @@ export default function DashboardPage() {
 
                 {/* Overview Stats */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                    <StatCard 
-                        title="Applications" 
-                        value={data.coverLetterCount} 
+                    <StatCard
+                        title="Applications"
+                        value={data.coverLetterCount}
                         icon={
                             <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -175,9 +175,9 @@ export default function DashboardPage() {
                         color="bg-blue-50"
                         trend={applicationsTrend}
                     />
-                    <StatCard 
-                        title="Skills" 
-                        value={data.skillCount} 
+                    <StatCard
+                        title="Skills"
+                        value={data.skillCount}
                         icon={
                             <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -185,9 +185,9 @@ export default function DashboardPage() {
                         }
                         color="bg-emerald-50"
                     />
-                    <StatCard 
-                        title="Projects" 
-                        value={data.projectCount} 
+                    <StatCard
+                        title="Projects"
+                        value={data.projectCount}
                         icon={
                             <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -195,9 +195,9 @@ export default function DashboardPage() {
                         }
                         color="bg-purple-50"
                     />
-                    <StatCard 
-                        title="Experience" 
-                        value={data.experienceCount} 
+                    <StatCard
+                        title="Experience"
+                        value={data.experienceCount}
                         icon={
                             <svg className="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -216,30 +216,37 @@ export default function DashboardPage() {
                                 <p className="text-sm text-gray-500">Resumes generated over last 7 days</p>
                             </div>
                         </div>
-                        
+
                         <div className="h-64 flex items-end justify-between gap-2 sm:gap-4">
-                            {data.activity.map((item, index) => (
-                                <div key={index} className="flex flex-col items-center w-full group">
-                                    <div className="relative w-full flex items-end justify-center h-48">
-                                        <div 
-                                            className="w-full max-w-[40px] bg-indigo-500 rounded-t-lg transition-all duration-500 hover:bg-indigo-600 relative group-hover:scale-105"
-                                            style={{ height: `${Math.min(Math.max(item.applications * 20, 5), 100)}%` }}
-                                        >
-                                            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                                {item.applications} Apps
+                            {data.activity && data.activity.length > 0 ? (
+                                data.activity.map((item, index) => (
+                                    <div key={index} className="flex flex-col items-center w-full group">
+                                        <div className="relative w-full flex items-end justify-center h-48">
+                                            <div
+                                                className="w-full max-w-[40px] bg-indigo-500 rounded-t-lg transition-all duration-500 hover:bg-indigo-600 relative group-hover:scale-105"
+                                                style={{ height: `${Math.min(Math.max(item.applications * 20, 5), 100)}%` }}
+                                            >
+                                                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                                                    {item.applications} Apps
+                                                </div>
                                             </div>
                                         </div>
+                                        <div className="mt-3 text-xs sm:text-sm font-medium text-gray-500">{item.name}</div>
                                     </div>
-                                    <div className="mt-3 text-xs sm:text-sm font-medium text-gray-500">{item.name}</div>
+                                ))
+                            ) : (
+                                <div className="w-full text-center py-12 text-gray-500">
+                                    <p>No activity data yet.</p>
+                                    <p className="text-sm mt-1">Start creating resumes to see your activity!</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
 
                     {/* Recent Activity List */}
                     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                         <h3 className="text-lg font-bold text-gray-900 mb-6">Recent Activity</h3>
-                        
+
                         {data.recentActivity.length > 0 ? (
                             <div className="space-y-6">
                                 {data.recentActivity.map((activity) => (
@@ -265,7 +272,7 @@ export default function DashboardPage() {
                                 <p className="text-sm">Generate your first resume to see it here!</p>
                             </div>
                         )}
-                        
+
                         <div className="mt-8 pt-6 border-t border-gray-100">
                             <Link href="/profile" className="block w-full py-2.5 text-center text-sm font-semibold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors">
                                 View Full History
