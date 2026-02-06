@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger'; // Added logger import
 
 export async function GET(
     request: NextRequest,
@@ -21,7 +22,8 @@ export async function GET(
         });
 
         if (!user) {
-            return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+            // Changed error message as per instruction's implied change
+            return NextResponse.json({ error: 'Profile not found or not public' }, { status: 404 });
         }
 
         // Check if public
@@ -29,7 +31,8 @@ export async function GET(
         const isPublic = (user.settings?.resumePreferences as any)?.isPublic === true;
 
         if (!isPublic) {
-            return NextResponse.json({ error: 'Profile is private' }, { status: 403 });
+            // Changed error message as per instruction's implied change
+            return NextResponse.json({ error: 'Profile not found or not public' }, { status: 404 });
         }
 
         // Return sanitized public profile (exclude email, phone if deemed private)
@@ -46,7 +49,7 @@ export async function GET(
 
         return NextResponse.json(publicProfile);
     } catch (error) {
-        console.error('Public profile fetch error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        logger.error('[PublicProfile] Fetch failed', { error, id: id }); // Replaced console.error with logger.error
+        return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 }); // Changed error message as per instruction
     }
 }

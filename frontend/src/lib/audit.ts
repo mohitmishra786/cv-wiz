@@ -3,7 +3,8 @@
  * Provides comprehensive audit logging for data modifications
  */
 
-import prisma from './prisma';
+import { prisma } from './prisma';
+import { logger } from './logger';
 import type { NextRequest } from 'next/server';
 import type { Prisma } from '@prisma/client';
 
@@ -11,29 +12,29 @@ import type { Prisma } from '@prisma/client';
 // Types
 // ============================================================================
 
-export type AuditAction = 
-    | 'CREATE' 
-    | 'UPDATE' 
-    | 'DELETE' 
-    | 'LOGIN' 
-    | 'LOGOUT' 
-    | 'VIEW' 
-    | 'EXPORT' 
-    | 'IMPORT' 
+export type AuditAction =
+    | 'CREATE'
+    | 'UPDATE'
+    | 'DELETE'
+    | 'LOGIN'
+    | 'LOGOUT'
+    | 'VIEW'
+    | 'EXPORT'
+    | 'IMPORT'
     | 'SHARE'
     | 'REGISTER'
     | 'PASSWORD_CHANGE'
     | 'PASSWORD_RESET'
     | 'SETTINGS_UPDATE';
 
-export type EntityType = 
-    | 'User' 
-    | 'Experience' 
-    | 'Skill' 
-    | 'Education' 
-    | 'Project' 
-    | 'Publication' 
-    | 'CoverLetter' 
+export type EntityType =
+    | 'User'
+    | 'Experience'
+    | 'Skill'
+    | 'Education'
+    | 'Project'
+    | 'Publication'
+    | 'CoverLetter'
     | 'UserSettings'
     | 'Feedback'
     | 'Profile';
@@ -75,8 +76,8 @@ export async function createAuditLog(data: AuditLogData): Promise<void> {
             },
         });
     } catch (error) {
-        // Log to console but don't throw - audit logging should not break the application
-        console.error('Failed to create audit log:', error);
+        // Silently fail - audit logs are not critical
+        logger.warn('[Audit] Failed to create audit log', { error });
     }
 }
 
@@ -88,7 +89,7 @@ export async function auditFromRequest(
     data: Omit<AuditLogData, 'ipAddress' | 'userAgent' | 'requestId'>
 ): Promise<void> {
     const headers = request.headers;
-    
+
     await createAuditLog({
         ...data,
         ipAddress: getClientIp(request),
@@ -106,18 +107,18 @@ export async function auditFromRequest(
  */
 function getClientIp(request: NextRequest): string | undefined {
     const headers = request.headers;
-    
+
     // Check for forwarded headers (when behind proxy)
     const forwarded = headers.get('x-forwarded-for');
     if (forwarded) {
         return forwarded.split(',')[0].trim();
     }
-    
+
     const realIp = headers.get('x-real-ip');
     if (realIp) {
         return realIp;
     }
-    
+
     // Fallback to socket remote address
     // Note: In Next.js edge runtime, this might not be available
     return undefined;
@@ -139,12 +140,12 @@ export function sanitizeForAudit(data: Record<string, unknown>): Record<string, 
         'creditCard',
         'ssn',
     ];
-    
+
     const sanitized: Record<string, unknown> = {};
-    
+
     for (const [key, value] of Object.entries(data)) {
         const lowerKey = key.toLowerCase();
-        
+
         // Check if field is sensitive
         if (sensitiveFields.some(field => lowerKey.includes(field.toLowerCase()))) {
             sanitized[key] = '[REDACTED]';
@@ -155,7 +156,7 @@ export function sanitizeForAudit(data: Record<string, unknown>): Record<string, 
             sanitized[key] = value;
         }
     }
-    
+
     return sanitized;
 }
 
@@ -169,7 +170,7 @@ export function calculateDiff(
 ): { oldValues: Record<string, unknown>; newValues: Record<string, unknown> } {
     const changedOld: Record<string, unknown> = {};
     const changedNew: Record<string, unknown> = {};
-    
+
     // Check for changed and added fields
     for (const key of Object.keys(newValues)) {
         if (JSON.stringify(oldValues[key]) !== JSON.stringify(newValues[key])) {
@@ -177,7 +178,7 @@ export function calculateDiff(
             changedNew[key] = newValues[key];
         }
     }
-    
+
     // Check for removed fields
     for (const key of Object.keys(oldValues)) {
         if (!(key in newValues)) {
@@ -185,7 +186,7 @@ export function calculateDiff(
             changedNew[key] = undefined;
         }
     }
-    
+
     return { oldValues: changedOld, newValues: changedNew };
 }
 
@@ -227,7 +228,7 @@ export async function auditUpdate(
     metadata?: Record<string, unknown>
 ): Promise<void> {
     const diff = calculateDiff(oldValues, newValues);
-    
+
     await auditFromRequest(request, {
         userId,
         action: 'UPDATE',
@@ -343,16 +344,16 @@ export async function getEntityAuditLogs(
     } = {}
 ) {
     const { limit = 50, offset = 0, actions } = options;
-    
+
     const where: Prisma.AuditLogWhereInput = {
         entityType,
         entityId,
     };
-    
+
     if (actions?.length) {
         where.action = { in: actions };
     }
-    
+
     const [logs, total] = await Promise.all([
         prisma.auditLog.findMany({
             where,
@@ -371,7 +372,7 @@ export async function getEntityAuditLogs(
         }),
         prisma.auditLog.count({ where }),
     ]);
-    
+
     return { logs, total };
 }
 
@@ -389,21 +390,21 @@ export async function getUserAuditLogs(
     } = {}
 ) {
     const { limit = 50, offset = 0, actions, startDate, endDate } = options;
-    
+
     const where: Prisma.AuditLogWhereInput = {
         userId,
     };
-    
+
     if (actions?.length) {
         where.action = { in: actions };
     }
-    
+
     if (startDate || endDate) {
         where.createdAt = {};
         if (startDate) where.createdAt.gte = startDate;
         if (endDate) where.createdAt.lte = endDate;
     }
-    
+
     const [logs, total] = await Promise.all([
         prisma.auditLog.findMany({
             where,
@@ -413,7 +414,7 @@ export async function getUserAuditLogs(
         }),
         prisma.auditLog.count({ where }),
     ]);
-    
+
     return { logs, total };
 }
 
@@ -428,17 +429,17 @@ export async function getRecentAuditLogs(
     } = {}
 ) {
     const { limit = 100, actions, entityTypes } = options;
-    
+
     const where: Prisma.AuditLogWhereInput = {};
-    
+
     if (actions?.length) {
         where.action = { in: actions };
     }
-    
+
     if (entityTypes?.length) {
         where.entityType = { in: entityTypes };
     }
-    
+
     return prisma.auditLog.findMany({
         where,
         orderBy: { createdAt: 'desc' },
@@ -463,13 +464,13 @@ export async function getAuditStats(
     endDate?: Date
 ) {
     const where: Prisma.AuditLogWhereInput = {};
-    
+
     if (startDate || endDate) {
         where.createdAt = {};
         if (startDate) where.createdAt.gte = startDate;
         if (endDate) where.createdAt.lte = endDate;
     }
-    
+
     const [totalCount, actionCounts, entityTypeCounts] = await Promise.all([
         prisma.auditLog.count({ where }),
         prisma.auditLog.groupBy({
@@ -483,7 +484,7 @@ export async function getAuditStats(
             _count: { entityType: true },
         }),
     ]);
-    
+
     return {
         totalCount,
         actionCounts: actionCounts.map(c => ({
@@ -508,7 +509,7 @@ export async function getAuditStats(
 export async function cleanupOldAuditLogs(retentionDays: number = 365): Promise<number> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-    
+
     const result = await prisma.auditLog.deleteMany({
         where: {
             createdAt: {
@@ -516,7 +517,7 @@ export async function cleanupOldAuditLogs(retentionDays: number = 365): Promise<
             },
         },
     });
-    
+
     return result.count;
 }
 
@@ -527,7 +528,7 @@ export async function cleanupOldAuditLogs(retentionDays: number = 365): Promise<
 export async function archiveOldAuditLogs(retentionDays: number = 365): Promise<unknown[]> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-    
+
     // Get old logs
     const oldLogs = await prisma.auditLog.findMany({
         where: {
@@ -536,7 +537,7 @@ export async function archiveOldAuditLogs(retentionDays: number = 365): Promise<
             },
         },
     });
-    
+
     // Delete them
     await prisma.auditLog.deleteMany({
         where: {
@@ -545,6 +546,6 @@ export async function archiveOldAuditLogs(retentionDays: number = 365): Promise<
             },
         },
     });
-    
+
     return oldLogs;
 }

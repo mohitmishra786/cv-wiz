@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 const ProfileImportSchema = z.object({
   name: z.string().optional(),
@@ -92,7 +93,7 @@ export async function POST(req: Request) {
           const existing = await tx.skill.findUnique({
             where: { userId_name: { userId, name: skillName } },
           });
-          
+
           if (!existing) {
             await tx.skill.create({
               data: {
@@ -108,7 +109,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Profile import error:", error);
+    logger.error('[Import] Profile import failed', { error });
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

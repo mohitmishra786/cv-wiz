@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
     try {
         const { username } = await request.json();
-        
+
         if (!username) {
             return NextResponse.json({ error: 'Username required' }, { status: 400 });
         }
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
         if (!res.ok) {
             return NextResponse.json({ error: 'Failed to fetch from GitHub' }, { status: res.status });
         }
-        
+
         const repos = await res.json();
         const projects = repos.map((repo: { name: string; description: string | null; html_url: string; language: string | null; stargazers_count: number; forks_count: number; updated_at: string; created_at: string }) => ({
             name: repo.name,
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ projects });
     } catch (error) {
-        console.error('GitHub API error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        logger.error('[GitHub] API request failed', { error, username });
+        return NextResponse.json({ error: 'Failed to fetch GitHub projects' }, { status: 500 });
     }
 }

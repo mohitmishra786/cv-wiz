@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { useToast } from './ToastProvider';
+import { logger } from "@/lib/logger";
 
 interface ShareProfileModalProps {
     isOpen: boolean;
@@ -33,7 +34,7 @@ export default function ShareProfileModal({ isOpen, onClose, userId, isPublicIni
             const res = await fetch('/api/profile/settings');
             const data = await res.json();
             const currentPrefs = data.data?.resumePreferences || {};
-            
+
             const updateRes = await fetch('/api/profile/settings', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -46,13 +47,14 @@ export default function ShareProfileModal({ isOpen, onClose, userId, isPublicIni
             });
 
             if (!updateRes.ok) throw new Error('Failed to update');
-            
+
             setIsPublic(newState);
             onUpdate(newState);
             success(newState ? 'Profile is now public' : 'Profile is now private');
         } catch (err) {
             error('Failed to update sharing settings');
-            console.error(err);
+            logger.warn('[ShareProfile] Failed to copy link', { error: err });
+            alert('Failed to copy link');
         } finally {
             setLoading(false);
         }
@@ -74,14 +76,12 @@ export default function ShareProfileModal({ isOpen, onClose, userId, isPublicIni
                     <button
                         onClick={handleToggle}
                         disabled={loading}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                            isPublic ? 'bg-indigo-600' : 'bg-gray-200'
-                        }`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${isPublic ? 'bg-indigo-600' : 'bg-gray-200'
+                            }`}
                     >
                         <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                isPublic ? 'translate-x-6' : 'translate-x-1'
-                            }`}
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isPublic ? 'translate-x-6' : 'translate-x-1'
+                                }`}
                         />
                     </button>
                 </div>
@@ -111,7 +111,7 @@ export default function ShareProfileModal({ isOpen, onClose, userId, isPublicIni
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <p>
-                                Public profiles include your experience, skills, projects, and education. 
+                                Public profiles include your experience, skills, projects, and education.
                                 Contact details like email and phone are hidden for privacy.
                             </p>
                         </div>

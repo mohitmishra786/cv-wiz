@@ -15,8 +15,8 @@ export async function POST(request: NextRequest) {
     const getBackendUrl = (path: string): string => {
         // If BACKEND_URL is set, use it (e.g. for separate deployments)
         if (process.env.BACKEND_URL) {
-            const baseUrl = process.env.BACKEND_URL.endsWith('/') 
-                ? process.env.BACKEND_URL.slice(0, -1) 
+            const baseUrl = process.env.BACKEND_URL.endsWith('/')
+                ? process.env.BACKEND_URL.slice(0, -1)
                 : process.env.BACKEND_URL;
             return `${baseUrl}${path}`;
         }
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
         // The FastAPI backend is mapped to /api/py via vercel.json rewrites
         const protocol = request.headers.get('x-forwarded-proto') || 'http';
         const host = request.headers.get('host') || 'localhost:3000';
-        
+
         return `${protocol}://${host}/api/py${path}`;
     };
 
@@ -205,6 +205,75 @@ export async function POST(request: NextRequest) {
             hasEducation: !!((backendData.data as Record<string, unknown>)?.education as unknown[])?.length,
             extractionMethod: (backendData.data as Record<string, unknown>)?.extraction_method,
         });
+
+        // === NEW: Automatically save parsed data to database ===
+        try {
+            logger.info('[Upload] Saving parsed data to database', { requestId, userId });
+
+            const parsedData = backendData.data as Record<string, unknown>;
+
+            // Transform backend data format to match import endpoint schema
+            const importData = {
+                name: parsedData.name as string | undefined,
+                about: parsedData.summary as string | undefined,
+                experiences: (parsedData.experiences as unknown[] || []).map((exp: unknown) => {
+                    const e = exp as Record<string, unknown>;
+                    return {
+                        company: String(e.company || ''),
+                        title: String(e.title || ''),
+                        description: String(e.description || ''),
+                        startDate: e.start_date ? String(e.start_date) : undefined,
+                        endDate: e.end_date ? String(e.end_date) : undefined,
+                        current: Boolean(e.current),
+                        location: e.location ? String(e.location) : undefined,
+                    };
+                }),
+                educations: (parsedData.education as unknown[] || []).map((edu: unknown) => {
+                    const e = edu as Record<string, unknown>;
+                    return {
+                        school: String(e.institution || e.school || ''),
+                        degree: e.degree ? String(e.degree) : undefined,
+                        field: e.field || e.major ? String(e.field || e.major) : undefined,
+                        startDate: e.start_date ? String(e.start_date) : undefined,
+                        endDate: e.end_date ? String(e.end_date) : undefined,
+                    };
+                }),
+                skills: (parsedData.skills as unknown[] || []).map((skill: unknown) => {
+                    if (typeof skill === 'string') return skill;
+                    return String((skill as Record<string, unknown>).name || skill);
+                }),
+            };
+
+            // Call internal import endpoint to save to database
+            const importResponse = await fetch(`${request.nextUrl.origin}/api/profile/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Cookie': request.headers.get('cookie') || '', // Forward session cookie
+                },
+                body: JSON.stringify(importData),
+            });
+
+            if (!importResponse.ok) {
+                const importError = await importResponse.json().catch(() => ({ error: 'Unknown error' }));
+                logger.warn('[Upload] Failed to save parsed data to database', {
+                    requestId,
+                    userId,
+                    status: importResponse.status,
+                    error: importError,
+                });
+                // Don't fail the upload - data is still returned to frontend
+            } else {
+                logger.info('[Upload] Successfully saved parsed data to database', { requestId, userId });
+            }
+        } catch (saveError) {
+            logger.error('[Upload] Error saving to database', {
+                requestId,
+                userId,
+                error: saveError instanceof Error ? saveError.message : String(saveError),
+            });
+            // Don't fail the upload - data is still returned to frontend
+        }
 
         logger.endOperation('upload:resume');
 

@@ -55,6 +55,9 @@ function formatLogEntry(entry: LogEntry): string {
  * Create a logger instance with optional default context
  */
 export function createLogger(defaultContext: LogContext = {}) {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isServer = typeof window === 'undefined';
+
     const log = (level: LogLevel, message: string, data?: unknown, context?: LogContext) => {
         const entry: LogEntry = {
             timestamp: new Date().toISOString(),
@@ -66,20 +69,86 @@ export function createLogger(defaultContext: LogContext = {}) {
 
         const formattedEntry = formatLogEntry(entry);
 
+        // In production on client-side: ONLY send to Sentry, NO console logs
+        if (isProduction && !isServer) {
+            // Import Sentry dynamically to avoid SSR issues
+            if (typeof window !== 'undefined' && (window as Window & { Sentry?: unknown }).Sentry) {
+                const Sentry = (window as Window & { Sentry: typeof import('@sentry/nextjs') }).Sentry;
+
+                switch (level) {
+                    case 'error':
+                        Sentry.captureException(data instanceof Error ? data : new Error(message), {
+                            level: 'error',
+                            contexts: { custom: entry.context },
+                            extra: data instanceof Error ? undefined : data,
+                        });
+                        break;
+                    case 'warn':
+                        Sentry.captureMessage(message, {
+                            level: 'warning',
+                            contexts: { custom: entry.context },
+                            extra: data,
+                        });
+                        break;
+                    case 'info':
+                        // Only log important info messages to Sentry
+                        if (context?.action || context?.component) {
+                            Sentry.addBreadcrumb({
+                                message,
+                                level: 'info',
+                                data: { ...context, ...data as object },
+                            });
+                        }
+                        break;
+                    case 'debug':
+                        // Debug messages as breadcrumbs in development
+                        break;
+                }
+            }
+            // DO NOT log to console in production client-side
+            return;
+        }
+
+        // Development or server-side: use console
         switch (level) {
             case 'debug':
-                if (process.env.NODE_ENV !== 'production') {
+                if (!isProduction) {
                     console.debug(formattedEntry);
                 }
                 break;
             case 'info':
-                console.info(formattedEntry);
+                // Server-side in production: use console (Railway logs)
+                // Client-side in development: use console
+                if (isServer || !isProduction) {
+                    console.info(formattedEntry);
+                }
                 break;
             case 'warn':
-                console.warn(formattedEntry);
+                if (isServer || !isProduction) {
+                    console.warn(formattedEntry);
+                }
                 break;
             case 'error':
-                console.error(formattedEntry);
+                if (isServer || !isProduction) {
+                    console.error(formattedEntry);
+                }
+                // Server-side: also send to Sentry if available
+                if (isServer && isProduction) {
+                    try {
+                        // Use dynamic import instead of require for ESLint
+                        import('@sentry/nextjs').then(Sentry => {
+                            Sentry.captureException(data instanceof Error ? data : new Error(message), {
+                                level: 'error',
+                                contexts: { custom: entry.context },
+                                extra: data instanceof Error ? undefined : data,
+                            });
+                        }).catch(() => {
+                            // Sentry not available
+                        });
+                    } catch {
+                        // Sentry not available
+                    }
+                }
                 break;
         }
     };

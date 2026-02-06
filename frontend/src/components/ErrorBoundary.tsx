@@ -8,6 +8,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import * as Sentry from '@sentry/nextjs';
+import { logger } from '@/lib/logger';
 
 interface Props {
     children: ReactNode;
@@ -55,8 +56,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
         // Log to console in development
         if (process.env.NODE_ENV === 'development') {
-            console.error('ErrorBoundary caught an error:', error);
-            console.error('Component stack:', errorInfo.componentStack);
+            logger.error('ErrorBoundary caught an error:', error);
+            logger.error('Component stack:', errorInfo.componentStack);
         }
     }
 

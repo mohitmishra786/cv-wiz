@@ -255,7 +255,7 @@ export async function GET(_request: NextRequest) {
             }
         });
     } catch (error) {
-        console.error('Analytics error:', error);
+        logger.error('[Analytics] Failed to fetch analytics', { error });
         return NextResponse.json(
             { error: 'Failed to fetch analytics' },
             { status: 500 }

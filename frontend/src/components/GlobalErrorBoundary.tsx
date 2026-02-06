@@ -8,6 +8,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import * as Sentry from '@sentry/nextjs';
+import { logger } from '@/lib/logger';
 
 interface Props {
     children: ReactNode;
@@ -29,23 +30,28 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-        // Log to Sentry with full context
-        Sentry.captureException(error, {
-            contexts: {
-                react: {
-                    componentStack: errorInfo.componentStack,
-                },
-            },
-            tags: {
-                errorBoundary: 'global',
-                severity: 'critical',
-            },
-        });
+        this.setState({ hasError: true, error });
 
-        // Log to console in development
+        // Send to Sentry with full context
+        try {
+            Sentry.captureException(error, {
+                contexts: {
+                    react: {
+                        componentStack: errorInfo.componentStack,
+                    },
+                },
+                tags: {
+                    errorBoundary: 'global',
+                    severity: 'critical',
+                },
+            });
+        } catch (sentryError) {
+            logger.error('[GlobalErrorBoundary] Sentry capture failed', { error: sentryError });
+        }
+
+        // Log in development
         if (process.env.NODE_ENV === 'development') {
-            console.error('GlobalErrorBoundary caught an error:', error);
-            console.error('Component stack:', errorInfo.componentStack);
+            logger.error('[GlobalErrorBoundary] Error caught', { error, componentStack: errorInfo.componentStack });
         }
     }
 
@@ -93,13 +99,13 @@ export class GlobalErrorBoundary extends Component<Props, State> {
 
                         {/* Description */}
                         <p className="mb-6 text-gray-400">
-                            We&apos;re sorry, but CV-Wiz encountered an unexpected error. 
+                            We&apos;re sorry, but CV-Wiz encountered an unexpected error.
                             Please try refreshing the page or contact support if the problem persists.
                         </p>
 
                         {/* Error Details (Development Only) */}
                         {process.env.NODE_ENV === 'development' && error && (
-                            <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-left">
+                            <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4text-left">
                                 <p className="mb-2 text-sm font-semibold text-red-400">
                                     Error Details:
                                 </p>

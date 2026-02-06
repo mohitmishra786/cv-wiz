@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { Prisma } from "@prisma/client"
+import { logger } from '@/lib/logger';
 
 export async function createResumeSnapshot(name?: string) {
   const session = await auth()
@@ -44,10 +45,10 @@ export async function createResumeSnapshot(name?: string) {
     })
 
     revalidatePath("/resumes/history")
-    return { success: true }
+    return { success: true };
   } catch (error) {
-    console.error("Snapshot error:", error)
-    return { error: "Failed to save version" }
+    logger.error('[ResumeHistory] Snapshot creation failed', { error });
+    return { success: false, error: 'Failed to create snapshot' };
   }
 }
 
@@ -87,7 +88,7 @@ export async function restoreResumeVersion(versionId: string) {
       // We explicitly map fields to avoid issues with IDs or metadata in snapshot
       if (snapshot.experiences?.length) {
         await tx.experience.createMany({
-           
+
           data: snapshot.experiences.map((e: any) => ({
             userId,
             company: e.company,
@@ -105,7 +106,7 @@ export async function restoreResumeVersion(versionId: string) {
 
       if (snapshot.projects?.length) {
         await tx.project.createMany({
-           
+
           data: snapshot.projects.map((p: any) => ({
             userId,
             name: p.name,
@@ -121,7 +122,7 @@ export async function restoreResumeVersion(versionId: string) {
 
       if (snapshot.educations?.length) {
         await tx.education.createMany({
-           
+
           data: snapshot.educations.map((e: any) => ({
             userId,
             institution: e.institution,
@@ -137,7 +138,7 @@ export async function restoreResumeVersion(versionId: string) {
 
       if (snapshot.skills?.length) {
         await tx.skill.createMany({
-           
+
           data: snapshot.skills.map((s: any) => ({
             userId,
             name: s.name,
@@ -147,10 +148,10 @@ export async function restoreResumeVersion(versionId: string) {
           })),
         })
       }
-      
+
       if (snapshot.publications?.length) {
         await tx.publication.createMany({
-           
+
           data: snapshot.publications.map((p: any) => ({
             userId,
             title: p.title,
@@ -205,7 +206,7 @@ export async function restoreResumeVersion(versionId: string) {
           })),
         })
       }
-      
+
       if (snapshot.publications?.length) {
         await tx.publication.createMany({
           data: snapshot.publications.map((p: any) => ({

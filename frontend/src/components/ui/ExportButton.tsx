@@ -16,6 +16,7 @@ import {
     type ExportFormat,
     type ResumeProfile,
 } from '@/lib/export';
+import { logger } from "@/lib/logger";
 // Note: useFocusTrap and useKeyboardNavigation are available from keyboardNavigation
 // import { useFocusTrap, useKeyboardNavigation } from '@/lib/keyboardNavigation';
 
@@ -144,8 +145,8 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
                 });
             }
         } catch (error) {
-            console.error('Export failed:', error);
-            // Could show toast notification here
+            logger.error('[Export] Export failed', { error, format });
+            alert('Failed to export resume. Please try again.');
         } finally {
             setIsExporting(false);
         }
