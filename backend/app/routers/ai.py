@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 
 from app.services.groq_client import GroqClient
 from app.utils.logger import logger
+from app.middleware.auth import verify_auth_token
 
 router = APIRouter(prefix="/ai")
 
@@ -30,8 +31,12 @@ class SkillSuggestionResponse(BaseModel):
     skills: List[str]
 
 @router.post("/enhance-bullet")
-async def enhance_bullet(request: EnhanceBulletRequest):
+async def enhance_bullet(
+    request: EnhanceBulletRequest,
+    user_id: str = Depends(verify_auth_token)
+):
     """Rewrite a resume bullet point to be more impactful and relevant."""
+    logger.info(f"[AI] Enhancing bullet for user: {user_id}")
     try:
         client = GroqClient()
         enhanced_bullet = await client.enhance_bullet(
@@ -44,8 +49,12 @@ async def enhance_bullet(request: EnhanceBulletRequest):
         raise HTTPException(status_code=500, detail="Failed to enhance bullet")
 
 @router.post("/interview-prep", response_model=InterviewPrepResponse)
-async def interview_prep(request: InterviewPrepRequest):
+async def interview_prep(
+    request: InterviewPrepRequest,
+    user_id: str = Depends(verify_auth_token)
+):
     """Generate interview questions and answers based on candidate info and job desc."""
+    logger.info(f"[AI] Generating interview prep for user: {user_id}")
     try:
         client = GroqClient()
         questions = await client.generate_interview_prep(
@@ -58,8 +67,12 @@ async def interview_prep(request: InterviewPrepRequest):
         raise HTTPException(status_code=500, detail="Failed to generate interview prep")
 
 @router.post("/suggest-skills", response_model=SkillSuggestionResponse)
-async def suggest_skills(request: SkillSuggestionRequest):
+async def suggest_skills(
+    request: SkillSuggestionRequest,
+    user_id: str = Depends(verify_auth_token)
+):
     """Suggest skills based on experience description."""
+    logger.info(f"[AI] Suggesting skills for user: {user_id}")
     if len(request.experience_text) < 10:
         raise HTTPException(status_code=400, detail="Experience text too short")
         
