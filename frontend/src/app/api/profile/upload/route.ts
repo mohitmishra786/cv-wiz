@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { createRequestLogger, getOrCreateRequestId, logAuthOperation } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
+import { generateBackendToken } from '@/lib/jwt';
 
 export async function POST(request: NextRequest) {
     // Determine the backend endpoint - must be absolute URL for server-side fetch
@@ -57,6 +58,26 @@ export async function POST(request: NextRequest) {
         const userId = session.user.id;
         logger.info('[Upload] User authenticated', { requestId, userId });
         logAuthOperation('upload:authenticated', userId, true);
+
+        // Generate JWT token for backend authentication
+        let backendToken: string;
+        try {
+            backendToken = await generateBackendToken(userId, session.user.email);
+        } catch (tokenError) {
+            logger.error('[Upload] Failed to generate backend token', { 
+                requestId, 
+                userId,
+                error: tokenError instanceof Error ? tokenError.message : String(tokenError)
+            });
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Authentication error. Please try again.',
+                    requestId
+                },
+                { status: 500 }
+            );
+        }
 
         // Parse the multipart form data
         const formData = await request.formData();
@@ -108,6 +129,7 @@ export async function POST(request: NextRequest) {
                 body: backendFormData,
                 headers: {
                     'X-Request-ID': requestId,
+                    'Authorization': `Bearer ${backendToken}`,
                 },
             });
         } catch (fetchError) {
