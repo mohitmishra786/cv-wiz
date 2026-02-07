@@ -1,49 +1,149 @@
 @import "tailwindcss";
 
+/* =========================================
+   CV-WIZ DESIGN SYSTEM - Apple-Inspired Dark Theme
+   ========================================= */
+
+/* Light Mode (Default) */
 :root {
-  --background: #f8fafc;
-  --foreground: #171717;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  /* Backgrounds */
+  --background: #f5f5f7;
+  --background-secondary: #ffffff;
+  --foreground: #1d1d1f;
+  --foreground-secondary: #6e6e73;
+  
+  /* Muted colors */
+  --muted: #e8e8ed;
+  --muted-foreground: #86868b;
+  
+  /* Card */
   --card: #ffffff;
-  --card-foreground: #171717;
+  --card-foreground: #1d1d1f;
   --card-rgb: 255, 255, 255;
-  --primary: #6366f1;
+  
+  /* Primary - Apple Blue */
+  --primary: #0071e3;
   --primary-foreground: #ffffff;
-  --primary-hover: #4f46e5;
-  --secondary: #e2e8f0;
-  --secondary-foreground: #334155;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --destructive: #ef4444;
+  --primary-hover: #0077ed;
+  
+  /* Secondary */
+  --secondary: #e8e8ed;
+  --secondary-foreground: #1d1d1f;
+  
+  /* Accents */
+  --accent: #f5f5f7;
+  --accent-foreground: #1d1d1f;
+  --accent-purple: #bf5af2;
+  --accent-green: #34c759;
+  --accent-orange: #ff9500;
+  --accent-red: #ff3b30;
+  
+  /* Destructive */
+  --destructive: #ff3b30;
   --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  --ring: #6366f1;
-  --radius: 0.5rem;
+  
+  /* Border & Ring */
+  --border: #d2d2d7;
+  --ring: #0071e3;
+  --radius: 0.75rem;
+  
+  /* Glass effects */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-blur: 20px;
+  --glass-border: rgba(0, 0, 0, 0.1);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
+/* Dark Mode */
 [data-theme="dark"] {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --card: #1e293b;
-  --card-foreground: #f1f5f9;
-  --card-rgb: 15, 23, 42;
-  --primary: #818cf8;
-  --primary-foreground: #0f172a;
-  --primary-hover: #6366f1;
-  --secondary: #334155;
-  --secondary-foreground: #e2e8f0;
-  --accent: #334155;
-  --accent-foreground: #f1f5f9;
-  --destructive: #ef4444;
+  /* Backgrounds - Pure black for OLED */
+  --background: #000000;
+  --background-secondary: #1c1c1e;
+  --foreground: #f5f5f7;
+  --foreground-secondary: #a1a1a6;
+  
+  /* Muted colors */
+  --muted: #2c2c2e;
+  --muted-foreground: #98989d;
+  
+  /* Card */
+  --card: #1c1c1e;
+  --card-foreground: #f5f5f7;
+  --card-rgb: 28, 28, 30;
+  
+  /* Primary - Brighter blue for dark mode */
+  --primary: #0a84ff;
+  --primary-foreground: #ffffff;
+  --primary-hover: #409cff;
+  
+  /* Secondary */
+  --secondary: #2c2c2e;
+  --secondary-foreground: #f5f5f7;
+  
+  /* Accents */
+  --accent: #2c2c2e;
+  --accent-foreground: #f5f5f7;
+  --accent-purple: #bf5af2;
+  --accent-green: #30d158;
+  --accent-orange: #ff9f0a;
+  --accent-red: #ff453a;
+  
+  /* Destructive */
+  --destructive: #ff453a;
   --destructive-foreground: #ffffff;
-  --border: #334155;
-  --ring: #818cf8;
-  --radius: 0.5rem;
+  
+  /* Border & Ring */
+  --border: #38383a;
+  --ring: #0a84ff;
+  --radius: 0.75rem;
+  
+  /* Glass effects */
+  --glass-bg: rgba(28, 28, 30, 0.72);
+  --glass-blur: 20px;
+  --glass-border: rgba(255, 255, 255, 0.1);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
+/* System preference fallback - when no data-theme is set */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --background: #000000;
+    --background-secondary: #1c1c1e;
+    --foreground: #f5f5f7;
+    --foreground-secondary: #a1a1a6;
+    --muted: #2c2c2e;
+    --muted-foreground: #98989d;
+    --card: #1c1c1e;
+    --card-foreground: #f5f5f7;
+    --card-rgb: 28, 28, 30;
+    --primary: #0a84ff;
+    --primary-foreground: #ffffff;
+    --primary-hover: #409cff;
+    --secondary: #2c2c2e;
+    --secondary-foreground: #f5f5f7;
+    --accent: #2c2c2e;
+    --accent-foreground: #f5f5f7;
+    --destructive: #ff453a;
+    --destructive-foreground: #ffffff;
+    --border: #38383a;
+    --ring: #0a84ff;
+    --glass-bg: rgba(28, 28, 30, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Tailwind theme integration */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -66,25 +166,30 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* =========================================
+   BASE STYLES
+   ========================================= */
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Smooth transitions for all theme-affected elements - respect reduced motion preference */
+/* Smooth transitions - respect reduced motion */
 @media (prefers-reduced-motion: no-preference) {
   *,
   *::before,
   *::after {
-    transition-property: background-color, border-color, color, fill, stroke;
+    transition-property: background-color, border-color, color, fill, stroke, opacity, transform;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 150ms;
   }
 }
 
-/* Fallback for reduced motion preference - no transitions */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -96,58 +201,117 @@ body {
   }
 }
 
-/* Card styles with CSS variables */
+/* =========================================
+   TAILWIND CLASS OVERRIDES
+   Ensures proper theming regardless of data-theme
+   ========================================= */
+
+/* Background overrides */
 .bg-white {
   background-color: var(--card) !important;
 }
 
-/* Dark mode cards */
-[data-theme="dark"] .bg-white {
-  background-color: var(--card) !important;
+.bg-gray-50 {
+  background-color: var(--background) !important;
 }
 
-/* Ensure text is always readable */
+.bg-gray-100 {
+  background-color: var(--muted) !important;
+}
+
+.bg-gray-200 {
+  background-color: var(--secondary) !important;
+}
+
+.bg-gray-900 {
+  background-color: var(--background-secondary) !important;
+}
+
+/* Text color overrides */
+.text-white {
+  color: var(--primary-foreground) !important;
+}
+
 .text-gray-900 {
   color: var(--foreground) !important;
 }
 
-.text-gray-600,
+.text-gray-800 {
+  color: var(--foreground) !important;
+}
+
+.text-gray-700 {
+  color: var(--foreground-secondary) !important;
+}
+
+.text-gray-600 {
+  color: var(--muted-foreground) !important;
+}
+
 .text-gray-500 {
   color: var(--muted-foreground) !important;
 }
 
-/* Border colors */
+.text-gray-400 {
+  color: var(--muted-foreground) !important;
+}
+
+/* Border overrides */
 .border-gray-100,
-.border-gray-200 {
+.border-gray-200,
+.border-gray-300 {
   border-color: var(--border) !important;
 }
 
 /* Primary button styles */
 .bg-indigo-600,
-.bg-blue-600 {
+.bg-indigo-500,
+.bg-blue-600,
+.bg-blue-500 {
   background-color: var(--primary) !important;
   color: var(--primary-foreground) !important;
 }
 
 .bg-indigo-600:hover,
-.bg-blue-600:hover {
+.bg-indigo-500:hover,
+.bg-blue-600:hover,
+.bg-blue-500:hover {
   background-color: var(--primary-hover) !important;
 }
 
-/* Secondary button styles */
-.bg-gray-100,
-.bg-gray-200 {
-  background-color: var(--secondary) !important;
-  color: var(--secondary-foreground) !important;
+.text-indigo-600,
+.text-indigo-500,
+.text-blue-600,
+.text-blue-500 {
+  color: var(--primary) !important;
 }
 
-/* Input styles */
+/* Hover states */
+.hover\:bg-gray-50:hover,
+.hover\:bg-gray-100:hover {
+  background-color: var(--muted) !important;
+}
+
+.hover\:text-gray-900:hover {
+  color: var(--foreground) !important;
+}
+
+/* =========================================
+   FORM ELEMENTS
+   ========================================= */
+
 input,
 textarea,
 select {
   background-color: var(--card);
   color: var(--foreground);
   border-color: var(--border);
+  border-radius: var(--radius);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted-foreground);
 }
 
 input:focus,
@@ -155,70 +319,142 @@ textarea:focus,
 select:focus {
   border-color: var(--ring);
   outline: none;
-  box-shadow: 0 0 0 2px var(--ring);
+  box-shadow: 0 0 0 3px rgba(var(--ring), 0.2);
 }
 
-/* Link styles */
-a {
-  color: var(--primary);
+/* =========================================
+   GLASSMORPHISM COMPONENTS
+   ========================================= */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
 }
 
-a:hover {
-  color: var(--primary-hover);
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
 }
 
-/* Hover backgrounds */
-.hover\:bg-gray-50:hover,
-.hover\:bg-gray-100:hover {
-  background-color: var(--muted) !important;
+/* =========================================
+   GRADIENT UTILITIES
+   ========================================= */
+
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%);
 }
 
-/* System preference support - respect user's OS theme preference */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    /* Use dark mode if no explicit theme is set and system prefers dark */
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --card: #1e293b;
-    --card-foreground: #f1f5f9;
-    --card-rgb: 15, 23, 42;
-    --primary: #818cf8;
-    --primary-foreground: #0f172a;
-    --primary-hover: #6366f1;
-    --secondary: #334155;
-    --secondary-foreground: #e2e8f0;
-    --accent: #334155;
-    --accent-foreground: #f1f5f9;
-    --destructive: #ef4444;
-    --destructive-foreground: #ffffff;
-    --border: #334155;
-    --ring: #818cf8;
-    --radius: 0.5rem;
-  }
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
+/* =========================================
+   ANIMATION UTILITIES
+   ========================================= */
 
-/* Mobile responsive utilities */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--muted) 25%, var(--secondary) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* =========================================
+   MOBILE RESPONSIVE UTILITIES
+   ========================================= */
+
+/* Touch target sizes (44px minimum) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
 @media (max-width: 640px) {
-  /* Smaller text on mobile */
   .mobile-text-sm {
     font-size: 0.875rem !important;
   }
   
-  /* Adjust padding for mobile */
   .mobile-p-4 {
     padding: 1rem !important;
   }
   
-  /* Adjust margins for mobile */
   .mobile-mt-2 {
     margin-top: 0.5rem !important;
   }
   
-  /* Hide elements on mobile if needed */
   .mobile-hidden {
     display: none !important;
   }
+  
+  /* Ensure buttons are touch-friendly on mobile */
+  button, a, [role="button"] {
+    min-height: 44px;
+  }
+}
+
+/* =========================================
+   SCROLLBAR STYLING
+   ========================================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* =========================================
+   SELECTION STYLING
+   ========================================= */
+
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+::-moz-selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
 }

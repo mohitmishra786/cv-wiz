@@ -164,9 +164,11 @@ async def upload_resume(
             "filename": file.filename,
             "file_type": file_type,
             "experiences_count": len(result.get("experiences", [])),
+            "projects_count": len(result.get("projects", [])),
             "skills_count": len(result.get("skills", [])),
             "education_count": len(result.get("education", [])),
             "extraction_method": result.get("extraction_method"),
+            "chunks_processed": result.get("chunks_processed", 1),
         })
         
         return JSONResponse(

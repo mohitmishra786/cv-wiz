@@ -213,86 +213,141 @@ export async function POST(request: NextRequest) {
 
             const parsedData = backendData.data as Record<string, unknown>;
 
-            // Update user profile name if provided
-            if (parsedData.name) {
-                await prisma.user.update({
-                    where: { id: userId },
-                    data: { name: String(parsedData.name) },
-                });
-                logger.debug('[Upload] Updated user name', { userId });
-            }
+            // Wrap all database operations in a transaction
+            await prisma.$transaction(async (tx) => {
+                // Update user profile name if provided
+                if (parsedData.name) {
+                    await tx.user.update({
+                        where: { id: userId },
+                        data: { name: String(parsedData.name) },
+                    });
+                    logger.debug('[Upload] Updated user name', { userId });
+                }
 
-            // Save experiences
-            const experiences = parsedData.experiences as unknown[] || [];
-            for (const exp of experiences) {
-                const e = exp as Record<string, unknown>;
-                if (!e.company || !e.title) continue; // Skip invalid entries
+                // Save experiences with deduplication
+                const experiences = parsedData.experiences as unknown[] || [];
+                let experiencesCreated = 0;
+                for (const exp of experiences) {
+                    const e = exp as Record<string, unknown>;
+                    if (!e.company || !e.title) continue;
 
-                await prisma.experience.create({
-                    data: {
-                        userId,
-                        company: String(e.company),
-                        title: String(e.title),
-                        description: e.description ? String(e.description) : '',
-                        startDate: e.start_date ? new Date(String(e.start_date)) : new Date(),
-                        endDate: e.end_date && !e.current ? new Date(String(e.end_date)) : null,
-                        current: Boolean(e.current),
-                        location: e.location ? String(e.location) : null,
-                        highlights: e.highlights ? (e.highlights as string[]) : [],
-                    },
-                });
-            }
-            logger.debug('[Upload] Saved experiences', { count: experiences.length });
+                    // Check for existing experience
+                    const existing = await tx.experience.findFirst({
+                        where: {
+                            userId,
+                            company: String(e.company),
+                            title: String(e.title),
+                            startDate: e.start_date ? new Date(String(e.start_date)) : undefined,
+                        },
+                    });
 
-            // Save education
-            const education = parsedData.education as unknown[] || [];
-            for (const edu of education) {
-                const e = edu as Record<string, unknown>;
-                if (!e.institution && !e.school) continue; // Skip invalid entries
-                if (!e.degree || !e.field) continue; // Skip if missing required fields
+                    if (!existing) {
+                        await tx.experience.create({
+                            data: {
+                                userId,
+                                company: String(e.company),
+                                title: String(e.title),
+                                description: e.description ? String(e.description) : '',
+                                startDate: e.start_date ? new Date(String(e.start_date)) : new Date(),
+                                endDate: e.end_date && !e.current ? new Date(String(e.end_date)) : null,
+                                current: Boolean(e.current),
+                                location: e.location ? String(e.location) : null,
+                                highlights: e.highlights ? (e.highlights as string[]) : [],
+                            },
+                        });
+                        experiencesCreated++;
+                    }
+                }
+                logger.debug('[Upload] Saved experiences', { total: experiences.length, created: experiencesCreated });
 
-                await prisma.education.create({
-                    data: {
-                        userId,
-                        institution: String(e.institution || e.school),
-                        degree: String(e.degree),
-                        field: String(e.field || e.major || ''),
-                        startDate: e.start_date ? new Date(String(e.start_date)) : new Date(),
-                        endDate: e.end_date ? new Date(String(e.end_date)) : null,
-                        gpa: e.gpa ? parseFloat(String(e.gpa)) : null,
-                    },
-                });
-            }
-            logger.debug('[Upload] Saved education', { count: education.length });
+                // Save education
+                const education = parsedData.education as unknown[] || [];
+                for (const edu of education) {
+                    const e = edu as Record<string, unknown>;
+                    if (!e.institution && !e.school) continue;
+                    if (!e.degree || !e.field) continue;
 
-            // Save skills
-            const skills = parsedData.skills as unknown[] || [];
-            for (const skill of skills) {
-                const skillName = typeof skill === 'string' ? skill : String((skill as Record<string, unknown>).name || skill);
-                if (!skillName) continue; // Skip invalid entries
-
-                // Check if skill already exists
-                const existing = await prisma.skill.findFirst({
-                    where: {
-                        userId,
-                        name: skillName,
-                    },
-                });
-
-                if (!existing) {
-                    await prisma.skill.create({
+                    await tx.education.create({
                         data: {
                             userId,
-                            name: skillName,
-                            category: 'technical', // Default category
-                            proficiency: 'intermediate', // Default proficiency
+                            institution: String(e.institution || e.school),
+                            degree: String(e.degree),
+                            field: String(e.field || e.major || ''),
+                            startDate: e.start_date ? new Date(String(e.start_date)) : new Date(),
+                            endDate: e.end_date ? new Date(String(e.end_date)) : null,
+                            gpa: e.gpa ? parseFloat(String(e.gpa)) : null,
                         },
                     });
                 }
-            }
-            logger.debug('[Upload] Saved skills', { count: skills.length });
+                logger.debug('[Upload] Saved education', { count: education.length });
 
-            logger.info('[Upload] Successfully saved parsed data to database', { requestId, userId });
+                // Save skills with deduplication
+                const skills = parsedData.skills as unknown[] || [];
+                let skillsCreated = 0;
+                for (const skill of skills) {
+                    const skillName = typeof skill === 'string' ? skill : String((skill as Record<string, unknown>).name || skill);
+                    if (!skillName) continue;
+
+                    const existing = await tx.skill.findFirst({
+                        where: {
+                            userId,
+                            name: skillName,
+                        },
+                    });
+
+                    if (!existing) {
+                        await tx.skill.create({
+                            data: {
+                                userId,
+                                name: skillName,
+                                category: 'technical',
+                                proficiency: 'intermediate',
+                            },
+                        });
+                        skillsCreated++;
+                    }
+                }
+                logger.debug('[Upload] Saved skills', { total: skills.length, created: skillsCreated });
+
+                // Save projects with deduplication
+                const projects = parsedData.projects as unknown[] || [];
+                let projectsCreated = 0;
+                for (const project of projects) {
+                    const p = project as Record<string, unknown>;
+                    if (!p.name) continue;
+
+                    // Check for existing project
+                    const existing = await tx.project.findFirst({
+                        where: {
+                            userId,
+                            name: String(p.name),
+                        },
+                    });
+
+                    if (!existing) {
+                        await tx.project.create({
+                            data: {
+                                userId,
+                                name: String(p.name),
+                                description: p.description ? String(p.description) : '',
+                                technologies: p.technologies ? (p.technologies as string[]) : [],
+                                url: p.url ? String(p.url) : null,
+                            },
+                        });
+                        projectsCreated++;
+                    }
+                }
+                logger.debug('[Upload] Saved projects', { total: projects.length, created: projectsCreated });
+
+                logger.info('[Upload] Successfully saved parsed data to database', {
+                    requestId,
+                    userId,
+                    experiencesCreated,
+                    projectsCreated,
+                    skillsCreated,
+                    educationCount: education.length,
+                });
+            });
         } catch (saveError) {
             logger.error('[Upload] Error saving to database', {
                 requestId,

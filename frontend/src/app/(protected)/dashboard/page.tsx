@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { createLogger } from '@/lib/logger';
@@ -9,68 +9,80 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 import HelpFAQ from '@/components/ui/HelpFAQ';
 import FeedbackForm from '@/components/forms/FeedbackForm';
 import OnboardingTour from '@/components/OnboardingTour';
+import { useAnalytics } from '@/lib/hooks/useAnalytics';
 
 const logger = createLogger({ component: 'DashboardPage' });
-
-interface ActivityData {
-    name: string;
-    applications: number;
-}
-
-interface RecentActivity {
-    id: string;
-    type: string;
-    title: string;
-    date: string;
-    company: string;
-}
-
-interface AnalyticsData {
-    completeness: number;
-    experienceCount: number;
-    projectCount: number;
-    skillCount: number;
-    educationCount: number;
-    coverLetterCount: number;
-    weeklyApplicationsCount: number;
-    activity: ActivityData[];
-    recentActivity: RecentActivity[];
-}
 
 export default function DashboardPage() {
     const { data: session, status } = useSession();
     const { t } = useLanguage();
-    const [data, setData] = useState<AnalyticsData | null>(null);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch('/api/profile/analytics');
-                if (response.ok) {
-                    const analyticsData = await response.json();
-                    setData(analyticsData);
-                }
-            } catch (error) {
-                logger.error('Failed to fetch analytics', { error });
-            } finally {
-                setLoading(false);
-            }
-        };
+    // Use SWR for cached data fetching - much faster on repeat visits
+    const { data, isLoading, error } = useAnalytics();
 
-        if (session) {
-            fetchData();
-        } else if (status !== 'loading') {
-            setLoading(false);
+    // Log errors in useEffect to avoid re-render logging
+    React.useEffect(() => {
+        if (error || (!isLoading && !data)) {
+            logger.error('Failed to load dashboard', { error, hasData: !!data });
         }
-    }, [session, status]);
+    }, [error, data, isLoading]);
 
-    if (loading) {
+    // Show skeleton while loading or waiting for session
+    if (isLoading || status === 'loading') {
         return <DashboardSkeleton />;
     }
 
-    if (!data) {
-        return <div className="p-8 text-center text-red-500">Failed to load dashboard data. Please sign in.</div>;
+    // Handle errors and missing data
+    if (error || !data) {
+        // Check if it's an auth error (401/403)
+        const errorWithStatus = error as { status?: number } | undefined;
+        const isAuthError = errorWithStatus?.status === 401 || errorWithStatus?.status === 403;
+
+        return (
+            <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
+                <div className="text-center p-8">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--destructive) 10%, transparent)' }}>
+                        <svg className="w-8 h-8" style={{ color: 'var(--destructive)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+                        {isAuthError ? 'Authentication Required' : 'Failed to load dashboard'}
+                    </h2>
+                    <p className="mb-4" style={{ color: 'var(--muted-foreground)' }}>
+                        {isAuthError ? 'Please sign in to continue.' : 'An error occurred. Please try again.'}
+                    </p>
+                    <div className="flex gap-3 justify-center">
+                        {isAuthError ? (
+                            <Link
+                                href="/login"
+                                className="inline-block px-6 py-3 rounded-xl font-medium"
+                                style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                            >
+                                Sign In
+                            </Link>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    className="inline-block px-6 py-3 rounded-xl font-medium"
+                                    style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                                >
+                                    Try Again
+                                </button>
+                                <Link
+                                    href="/login"
+                                    className="inline-block px-6 py-3 rounded-xl font-medium"
+                                    style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
+                                >
+                                    Sign In
+                                </Link>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     const applicationsTrend = data.weeklyApplicationsCount > 0
@@ -96,7 +108,7 @@ export default function DashboardPage() {
                             <Link href="/profile" className="px-5 py-2.5 bg-white text-indigo-700 font-semibold rounded-xl hover:bg-indigo-50 transition-colors shadow-sm">
                                 {t('profile.edit')}
                             </Link>
-                            <Link href="/templates" className="px-5 py-2.5 bg-indigo-500 bg-opacity-30 text-white font-semibold rounded-xl hover:bg-opacity-40 transition-colors backdrop-blur-sm border border-white/20">
+                            <Link href="/templates" className="px-5 py-2.5 bg-indigo-500/30 text-white font-semibold rounded-xl hover:bg-indigo-500/40 transition-colors backdrop-blur-sm border border-white/20">
                                 {t('common.templates')}
                             </Link>
                         </div>

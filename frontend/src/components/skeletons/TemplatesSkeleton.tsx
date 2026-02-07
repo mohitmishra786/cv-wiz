@@ -2,21 +2,7 @@ import Skeleton from "@/components/ui/Skeleton";
 
 export default function TemplatesSkeleton() {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header Skeleton */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-5 w-5 rounded-full" />
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-10 w-10 rounded-xl" />
-              <Skeleton className="h-6 w-40" />
-            </div>
-          </div>
-          <Skeleton className="h-10 w-32 rounded-xl" />
-        </div>
-      </div>
-
+    <div className="min-h-screen" style={{ background: 'var(--background)' }}>
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <Skeleton className="h-8 w-64 mx-auto mb-2" />
@@ -24,7 +10,13 @@ export default function TemplatesSkeleton() {
         </div>
 
         {/* Filter Skeleton */}
-        <div className="mb-6 bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+        <div
+          className="mb-6 rounded-xl shadow-sm p-4"
+          style={{
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+          }}
+        >
           <div className="flex flex-col sm:flex-row gap-4">
             <Skeleton className="h-10 flex-1 rounded-lg" />
             <Skeleton className="h-10 w-40 rounded-lg" />
@@ -33,7 +25,14 @@ export default function TemplatesSkeleton() {
 
         <div className="grid sm:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="p-6 rounded-2xl border-2 border-gray-100 bg-white">
+            <div
+              key={i}
+              className="p-6 rounded-2xl"
+              style={{
+                background: 'var(--card)',
+                border: '2px solid var(--border)',
+              }}
+            >
               <Skeleton className="h-32 w-full rounded-xl mb-4" />
               <Skeleton className="h-6 w-48 mb-2" />
               <Skeleton className="h-4 w-full mb-4" />
