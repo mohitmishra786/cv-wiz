@@ -253,14 +253,14 @@ export async function DELETE(request: NextRequest) {
         logger.info('Audit cleanup completed', { requestId, deletedCount });
 
         // Log the cleanup action
-        const { auditAuth } = await import('@/lib/audit');
-        await auditAuth(
-            request,
-            'LOGIN', // Using LOGIN as a generic admin action
-            currentUserId,
-            true,
-            { action: 'audit_cleanup', deletedCount, retentionDays }
-        );
+        const { auditFromRequest } = await import('@/lib/audit');
+        await auditFromRequest(request, {
+            userId: currentUserId,
+            action: 'AUDIT_CLEANUP',
+            entityType: 'User',
+            entityId: currentUserId,
+            metadata: { action: 'audit_cleanup', deletedCount, retentionDays, success: true },
+        });
 
         logger.endOperation('audit:cleanup');
 
