@@ -185,8 +185,143 @@ def test_no_matches(scorer):
             )
         ]
     )
-    
+
     scored_exp = scorer.score_experience(profile.experiences[0])
     # Might match stop words if not filtered correctly, but with unique words "Space", "Mars" against "Python", "Django"
     # The score should be 0 unless "Space" or "Mars" is in JD.
     assert scored_exp.score == 0.0 or scored_exp.score < 0.1
+
+
+def test_scorer_caching_same_job_description():
+    """Test that identical job descriptions return cached scorer instances."""
+    jd1 = "Looking for a Python Developer with Django experience."
+    jd2 = "Looking for a Python Developer with Django experience."
+
+    scorer1 = RelevanceScorer(jd1)
+    scorer2 = RelevanceScorer(jd2)
+
+    # Should return the same instance due to caching
+    assert scorer1 is scorer2
+
+    # Both should have the same cache key
+    assert hasattr(scorer1, '_cache_key')
+    assert scorer1._cache_key == scorer2._cache_key
+
+
+def test_scorer_caching_different_job_descriptions():
+    """Test that different job descriptions get separate scorer instances."""
+    jd1 = "Looking for a Python Developer."
+    jd2 = "Looking for a Java Developer."
+
+    scorer1 = RelevanceScorer(jd1)
+    scorer2 = RelevanceScorer(jd2)
+
+    # Should be different instances
+    assert scorer1 is not scorer2
+
+    # Should have different cache keys
+    assert scorer1._cache_key != scorer2._cache_key
+
+
+def test_scorer_cache_stats():
+    """Test cache statistics reporting."""
+    # Clear cache first
+    RelevanceScorer.clear_cache()
+
+    initial_stats = RelevanceScorer.get_cache_stats()
+    assert initial_stats["cached_entries"] == 0
+    assert initial_stats["max_size"] == 100
+
+    # Create some scorers
+    scorer1 = RelevanceScorer("Python Developer")
+    scorer2 = RelevanceScorer("Java Developer")
+    scorer3 = RelevanceScorer("Python Developer")  # Same as scorer1
+
+    # Check stats
+    stats = RelevanceScorer.get_cache_stats()
+    assert stats["cached_entries"] == 2  # Only 2 unique job descriptions
+    assert len(stats["cache_keys"]) == 2
+
+    # scorer1 and scorer3 should be the same instance
+    assert scorer1 is scorer3
+
+
+def test_scorer_clear_cache():
+    """Test clearing the scorer cache."""
+    # Create some scorers
+    RelevanceScorer("Python Developer")
+    RelevanceScorer("Java Developer")
+    RelevanceScorer("DevOps Engineer")
+
+    # Cache should have entries
+    stats_before = RelevanceScorer.get_cache_stats()
+    assert stats_before["cached_entries"] > 0
+
+    # Clear cache
+    cleared_count = RelevanceScorer.clear_cache()
+    assert cleared_count == stats_before["cached_entries"]
+
+    # Cache should be empty
+    stats_after = RelevanceScorer.get_cache_stats()
+    assert stats_after["cached_entries"] == 0
+
+
+def test_scorer_cache_max_size():
+    """Test that cache respects maximum size limit."""
+    # Clear cache first
+    RelevanceScorer.clear_cache()
+
+    # Create scorers up to max size
+    for i in range(105):  # Max is 100
+        RelevanceScorer(f"Job description number {i}")
+
+    # Cache should not exceed max size
+    stats = RelevanceScorer.get_cache_stats()
+    assert stats["cached_entries"] <= 100
+
+
+def test_scorer_cache_case_insensitive():
+    """Test that job description caching is case-insensitive."""
+    jd1 = "Python Developer"
+    jd2 = "python developer"
+    jd3 = "PYTHON DEVELOPER"
+
+    scorer1 = RelevanceScorer(jd1)
+    scorer2 = RelevanceScorer(jd2)
+    scorer3 = RelevanceScorer(jd3)
+
+    # All should return the same cached instance
+    assert scorer1 is scorer2
+    assert scorer2 is scorer3
+
+
+def test_scorer_cache_preserves_processing():
+    """Test that cached scorers don't re-process job descriptions."""
+    jd = "Senior Python Developer with Django and FastAPI experience. Required: PostgreSQL, AWS."
+
+    # First scorer processes the JD
+    scorer1 = RelevanceScorer(jd)
+    original_tokens = scorer1.jd_tokens.copy()
+    original_freq = scorer1.jd_keyword_freq.copy()
+    original_skills = scorer1.required_skills.copy()
+
+    # Second scorer should use cached instance
+    scorer2 = RelevanceScorer(jd)
+
+    # Verify it's the same instance
+    assert scorer1 is scorer2
+
+    # Verify processing results are preserved
+    assert scorer2.jd_tokens == original_tokens
+    assert scorer2.jd_keyword_freq == original_freq
+    assert scorer2.required_skills == original_skills
+
+
+def test_scorer_empty_jd_not_cached():
+    """Test that empty job descriptions are handled correctly (no caching issues)."""
+    scorer1 = RelevanceScorer("")
+    scorer2 = RelevanceScorer("")
+
+    # Empty JD should still work (may or may not be cached, but shouldn't crash)
+    assert scorer1.jd_tokens == []
+    assert scorer2.jd_tokens == []
