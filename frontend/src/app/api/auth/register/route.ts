@@ -8,6 +8,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { isValidEmail } from '@/lib/utils';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
+import { isRateLimited, getClientIP, rateLimits } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
     const requestId = getOrCreateRequestId(request.headers);
@@ -16,6 +17,18 @@ export async function POST(request: NextRequest) {
     logger.startOperation('user:register');
 
     try {
+        // Rate limiting check
+        const clientIP = getClientIP(request);
+        const rateLimit = isRateLimited(clientIP, rateLimits.registration);
+        
+        if (rateLimit.limited) {
+            logger.warn('Registration rate limit exceeded', { clientIP });
+            return NextResponse.json(
+                { error: 'Too many registration attempts. Please try again later.', requestId },
+                { status: 429 }
+            );
+        }
+
         const body = await request.json();
         const { email, password, name } = body;
 
