@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { isValidEmail } from '@/lib/utils';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
-import { isRateLimited, getClientIP, rateLimits } from '@/lib/rate-limit';
+import { isRateLimited, getClientIP, rateLimits, validateBotProtection } from '@/lib/rate-limit';
 
 function sanitizeError(error: unknown): { message: string; code: string } {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -54,7 +54,15 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { email, password, name } = body;
+        const { email, password, name, honeypot } = body;
+
+        if (!validateBotProtection(honeypot)) {
+            logger.warn('Registration blocked - bot detected via honeypot', { clientIP });
+            return NextResponse.json(
+                { error: 'Registration is temporarily unavailable', requestId },
+                { status: 403 }
+            );
+        }
 
         logger.info('Registration attempt', {
             email: email ? `${email.substring(0, 3)}***` : undefined,
@@ -62,7 +70,6 @@ export async function POST(request: NextRequest) {
             hasName: !!name
         });
 
-        // Validate required fields
         if (!email || !password) {
             logger.warn('Registration failed: missing required fields', { hasEmail: !!email, hasPassword: !!password });
             return NextResponse.json(
