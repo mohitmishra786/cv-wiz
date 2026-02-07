@@ -292,7 +292,32 @@ export async function POST(request: NextRequest) {
             }
             logger.debug('[Upload] Saved skills', { count: skills.length });
 
-            logger.info('[Upload] Successfully saved parsed data to database', { requestId, userId });
+            // Save projects (NEW!)
+            const projects = parsedData.projects as unknown[] || [];
+            for (const project of projects) {
+                const p = project as Record<string, unknown>;
+                if (!p.name) continue; // Skip invalid entries
+
+                await prisma.project.create({
+                    data: {
+                        userId,
+                        name: String(p.name),
+                        description: p.description ? String(p.description) : '',
+                        technologies: p.technologies ? (p.technologies as string[]) : [],
+                        url: p.url ? String(p.url) : null,
+                    },
+                });
+            }
+            logger.debug('[Upload] Saved projects', { count: projects.length });
+
+            logger.info('[Upload] Successfully saved parsed data to database', {
+                requestId,
+                userId,
+                experiencesCount: experiences.length,
+                projectsCount: projects.length,
+                skillsCount: skills.length,
+                educationCount: education.length,
+            });
         } catch (saveError) {
             logger.error('[Upload] Error saving to database', {
                 requestId,

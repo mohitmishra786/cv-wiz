@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { createLogger } from '@/lib/logger';
@@ -9,6 +8,7 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 import HelpFAQ from '@/components/ui/HelpFAQ';
 import FeedbackForm from '@/components/forms/FeedbackForm';
 import OnboardingTour from '@/components/OnboardingTour';
+import { useAnalytics } from '@/lib/hooks/useAnalytics';
 
 const logger = createLogger({ component: 'DashboardPage' });
 
@@ -40,37 +40,42 @@ interface AnalyticsData {
 export default function DashboardPage() {
     const { data: session, status } = useSession();
     const { t } = useLanguage();
-    const [data, setData] = useState<AnalyticsData | null>(null);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch('/api/profile/analytics');
-                if (response.ok) {
-                    const analyticsData = await response.json();
-                    setData(analyticsData);
-                }
-            } catch (error) {
-                logger.error('Failed to fetch analytics', { error });
-            } finally {
-                setLoading(false);
-            }
-        };
+    // Use SWR for cached data fetching - much faster on repeat visits
+    const { data, isLoading, error } = useAnalytics();
 
-        if (session) {
-            fetchData();
-        } else if (status !== 'loading') {
-            setLoading(false);
-        }
-    }, [session, status]);
-
-    if (loading) {
+    // Show skeleton while loading or waiting for session
+    if (isLoading || status === 'loading') {
         return <DashboardSkeleton />;
     }
 
-    if (!data) {
-        return <div className="p-8 text-center text-red-500">Failed to load dashboard data. Please sign in.</div>;
+    // Handle errors and missing data
+    if (error || !data) {
+        logger.error('Failed to load dashboard', { error, hasData: !!data });
+        return (
+            <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
+                <div className="text-center p-8">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'var(--destructive)', opacity: 0.1 }}>
+                        <svg className="w-8 h-8" style={{ color: 'var(--destructive)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+                        Failed to load dashboard
+                    </h2>
+                    <p className="mb-4" style={{ color: 'var(--muted-foreground)' }}>
+                        Please sign in or try refreshing the page.
+                    </p>
+                    <Link
+                        href="/login"
+                        className="inline-block px-6 py-3 rounded-xl font-medium"
+                        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                    >
+                        Sign In
+                    </Link>
+                </div>
+            </div>
+        );
     }
 
     const applicationsTrend = data.weeklyApplicationsCount > 0
