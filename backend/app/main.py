@@ -138,27 +138,36 @@ app.add_middleware(LoggingMiddleware)
 app.add_middleware(SecurityMiddleware)
 
 # Configure CORS
-# In monorepo Vercel deployment, frontend and backend are on the same domain
-# so we allow all origins. The vercel.json also sets CORS headers.
+# SECURITY: Never use "*" with allow_credentials=True - this is a security vulnerability
 settings = get_settings()
 
-# Build allowed origins list for standalone deployments
-# For monorepo, we use ["*"] since requests come from same origin
+# Build allowed origins list - only specific domains, no wildcards
 _cors_origins = [
-    "*",  # Allow all origins (safe in monorepo - same domain)
     settings.effective_frontend_url,  # Production frontend URL
     settings.nextauth_url,  # Auth callback URL
     "https://cv-wiz-psi.vercel.app",  # Explicit production frontend
+    "http://localhost:3000",  # Local development
+    "http://localhost:3001",  # Local development alternative
 ]
+
 # Filter out empty strings and deduplicate
-allowed_origins = list(set(origin for origin in _cors_origins if origin))
+# SECURITY: Explicitly exclude "*" wildcard to prevent credential leakage
+allowed_origins = list(set(origin for origin in _cors_origins if origin and origin != "*"))
+
+if not allowed_origins:
+    logger.warning("[CORS] No allowed origins configured, defaulting to localhost")
+    allowed_origins = ["http://localhost:3000"]
+
+logger.info("[CORS] Configured allowed origins", {"origins": allowed_origins})
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
+    expose_headers=["X-Request-ID"],
+    max_age=600,  # Cache preflight requests for 10 minutes
 )
 
 # Include routers (no prefix - frontend adds /api/py via getBackendUrl)
