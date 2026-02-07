@@ -38,7 +38,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const email = credentials.email as string;
                 const password = credentials.password as string;
 
-                // Find user by email
                 const user = await prisma.user.findUnique({
                     where: { email },
                 });
@@ -47,7 +46,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     throw new Error('Invalid email or password');
                 }
 
-                // Verify password
                 const isValid = await bcrypt.compare(password, user.passwordHash);
 
                 if (!isValid) {
@@ -63,6 +61,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
         }),
     ],
+    cookies: {
+        sessionToken: {
+            name: process.env.NODE_ENV === 'production'
+                ? '__Secure-authjs.session-token'
+                : 'authjs.session-token',
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: process.env.NODE_ENV === 'production',
+                domain: process.env.NODE_ENV === 'production'
+                    ? process.env.NEXTAUTH_URL?.replace(/https?:\/\//, '') || undefined
+                    : undefined,
+            },
+        },
+    },
     callbacks: {
         async jwt({ token, user }) {
             if (user) {

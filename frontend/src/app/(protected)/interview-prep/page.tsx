@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import { createLogger } from '@/lib/logger';
 import { useToast } from '@/components/ui/ToastProvider';
+import { auth } from '@/lib/auth';
+import { generateBackendToken } from '@/lib/jwt';
 
 const logger = createLogger({ component: 'InterviewPrepPage' });
 
@@ -24,8 +25,6 @@ interface Skill {
 }
 
 export default function InterviewPrepPage() {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { data: session } = useSession();
     const { error: toastError } = useToast();
     const [jobDescription, setJobDescription] = useState('');
     const [questions, setQuestions] = useState<Question[]>([]);
@@ -33,18 +32,16 @@ export default function InterviewPrepPage() {
     const [candidateInfo, setCandidateInfo] = useState('');
 
     useEffect(() => {
-        // Fetch candidate info to use for prep
         const fetchProfile = async () => {
             try {
                 const res = await fetch('/api/profile');
                 if (res.ok) {
                     const data = await res.json();
-                    // Simplified candidate info for LLM
                     const info = `
 Name: ${data.name}
 Experience: ${data.experiences?.map((e: Experience) => `${e.title} at ${e.company}`).join(', ')}
-                    Skills: ${data.skills?.map((s: Skill) => s.name).join(', ')}
-                    `;
+Skills: ${data.skills?.map((s: Skill) => s.name).join(', ')}
+`;
                     setCandidateInfo(info);
                 }
             } catch (err) {
@@ -57,9 +54,19 @@ Experience: ${data.experiences?.map((e: Experience) => `${e.title} at ${e.compan
     const generateQuestions = async () => {
         setLoading(true);
         try {
+            const authSession = await auth();
+            if (!authSession?.user?.id) {
+                throw new Error('Not authenticated');
+            }
+
+            const backendToken = await generateBackendToken(authSession.user.id, authSession.user.email || undefined);
+
             const res = await fetch('/api/ai/interview-prep', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${backendToken}`,
+                },
                 body: JSON.stringify({
                     candidate_info: candidateInfo,
                     job_description: jobDescription || undefined

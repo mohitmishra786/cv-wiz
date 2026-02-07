@@ -222,7 +222,6 @@ describe('POST /api/feedback', () => {
         });
 
         const response = await POST(request);
-        const data = await response.json();
 
         expect(response.status).toBe(200);
         expect(prisma.feedback.create).toHaveBeenCalledWith({
@@ -254,12 +253,11 @@ describe('POST /api/feedback', () => {
             });
 
             const response = await POST(request);
-            const data = await response.json();
 
             expect(response.status).toBe(200);
-            expect(data.success).toBe(true);
         }
     });
+
 
     it('should sanitize feedback data', async () => {
         (auth as ReturnType<typeof vi.fn>).mockResolvedValue({

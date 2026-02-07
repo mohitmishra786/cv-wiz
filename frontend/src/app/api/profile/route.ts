@@ -10,6 +10,30 @@ import prisma from '@/lib/prisma';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
 import { sanitizeProfileData } from '@/lib/sanitization';
 
+function sanitizeError(error: unknown): { message: string; code: string } {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorCode = (error as { code?: string }).code || 'UNKNOWN_ERROR';
+
+    const sensitivePatterns = [
+        /password/i,
+        /secret/i,
+        /token/i,
+        /api[_-]?key/i,
+        /credential/i,
+        /connection string/i,
+        /database/i,
+        /prisma/i,
+        /at\s+.*\.ts:?\d*/,
+        /\/[a-zA-Z0-9_/-]+\.(ts|js):\d+:\d+/,
+    ];
+
+    if (sensitivePatterns.some(pattern => pattern.test(errorMessage))) {
+        return { message: 'An internal error occurred', code: errorCode };
+    }
+
+    return { message: 'An internal error occurred', code: errorCode };
+}
+
 /**
  * GET /api/profile
  * Returns the complete profile for the authenticated user
@@ -101,20 +125,15 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ ...profile, requestId });
     } catch (error) {
         logger.failOperation('profile:get', error);
-        logger.error('Profile GET error details', {
-            requestId,
-            errorType: error instanceof Error ? error.constructor.name : typeof error,
-            errorMessage: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5) : undefined,
-        });
+        logger.error('Profile GET error occurred', { requestId });
+
+        const sanitized = sanitizeError(error);
 
         return NextResponse.json(
             {
-                error: 'Internal server error',
+                error: sanitized.message,
+                code: sanitized.code,
                 requestId,
-                debug: process.env.NODE_ENV !== 'production' ? {
-                    message: error instanceof Error ? error.message : String(error),
-                } : undefined
             },
             { status: 500 }
         );
@@ -194,20 +213,15 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ ...updatedUser, requestId });
     } catch (error) {
         logger.failOperation('profile:update', error);
-        logger.error('Profile PUT error details', {
-            requestId,
-            errorType: error instanceof Error ? error.constructor.name : typeof error,
-            errorMessage: error instanceof Error ? error.message : String(error),
-            code: (error as { code?: string }).code,
-        });
+        logger.error('Profile PUT error occurred', { requestId });
+
+        const sanitized = sanitizeError(error);
 
         return NextResponse.json(
             {
-                error: 'Internal server error',
+                error: sanitized.message,
+                code: sanitized.code,
                 requestId,
-                debug: process.env.NODE_ENV !== 'production' ? {
-                    message: error instanceof Error ? error.message : String(error),
-                } : undefined
             },
             { status: 500 }
         );

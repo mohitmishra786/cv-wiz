@@ -5,12 +5,25 @@ import { sanitizeFeedbackData } from '@/lib/sanitization';
 import { logger } from "@/lib/logger";
 import { isRateLimited, getClientIP, rateLimits } from '@/lib/rate-limit';
 
-// Valid categories for feedback
 const VALID_CATEGORIES = ['General', 'Bug', 'Feature', 'Usability', 'Performance', 'Other'];
 
-// Maximum comment length
 const MAX_COMMENT_LENGTH = 2000;
 const MIN_COMMENT_LENGTH = 10;
+const MAX_REQUEST_BODY_SIZE = 1024 * 1024;
+
+function validateFeedbackRequest(body: unknown): { valid: boolean; data: Record<string, unknown> | null; error?: string } {
+    if (!body || typeof body !== 'object') {
+        return { valid: false, data: null, error: 'Invalid request body' };
+    }
+
+    const data = body as Record<string, unknown>;
+
+    if (typeof data.rating === 'undefined' && typeof data.comment === 'undefined') {
+        return { valid: false, data: null, error: 'Rating and comment are required' };
+    }
+
+    return { valid: true, data };
+}
 
 export async function POST(request: NextRequest) {
     const session = await auth();
@@ -18,10 +31,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Rate limiting check
     const clientIP = getClientIP(request);
     const rateLimit = isRateLimited(clientIP, rateLimits.feedback);
-    
+
     if (rateLimit.limited) {
         logger.warn('[Feedback] Rate limit exceeded', { clientIP, userId: session.user.id });
         return NextResponse.json(
@@ -31,18 +43,21 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const body = await request.json();
-
-        // Validate request body exists
-        if (!body || typeof body !== 'object') {
-            return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+        const contentLength = request.headers.get('content-length');
+        if (contentLength && parseInt(contentLength) > MAX_REQUEST_BODY_SIZE) {
+            return NextResponse.json({ error: 'Request body too large' }, { status: 413 });
         }
 
-        // Sanitize input data
-        const sanitizedData = sanitizeFeedbackData(body);
+        const body = await request.json();
+
+        const validation = validateFeedbackRequest(body);
+        if (!validation.valid) {
+            return NextResponse.json({ error: validation.error }, { status: 400 });
+        }
+
+        const sanitizedData = sanitizeFeedbackData(validation.data!);
         const { rating, comment, category } = sanitizedData;
 
-        // Enhanced validation
         if (rating === undefined || rating === null) {
             return NextResponse.json({ error: 'Rating is required' }, { status: 400 });
         }
@@ -57,20 +72,19 @@ export async function POST(request: NextRequest) {
         }
 
         if (comment.length < MIN_COMMENT_LENGTH) {
-            return NextResponse.json({ 
-                error: `Comment must be at least ${MIN_COMMENT_LENGTH} characters` 
+            return NextResponse.json({
+                error: `Comment must be at least ${MIN_COMMENT_LENGTH} characters`
             }, { status: 400 });
         }
 
         if (comment.length > MAX_COMMENT_LENGTH) {
-            return NextResponse.json({ 
-                error: `Comment must not exceed ${MAX_COMMENT_LENGTH} characters` 
+            return NextResponse.json({
+                error: `Comment must not exceed ${MAX_COMMENT_LENGTH} characters`
             }, { status: 400 });
         }
 
-        // Validate category if provided
-        const validatedCategory = category && VALID_CATEGORIES.includes(category) 
-            ? category 
+        const validatedCategory = category && VALID_CATEGORIES.includes(category as string)
+            ? category as string
             : 'General';
 
         await prisma.feedback.create({
@@ -82,10 +96,10 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        logger.info('[Feedback] Submitted successfully', { 
-            userId: session.user.id, 
+        logger.info('[Feedback] Submitted successfully', {
+            userId: session.user.id,
             rating: ratingNum,
-            category: validatedCategory 
+            category: validatedCategory
         });
 
         return NextResponse.json({ success: true });

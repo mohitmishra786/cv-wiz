@@ -1,7 +1,7 @@
 /**
  * Resume/CV Upload API Route
  * Forwards uploads to backend for parsing - NO MOCK DATA FALLBACK
- * 
+ *
  * This route acts as a proxy to the backend parsing service.
  * All parsing is done server-side for reliability.
  */
@@ -11,25 +11,9 @@ import { auth } from '@/lib/auth';
 import { createRequestLogger, getOrCreateRequestId, logAuthOperation } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { generateBackendToken } from '@/lib/jwt';
+import { getBackendUrl } from '@/lib/backend-url';
 
 export async function POST(request: NextRequest) {
-    // Determine the backend endpoint - must be absolute URL for server-side fetch
-    const getBackendUrl = (path: string): string => {
-        // If BACKEND_URL is set, use it (e.g. for separate deployments)
-        if (process.env.BACKEND_URL) {
-            const baseUrl = process.env.BACKEND_URL.endsWith('/')
-                ? process.env.BACKEND_URL.slice(0, -1)
-                : process.env.BACKEND_URL;
-            return `${baseUrl}${path}`;
-        }
-
-        // Monorepo/Vercel deployment: construct absolute URL from request
-        // The FastAPI backend is mapped to /api/py via vercel.json rewrites
-        const protocol = request.headers.get('x-forwarded-proto') || 'http';
-        const host = request.headers.get('host') || 'localhost:3000';
-
-        return `${protocol}://${host}/api/py${path}`;
-    };
 
 
     const requestId = getOrCreateRequestId(request.headers);
@@ -133,27 +117,18 @@ export async function POST(request: NextRequest) {
                 },
             });
         } catch (fetchError) {
-            // Network error - backend unreachable
             const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
-            const errorStack = fetchError instanceof Error ? fetchError.stack : undefined;
 
             logger.error('[Upload] Backend connection failed', {
                 requestId,
                 userId,
                 error: errorMessage,
-                stack: errorStack,
-                backendUrl: uploadEndpoint,
             });
 
-            // Don't leak internal URLs to client
             return NextResponse.json(
                 {
                     success: false,
                     error: 'Failed to connect to parsing service.',
-                    details: {
-                        errorType: 'CONNECTION_ERROR',
-                        message: errorMessage,
-                    },
                     requestId,
                 },
                 { status: 503 }
