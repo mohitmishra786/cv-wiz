@@ -346,6 +346,39 @@ export async function POST(request: NextRequest) {
                 }
                 logger.debug('[Upload] Saved projects', { total: projects.length, created: projectsCreated });
 
+                // Save publications
+                const publications = parsedData.publications as unknown[] || [];
+                let publicationsCreated = 0;
+                for (const pub of publications) {
+                    const p = pub as Record<string, unknown>;
+                    if (!p.title) continue;
+
+                    // Check for existing publication
+                    const existing = await tx.publication.findFirst({
+                        where: {
+                            userId,
+                            title: String(p.title),
+                        },
+                    });
+
+                    if (!existing) {
+                        await tx.publication.create({
+                            data: {
+                                userId,
+                                title: String(p.title),
+                                venue: p.venue ? String(p.venue) : '',
+                                authors: p.authors ? (p.authors as string[]) : [],
+                                date: p.year ? new Date(`${p.year}-01-01`) : new Date(),
+                                url: p.url ? String(p.url) : null,
+                                doi: p.doi ? String(p.doi) : null,
+                                abstract: p.abstract ? String(p.abstract) : null,
+                            },
+                        });
+                        publicationsCreated++;
+                    }
+                }
+                logger.debug('[Upload] Saved publications', { total: publications.length, created: publicationsCreated });
+
                 logger.info('[Upload] Successfully saved parsed data to database', {
                     requestId,
                     userId,

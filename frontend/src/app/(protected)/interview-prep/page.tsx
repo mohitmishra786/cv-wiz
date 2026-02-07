@@ -57,7 +57,7 @@ Experience: ${data.experiences?.map((e: Experience) => `${e.title} at ${e.compan
     const generateQuestions = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/py/ai/interview-prep', {
+            const res = await fetch('/api/ai/interview-prep', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -96,7 +96,7 @@ Experience: ${data.experiences?.map((e: Experience) => `${e.title} at ${e.compan
                     <p className="text-gray-600 mb-6 text-sm">
                         Our AI analyzes your profile and the job description to generate the most likely interview questions you&apos;ll face.
                     </p>
-                    
+
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -142,7 +142,7 @@ Experience: ${data.experiences?.map((e: Experience) => `${e.title} at ${e.compan
                             <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                                 <div className="p-6">
                                     <h3 className="font-bold text-gray-900 text-lg mb-4">Q: {q.question}</h3>
-                                    
+
                                     <div className="space-y-4">
                                         <div>
                                             <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-2">Suggested Answer Strategy</h4>
@@ -150,7 +150,7 @@ Experience: ${data.experiences?.map((e: Experience) => `${e.title} at ${e.compan
                                                 &ldquo;{q.suggested_answer}&rdquo;
                                             </p>
                                         </div>
-                                        
+
                                         <div>
                                             <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-2">Key Points to Emphasize</h4>
                                             <ul className="grid grid-cols-1 md:grid-cols-3 gap-3">

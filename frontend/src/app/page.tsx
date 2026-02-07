@@ -7,8 +7,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === 'authenticated' && !!session?.user;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Hero Section - Using global Navbar, no duplicate header */}
@@ -36,23 +40,47 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 sm:mt-10">
-            <Link
-              href="/register"
-              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all text-lg"
-            >
-              Create Free Account
-            </Link>
-            <Link
-              href="#features"
-              className="w-full sm:w-auto px-8 py-4 border-2 font-semibold rounded-xl transition-all text-lg hover:opacity-80"
-              style={{
-                borderColor: 'var(--border)',
-                color: 'var(--foreground)',
-                background: 'var(--card)'
-              }}
-            >
-              Learn More
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all text-lg"
+                >
+                  Go to Dashboard
+                </Link>
+                <Link
+                  href="/profile"
+                  className="w-full sm:w-auto px-8 py-4 border-2 font-semibold rounded-xl transition-all text-lg hover:opacity-80"
+                  style={{
+                    borderColor: 'var(--border)',
+                    color: 'var(--foreground)',
+                    background: 'var(--card)'
+                  }}
+                >
+                  View Profile
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/register"
+                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all text-lg"
+                >
+                  Create Free Account
+                </Link>
+                <Link
+                  href="#features"
+                  className="w-full sm:w-auto px-8 py-4 border-2 font-semibold rounded-xl transition-all text-lg hover:opacity-80"
+                  style={{
+                    borderColor: 'var(--border)',
+                    color: 'var(--foreground)',
+                    background: 'var(--card)'
+                  }}
+                >
+                  Learn More
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>

@@ -610,14 +610,25 @@ Return ONLY JSON, no markdown or explanation."""
             sections_to_extract = ['name', 'email', 'phone', 'summary', 'experiences', 'education', 'skills', 'projects']
         
         prompt = f"""You are an expert resume parser. Extract ALL information from this resume section thoroughly.
-DO NOT miss any projects, experiences, or skills. Be exhaustive in your extraction.
+DO NOT miss any projects, experiences, skills, or contact information. Be exhaustive in your extraction.
+
+CRITICAL EXTRACTION RULES:
+1. NAME: Extract the candidate's FULL NAME exactly as written. Look at the first line or header of the resume.
+2. EMAIL: Extract ANY email address found (format: user@domain.com)
+3. PHONE: Extract ANY phone number found (including international formats)
+4. PROJECT URLS: Extract GitHub links, portfolio links, live site URLs for each project. Look for github.com, gitlab.com, or any http/https URLs near project names.
+5. PROJECT NAMES: Keep the EXACT project name as written on the resume, do not paraphrase.
+6. PUBLICATIONS: Extract DOI links, arXiv links, or any URLs associated with publications.
 
 Return ONLY a valid JSON object with this structure (include only relevant fields):
 
 {{
-    "name": "Full name or null",
-    "email": "Email or null",
-    "phone": "Phone or null",
+    "name": "Full name EXACTLY as written on resume, or null",
+    "email": "Complete email address, or null",
+    "phone": "Complete phone number with country code if present, or null",
+    "linkedin": "LinkedIn URL if present, or null",
+    "github": "GitHub profile URL if present, or null",
+    "portfolio": "Portfolio website URL if present, or null",
     "summary": "Professional summary or objective statement or null",
     "experiences": [
         {{
@@ -644,29 +655,36 @@ Return ONLY a valid JSON object with this structure (include only relevant field
     "skills": ["Skill 1", "Skill 2", ...],
     "projects": [
         {{
-            "name": "Project name",
+            "name": "EXACT project name as written on resume",
             "description": "Detailed description",
             "technologies": ["Tech 1", "Tech 2", ...],
-            "url": "URL or null",
+            "url": "GitHub URL, live site URL, or null",
+            "github_url": "GitHub repository URL if available, or null",
+            "live_url": "Live demo/site URL if available, or null",
             "start_date": "YYYY or null",
             "end_date": "YYYY or null"
         }}
     ],
     "publications": [
         {{
-            "title": "Publication title",
+            "title": "Publication title EXACTLY as written",
             "venue": "Journal/Conference name",
             "year": "Year",
             "authors": ["Author 1", "Author 2"],
-            "url": "URL or null"
+            "url": "DOI, arXiv, or publication URL, or null"
         }}
     ],
-    "certifications": ["Certification 1", "Certification 2", ...]
+    "certifications": ["Certification 1", "Certification 2", ...],
+    "achievements": ["Achievement 1", "Achievement 2", ...]
 }}
 
 Section hints: {', '.join(section_hints)}
 
-IMPORTANT: Extract EVERY project mentioned. Do not skip any. Do not summarize - extract exact details.
+IMPORTANT REMINDERS:
+- Extract EVERY project mentioned with their URLs. Do not skip any.
+- Extract the candidate's NAME, EMAIL, and PHONE from the header/contact section.
+- Do not summarize project names - use EXACT names from the resume.
+- Look for GitHub, LinkedIn, portfolio links and include them.
 
 Resume Section:
 {text}

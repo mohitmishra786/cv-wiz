@@ -20,10 +20,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 function getInitialTheme(): Theme {
     if (typeof window === 'undefined') return 'light';
     const stored = localStorage.getItem('cv-wiz-theme') as Theme;
-    // Only use stored value if it's a valid user preference (light/dark), not system
+    // Only use stored value if it's a valid user preference (light/dark)
     if (stored === 'light' || stored === 'dark') return stored;
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return prefersDark ? 'dark' : 'light';
+    // Default to light mode instead of following system preference
+    return 'light';
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

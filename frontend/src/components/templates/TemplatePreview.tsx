@@ -56,10 +56,15 @@ function TemplatePreview({
         <button
             type="button"
             onClick={() => onSelect(id)}
-            className={`relative p-6 rounded-2xl border-2 text-left transition-all ${selected
-                    ? 'border-[var(--primary)] bg-[var(--primary)]/5 ring-2 ring-[var(--primary)]/20'
-                    : 'border-[var(--border)] bg-[var(--card)] hover:border-[var(--muted-foreground)]'
-                }`}
+            className={`group relative p-6 rounded-2xl border-2 text-left transition-all duration-200 ease-out
+                ${selected
+                    ? 'border-[var(--primary)] bg-[var(--primary)]/5 ring-2 ring-[var(--primary)]/20 scale-[1.02]'
+                    : 'border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]/50 hover:shadow-lg hover:shadow-[var(--primary)]/10 hover:scale-[1.01]'
+                }
+                focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50 focus:ring-offset-2
+                active:scale-[0.99] active:transition-[transform] active:duration-75
+            `}
+            style={{ willChange: 'transform, box-shadow' }}
         >
             {/* Selection indicator */}
             {selected && (
@@ -79,7 +84,7 @@ function TemplatePreview({
                         <div className="h-3 w-24 bg-gray-800 rounded mb-1" />
                         <div className="h-2 w-32 bg-gray-500 rounded" />
                     </div>
-                    
+
                     {/* Content sections based on template */}
                     <div className="space-y-2">
                         {/* Experience section */}
@@ -90,7 +95,7 @@ function TemplatePreview({
                                 <div className="h-1.5 w-3/4 bg-gray-200 rounded" />
                             </div>
                         )}
-                        
+
                         {/* Skills section */}
                         {sections.includes('Skills') && (
                             <div className="flex flex-wrap gap-1 mt-2">
@@ -99,7 +104,7 @@ function TemplatePreview({
                                 ))}
                             </div>
                         )}
-                        
+
                         {/* Projects section */}
                         {sections.includes('Projects') && (
                             <div className="space-y-1 mt-2">
@@ -107,7 +112,7 @@ function TemplatePreview({
                                 <div className="h-1 w-full bg-gray-200 rounded" />
                             </div>
                         )}
-                        
+
                         {/* Education section */}
                         {sections.includes('Education') && (
                             <div className="space-y-1 mt-2">
@@ -117,7 +122,7 @@ function TemplatePreview({
                         )}
                     </div>
                 </div>
-                
+
                 {/* Preview label */}
                 <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
                     Preview
@@ -154,7 +159,7 @@ function TemplatePreview({
                     </span>
                 ))}
             </div>
-            
+
             {/* Use This Template button */}
             {selected && (
                 <div className="mt-4 pt-4 border-t border-[var(--border)]">
