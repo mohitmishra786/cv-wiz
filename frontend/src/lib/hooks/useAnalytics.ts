@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Custom SWR hook for analytics data with caching
  * Provides stale-while-revalidate pattern for faster perceived performance
@@ -22,6 +24,26 @@ interface RecentActivity {
     company: string;
 }
 
+interface MonthlyTrend {
+    month: string;
+    coverLetters: number;
+}
+
+interface CompanyStat {
+    name: string;
+    count: number;
+}
+
+interface SkillStat {
+    name: string;
+    count: number;
+}
+
+interface SkillGapAnalysis {
+    strongSkills: string[];
+    suggestedSkills: string[];
+}
+
 export interface AnalyticsData {
     completeness: number;
     experienceCount: number;
@@ -30,8 +52,15 @@ export interface AnalyticsData {
     educationCount: number;
     coverLetterCount: number;
     weeklyApplicationsCount: number;
+    monthlyApplicationsCount?: number;
+    totalApplicationsCount?: number;
     activity: ActivityData[];
+    weeklyActivity?: ActivityData[];
     recentActivity: RecentActivity[];
+    monthlyTrends?: MonthlyTrend[];
+    topCompanies?: CompanyStat[];
+    topSkills?: SkillStat[];
+    skillGapAnalysis?: SkillGapAnalysis;
 }
 
 // Global fetcher function

@@ -24,6 +24,11 @@ const Navbar: React.FC = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+    // Auto-close mobile menu on route change
+    useEffect(() => {
+        setIsMobileMenuOpen(false);
+    }, [pathname]);
+
     // Track scroll for glass effect intensity
     useEffect(() => {
         const handleScroll = () => {
@@ -175,6 +180,7 @@ const Navbar: React.FC = () => {
                                     color: 'var(--foreground)',
                                 }}
                                 aria-label="Toggle menu"
+                                aria-expanded={isMobileMenuOpen}
                             >
                                 {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                             </button>

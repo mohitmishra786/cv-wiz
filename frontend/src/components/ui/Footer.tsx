@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Footer Component - Apple-Inspired Design
  * Consistent footer across all pages with:
@@ -12,7 +10,7 @@ import React from 'react';
 import Link from 'next/link';
 
 const Footer: React.FC = () => {
-    const currentYear = new Date().getFullYear();
+    const current_year = new Date().getFullYear();
 
     return (
         <footer
@@ -130,23 +128,23 @@ const Footer: React.FC = () => {
                         className="text-sm"
                         style={{ color: 'var(--muted-foreground)' }}
                     >
-                        © {currentYear} CV-Wiz. All rights reserved.
+                        © {current_year} CV-Wiz. All rights reserved.
                     </p>
                     <div className="flex gap-6">
-                        <Link
-                            href="#"
-                            className="text-sm transition-colors hover:opacity-80"
+                        <span
+                            className="text-sm opacity-50 cursor-not-allowed"
                             style={{ color: 'var(--muted-foreground)' }}
+                            title="Coming soon"
                         >
                             Privacy
-                        </Link>
-                        <Link
-                            href="#"
-                            className="text-sm transition-colors hover:opacity-80"
+                        </span>
+                        <span
+                            className="text-sm opacity-50 cursor-not-allowed"
                             style={{ color: 'var(--muted-foreground)' }}
+                            title="Coming soon"
                         >
                             Terms
-                        </Link>
+                        </span>
                     </div>
                 </div>
             </div>

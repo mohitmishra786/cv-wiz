@@ -17,7 +17,7 @@ import time
 import traceback
 import asyncio
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 from app.utils.logger import logger, log_function_call
 from app.config import get_settings
@@ -239,6 +239,9 @@ Return ONLY JSON, no markdown or explanation."""
                 max_tokens=2000,
             )
             
+            # Safely access response content
+            if not response.choices or not response.choices[0].message.content:
+                raise ValueError("Empty response from LLM")
             content = response.choices[0].message.content.strip()
             
             # Clean markdown formatting
@@ -668,6 +671,7 @@ Resume Section:
 Return ONLY the JSON object, no markdown formatting, no explanation."""
 
         last_error = None
+        content = ""  # Initialize before try block
         for attempt in range(MAX_RETRIES):
             try:
                 response = await client.chat.completions.create(
@@ -704,7 +708,7 @@ Return ONLY the JSON object, no markdown formatting, no explanation."""
                 last_error = e
                 logger.warning(f"[ResumeParser] JSON parse failed on attempt {attempt + 1}", {
                     "error": str(e),
-                    "response_preview": content[:500] if 'content' in locals() else None,
+                    "response_preview": content[:500] if content else None,
                 })
                 if attempt < MAX_RETRIES - 1:
                     await asyncio.sleep(RETRY_BASE_DELAY * (2 ** attempt))

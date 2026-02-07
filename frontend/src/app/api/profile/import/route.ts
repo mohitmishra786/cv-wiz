@@ -112,7 +112,7 @@ export async function POST(req: Request) {
         if (data.summary || data.about) importStats.summary = true;
       }
 
-      // Import Experiences
+      // Import Experiences with deduplication
       if (data.experiences?.length) {
         for (const exp of data.experiences) {
           // Build description from description + highlights
@@ -121,19 +121,31 @@ export async function POST(req: Request) {
             fullDescription += (fullDescription ? "\n\n" : "") + "Key Achievements:\n• " + exp.highlights.join("\n• ");
           }
 
-          await tx.experience.create({
-            data: {
+          // Check for existing experience
+          const existing = await tx.experience.findFirst({
+            where: {
               userId,
               company: exp.company,
               title: exp.title,
-              description: fullDescription,
-              startDate: exp.startDate ? new Date(exp.startDate) : new Date(),
-              endDate: exp.endDate ? new Date(exp.endDate) : null,
-              current: exp.current || false,
-              location: exp.location,
+              startDate: exp.startDate ? new Date(exp.startDate) : undefined,
             },
           });
-          importStats.experiencesImported++;
+
+          if (!existing) {
+            await tx.experience.create({
+              data: {
+                userId,
+                company: exp.company,
+                title: exp.title,
+                description: fullDescription,
+                startDate: exp.startDate ? new Date(exp.startDate) : new Date(),
+                endDate: exp.endDate ? new Date(exp.endDate) : null,
+                current: exp.current || false,
+                location: exp.location,
+              },
+            });
+            importStats.experiencesImported++;
+          }
         }
       }
 
@@ -178,29 +190,41 @@ export async function POST(req: Request) {
         }
       }
 
-      // Import Projects (NEW!)
+      // Import Projects with deduplication
       if (data.projects?.length) {
+        const createdProjectNames: string[] = [];
         for (const project of data.projects) {
           if (!project.name) continue;
 
-          await tx.project.create({
-            data: {
+          // Check for existing project
+          const existing = await tx.project.findFirst({
+            where: {
               userId,
               name: project.name,
-              description: project.description || "",
-              technologies: project.technologies || [],
-              url: project.url,
-              startDate: project.startDate ? new Date(project.startDate) : undefined,
-              endDate: project.endDate ? new Date(project.endDate) : undefined,
             },
           });
-          importStats.projectsImported++;
+
+          if (!existing) {
+            await tx.project.create({
+              data: {
+                userId,
+                name: project.name,
+                description: project.description || "",
+                technologies: project.technologies || [],
+                url: project.url,
+                startDate: project.startDate ? new Date(project.startDate) : undefined,
+                endDate: project.endDate ? new Date(project.endDate) : undefined,
+              },
+            });
+            importStats.projectsImported++;
+            createdProjectNames.push(project.name);
+          }
         }
 
         logger.info('[Import] Projects imported', {
           userId,
           count: importStats.projectsImported,
-          projectNames: data.projects.map(p => p.name),
+          projectNames: createdProjectNames,
         });
       }
     });

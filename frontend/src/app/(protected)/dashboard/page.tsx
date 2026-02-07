@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { createLogger } from '@/lib/logger';
@@ -19,6 +20,13 @@ export default function DashboardPage() {
     // Use SWR for cached data fetching - much faster on repeat visits
     const { data, isLoading, error } = useAnalytics();
 
+    // Log errors in useEffect to avoid re-render logging
+    React.useEffect(() => {
+        if (error || (!isLoading && !data)) {
+            logger.error('Failed to load dashboard', { error, hasData: !!data });
+        }
+    }, [error, data, isLoading]);
+
     // Show skeleton while loading or waiting for session
     if (isLoading || status === 'loading') {
         return <DashboardSkeleton />;
@@ -26,11 +34,10 @@ export default function DashboardPage() {
 
     // Handle errors and missing data
     if (error || !data) {
-        logger.error('Failed to load dashboard', { error, hasData: !!data });
         return (
             <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
                 <div className="text-center p-8">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'var(--destructive)', opacity: 0.1 }}>
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--destructive) 10%, transparent)' }}>
                         <svg className="w-8 h-8" style={{ color: 'var(--destructive)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
@@ -76,7 +83,7 @@ export default function DashboardPage() {
                             <Link href="/profile" className="px-5 py-2.5 bg-white text-indigo-700 font-semibold rounded-xl hover:bg-indigo-50 transition-colors shadow-sm">
                                 {t('profile.edit')}
                             </Link>
-                            <Link href="/templates" className="px-5 py-2.5 bg-indigo-500 bg-opacity-30 text-white font-semibold rounded-xl hover:bg-opacity-40 transition-colors backdrop-blur-sm border border-white/20">
+                            <Link href="/templates" className="px-5 py-2.5 bg-indigo-500/30 text-white font-semibold rounded-xl hover:bg-indigo-500/40 transition-colors backdrop-blur-sm border border-white/20">
                                 {t('common.templates')}
                             </Link>
                         </div>
