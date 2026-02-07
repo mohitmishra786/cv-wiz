@@ -180,30 +180,22 @@ export async function GET(_request: NextRequest) {
             coverLetters
         }));
 
-        // Fetch cover letters for the last 7 days separately for accurate weeklyActivity
-        const weeklyCoverLetters = await prisma.coverLetter.findMany({
-            where: {
-                userId,
-                createdAt: { gte: sevenDaysAgo }
-            },
-            select: {
-                createdAt: true
-            },
-            orderBy: {
-                createdAt: 'desc'
-            }
-        });
-
-        // Calculate weekly activity for chart
+        // Calculate weekly activity for chart using monthlyTrends data we already have
+        // Filter for last 7 days only
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const weeklyActivity = days.map(day => ({ name: day, applications: 0 }));
 
-        weeklyCoverLetters.forEach(cl => {
-            const dayIndex = new Date(cl.createdAt).getDay();
-            const dayName = days[dayIndex];
-            const dayActivity = weeklyActivity.find(d => d.name === dayName);
-            if (dayActivity) {
-                dayActivity.applications++;
+        // Use monthlyTrends data (which is already fetched) and filter for last 7 days
+        const sevenDaysAgoMs = sevenDaysAgo.getTime();
+        monthlyTrends.forEach(cl => {
+            const clDate = new Date(cl.createdAt);
+            if (clDate.getTime() >= sevenDaysAgoMs) {
+                const dayIndex = clDate.getDay();
+                const dayName = days[dayIndex];
+                const dayActivity = weeklyActivity.find(d => d.name === dayName);
+                if (dayActivity) {
+                    dayActivity.applications++;
+                }
             }
         });
 
