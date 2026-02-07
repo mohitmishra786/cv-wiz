@@ -248,9 +248,11 @@ export async function GET(_request: NextRequest) {
             }
         };
 
-        // Generate ETag based on data for cache validation
+        // Generate ETag based on data for cache validation using SHA-256 hash
+        const crypto = await import('crypto');
         const dataString = JSON.stringify(responseData);
-        const etag = `"${Buffer.from(dataString).toString('base64').slice(0, 32)}"`;
+        const hash = crypto.createHash('sha256').update(dataString).digest('hex').slice(0, 32);
+        const etag = `"${hash}"`;
 
         return NextResponse.json(responseData, {
             headers: {

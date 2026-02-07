@@ -99,5 +99,8 @@ export function sanitizeGitHubUsername(username: string): string {
     // Limit to 39 characters
     sanitized = sanitized.slice(0, 39);
     
+    // Remove trailing hyphen again in case truncation created one
+    sanitized = sanitized.replace(/-$/, '');
+    
     return sanitized.toLowerCase();
 }

@@ -42,8 +42,9 @@ class TestCORSConfiguration:
             headers={"Origin": "http://localhost:3000"},
         )
         
-        # Check for CORS headers
-        assert "access-control-allow-origin" in response.headers or response.status_code == 200
+        # Check that CORS headers are present when origin is allowed
+        assert response.status_code == 200
+        assert "access-control-allow-origin" in response.headers
     
     def test_security_headers_present(self, client):
         """Test that security headers are present."""

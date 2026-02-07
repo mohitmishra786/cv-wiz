@@ -23,7 +23,6 @@ export async function generateBackendToken(
     const token = await new SignJWT({
         sub: userId,
         email: email,
-        iat: Math.floor(Date.now() / 1000),
     })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
