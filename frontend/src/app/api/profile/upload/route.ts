@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
 
             const parsedData = backendData.data as Record<string, unknown>;
 
-            // Wrap all database operations in a transaction
+            // Wrap all database operations in a transaction with extended timeout
             await prisma.$transaction(async (tx) => {
                 // Update user profile name if provided
                 if (parsedData.name) {
@@ -281,33 +281,40 @@ export async function POST(request: NextRequest) {
                 }
                 logger.debug('[Upload] Saved education', { count: education.length });
 
-                // Save skills with deduplication
+                // Save skills with batch deduplication (optimized for large skill lists)
                 const skills = parsedData.skills as unknown[] || [];
-                let skillsCreated = 0;
-                for (const skill of skills) {
-                    const skillName = typeof skill === 'string' ? skill : String((skill as Record<string, unknown>).name || skill);
-                    if (!skillName) continue;
+                const skillNames = skills
+                    .map(skill => typeof skill === 'string' ? skill : String((skill as Record<string, unknown>).name || skill))
+                    .filter(name => name && name.trim());
 
-                    const existing = await tx.skill.findFirst({
+                if (skillNames.length > 0) {
+                    // Batch fetch existing skills
+                    const existingSkills = await tx.skill.findMany({
                         where: {
                             userId,
-                            name: skillName,
+                            name: { in: skillNames },
                         },
+                        select: { name: true },
                     });
 
-                    if (!existing) {
-                        await tx.skill.create({
-                            data: {
+                    const existingSkillNames = new Set(existingSkills.map(s => s.name));
+                    const newSkills = skillNames.filter(name => !existingSkillNames.has(name));
+
+                    // Batch create new skills
+                    if (newSkills.length > 0) {
+                        await tx.skill.createMany({
+                            data: newSkills.map(name => ({
                                 userId,
-                                name: skillName,
+                                name,
                                 category: 'technical',
                                 proficiency: 'intermediate',
-                            },
+                            })),
+                            skipDuplicates: true,
                         });
-                        skillsCreated++;
                     }
+
+                    logger.debug('[Upload] Saved skills', { total: skillNames.length, created: newSkills.length });
                 }
-                logger.debug('[Upload] Saved skills', { total: skills.length, created: skillsCreated });
 
                 // Save projects with deduplication
                 const projects = parsedData.projects as unknown[] || [];
@@ -344,9 +351,10 @@ export async function POST(request: NextRequest) {
                     userId,
                     experiencesCreated,
                     projectsCreated,
-                    skillsCreated,
                     educationCount: education.length,
                 });
+            }, {
+                timeout: 30000, // 30 seconds for large skill lists
             });
         } catch (saveError) {
             logger.error('[Upload] Error saving to database', {
