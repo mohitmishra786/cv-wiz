@@ -2,20 +2,21 @@
 
 /**
  * Profile List Components
- * Reusable list components for profile sections
+ * Reusable list components for profile sections with memoization
  */
 
+import { memo, useMemo } from 'react';
 import type { Experience, Project, Skill, Education } from '@/types';
 import { createLogger } from '@/lib/logger';
 
 const listLogger = createLogger({ component: 'ProfileLists' });
 
-// Empty State Component
-export function EmptyState({ 
-    title, 
-    description, 
-    actionLabel, 
-    onAction 
+// Empty State Component - Memoized
+export const EmptyState = memo(function EmptyState({
+    title,
+    description,
+    actionLabel,
+    onAction
 }: {
     title: string;
     description: string;
@@ -39,10 +40,10 @@ export function EmptyState({
             </button>
         </div>
     );
-}
+});
 
-// Experience List Component
-export function ExperienceList({
+// Experience List Component - Memoized
+export const ExperienceList = memo(function ExperienceList({
     experiences,
     onAdd,
     onEdit
@@ -52,6 +53,17 @@ export function ExperienceList({
     onEdit: (exp: Experience) => void;
 }) {
     const logger = createLogger({ component: 'ExperienceList' });
+
+    // Memoize expensive date formatting
+    const formattedExperiences = useMemo(() => {
+        return experiences.map(exp => ({
+            ...exp,
+            formattedStartDate: new Date(exp.startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            formattedEndDate: exp.endDate
+                ? new Date(exp.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                : null,
+        }));
+    }, [experiences]);
 
     if (experiences.length === 0) {
         return (
@@ -69,48 +81,12 @@ export function ExperienceList({
 
     return (
         <div className="space-y-4">
-            {experiences.map((exp) => (
-                <div
+            {formattedExperiences.map((exp) => (
+                <ExperienceCard
                     key={exp.id}
-                    className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer bg-white dark:bg-gray-800"
-                    onClick={() => {
-                        logger.debug('[ExperienceList] Edit experience clicked', { id: exp.id });
-                        onEdit(exp);
-                    }}
-                >
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{exp.title}</h3>
-                            <p className="text-gray-600 dark:text-gray-400">{exp.company}</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {new Date(exp.startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} -
-                                {exp.current ? ' Present' : exp.endDate ? ` ${new Date(exp.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : ''}
-                            </p>
-                        </div>
-                        <button
-                            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 outline-none"
-                            aria-label={`Edit experience at ${exp.company}`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onEdit(exp);
-                            }}
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                        </button>
-                    </div>
-                    {exp.highlights?.length > 0 && (
-                        <ul className="mt-3 space-y-1">
-                            {exp.highlights.slice(0, 3).map((highlight, i) => (
-                                <li key={i} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
-                                    <span className="text-indigo-500 mt-1">•</span>
-                                    {highlight}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
+                    exp={exp}
+                    onEdit={onEdit}
+                />
             ))}
             <button
                 onClick={() => {
@@ -123,10 +99,68 @@ export function ExperienceList({
             </button>
         </div>
     );
-}
+});
 
-// Project List Component
-export function ProjectList({
+// Individual Experience Card - Memoized for better performance
+const ExperienceCard = memo(function ExperienceCard({
+    exp,
+    onEdit
+}: {
+    exp: Experience & { formattedStartDate: string; formattedEndDate: string | null };
+    onEdit: (exp: Experience) => void;
+}) {
+    const logger = createLogger({ component: 'ExperienceCard' });
+
+    const handleClick = useMemo(() => () => {
+        logger.debug('[ExperienceList] Edit experience clicked', { id: exp.id });
+        onEdit(exp);
+    }, [exp.id, onEdit]);
+
+    const handleEditClick = useMemo(() => (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onEdit(exp);
+    }, [exp.id, onEdit]);
+
+    return (
+        <div
+            className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer bg-white dark:bg-gray-800"
+            onClick={handleClick}
+        >
+            <div className="flex justify-between items-start">
+                <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{exp.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-400">{exp.company}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {exp.formattedStartDate} -
+                        {exp.current ? ' Present' : exp.formattedEndDate ? ` ${exp.formattedEndDate}` : ''}
+                    </p>
+                </div>
+                <button
+                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 outline-none"
+                    aria-label={`Edit experience at ${exp.company}`}
+                    onClick={handleEditClick}
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                </button>
+            </div>
+            {exp.highlights?.length > 0 && (
+                <ul className="mt-3 space-y-1">
+                    {exp.highlights.slice(0, 3).map((highlight, i) => (
+                        <li key={i} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
+                            <span className="text-indigo-500 mt-1">•</span>
+                            {highlight}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+});
+
+// Project List Component - Memoized
+export const ProjectList = memo(function ProjectList({
     projects,
     onAdd,
     onEdit,
@@ -167,40 +201,11 @@ export function ProjectList({
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {projects.map((proj) => (
-                <div
+                <ProjectCard
                     key={proj.id}
-                    className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer bg-white dark:bg-gray-800"
-                    onClick={() => {
-                        logger.debug('[ProjectList] Edit project clicked', { id: proj.id });
-                        onEdit(proj);
-                    }}
-                >
-                    <div className="flex justify-between items-start">
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate pr-2">{proj.name}</h3>
-                        <button
-                            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0 focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 outline-none"
-                            aria-label={`Edit project ${proj.name}`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onEdit(proj);
-                            }}
-                        >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                        </button>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{proj.description}</p>
-                    {proj.technologies?.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                            {proj.technologies.slice(0, 4).map((tech, i) => (
-                                <span key={i} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-md">
-                                    {tech}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                    proj={proj}
+                    onEdit={onEdit}
+                />
             ))}
             <button
                 onClick={() => {
@@ -222,10 +227,61 @@ export function ProjectList({
             </button>
         </div>
     );
-}
+});
 
-// Skill List Component
-export function SkillList({
+// Individual Project Card - Memoized
+const ProjectCard = memo(function ProjectCard({
+    proj,
+    onEdit
+}: {
+    proj: Project;
+    onEdit: (proj: Project) => void;
+}) {
+    const logger = createLogger({ component: 'ProjectCard' });
+
+    const handleClick = useMemo(() => () => {
+        logger.debug('[ProjectList] Edit project clicked', { id: proj.id });
+        onEdit(proj);
+    }, [proj.id, onEdit]);
+
+    const handleEditClick = useMemo(() => (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onEdit(proj);
+    }, [proj.id, onEdit]);
+
+    return (
+        <div
+            className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer bg-white dark:bg-gray-800"
+            onClick={handleClick}
+        >
+            <div className="flex justify-between items-start">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate pr-2">{proj.name}</h3>
+                <button
+                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0 focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 outline-none"
+                    aria-label={`Edit project ${proj.name}`}
+                    onClick={handleEditClick}
+                >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                </button>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{proj.description}</p>
+            {proj.technologies?.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                    {proj.technologies.slice(0, 4).map((tech, i) => (
+                        <span key={i} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-md">
+                            {tech}
+                        </span>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+});
+
+// Skill List Component - Memoized
+export const SkillList = memo(function SkillList({
     skills,
     onAdd,
     onEdit
@@ -236,12 +292,14 @@ export function SkillList({
 }) {
     const logger = createLogger({ component: 'SkillList' });
 
-    // Group skills by category
-    const skillsByCategory = skills.reduce((acc, skill) => {
-        if (!acc[skill.category]) acc[skill.category] = [];
-        acc[skill.category].push(skill);
-        return acc;
-    }, {} as Record<string, Skill[]>);
+    // Memoize skills grouping by category
+    const skillsByCategory = useMemo(() => {
+        return skills.reduce((acc, skill) => {
+            if (!acc[skill.category]) acc[skill.category] = [];
+            acc[skill.category].push(skill);
+            return acc;
+        }, {} as Record<string, Skill[]>);
+    }, [skills]);
 
     if (skills.length === 0) {
         return (
@@ -260,28 +318,12 @@ export function SkillList({
     return (
         <div className="space-y-6">
             {Object.entries(skillsByCategory).map(([category, categorySkills]) => (
-                <div key={category}>
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                        {category}
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                        {categorySkills.map((skill) => (
-                            <span
-                                key={skill.id}
-                                onClick={() => {
-                                    logger.debug('[SkillList] Edit skill clicked', { id: skill.id });
-                                    onEdit(skill);
-                                }}
-                                className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-                            >
-                                {skill.name}
-                                {skill.proficiency && (
-                                    <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">{skill.proficiency}</span>
-                                )}
-                            </span>
-                        ))}
-                    </div>
-                </div>
+                <SkillCategory
+                    key={category}
+                    category={category}
+                    skills={categorySkills}
+                    onEdit={onEdit}
+                />
             ))}
             <button
                 onClick={() => {
@@ -294,10 +336,66 @@ export function SkillList({
             </button>
         </div>
     );
-}
+});
 
-// Education List Component
-export function EducationList({
+// Skill Category Component - Memoized
+const SkillCategory = memo(function SkillCategory({
+    category,
+    skills,
+    onEdit
+}: {
+    category: string;
+    skills: Skill[];
+    onEdit: (skill: Skill) => void;
+}) {
+    return (
+        <div>
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                {category}
+            </h3>
+            <div className="flex flex-wrap gap-2">
+                {skills.map((skill) => (
+                    <SkillBadge
+                        key={skill.id}
+                        skill={skill}
+                        onEdit={onEdit}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+});
+
+// Individual Skill Badge - Memoized
+const SkillBadge = memo(function SkillBadge({
+    skill,
+    onEdit
+}: {
+    skill: Skill;
+    onEdit: (skill: Skill) => void;
+}) {
+    const logger = createLogger({ component: 'SkillBadge' });
+
+    const handleClick = useMemo(() => () => {
+        logger.debug('[SkillList] Edit skill clicked', { id: skill.id });
+        onEdit(skill);
+    }, [skill.id, onEdit]);
+
+    return (
+        <span
+            onClick={handleClick}
+            className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+        >
+            {skill.name}
+            {skill.proficiency && (
+                <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">{skill.proficiency}</span>
+            )}
+        </span>
+    );
+});
+
+// Education List Component - Memoized
+export const EducationList = memo(function EducationList({
     educations,
     onAdd,
     onEdit
@@ -307,6 +405,16 @@ export function EducationList({
     onEdit: (edu: Education) => void;
 }) {
     const logger = createLogger({ component: 'EducationList' });
+
+    // Memoize expensive date formatting
+    const formattedEducations = useMemo(() => {
+        return educations.map(edu => ({
+            ...edu,
+            formattedStartYear: new Date(edu.startDate).getFullYear(),
+            formattedEndYear: edu.endDate ? new Date(edu.endDate).getFullYear() : null,
+            formattedGpa: edu.gpa ? edu.gpa.toFixed(2) : null,
+        }));
+    }, [educations]);
 
     if (educations.length === 0) {
         return (
@@ -324,38 +432,12 @@ export function EducationList({
 
     return (
         <div className="space-y-4">
-            {educations.map((edu) => (
-                <div
+            {formattedEducations.map((edu) => (
+                <EducationCard
                     key={edu.id}
-                    className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer bg-white dark:bg-gray-800"
-                    onClick={() => {
-                        logger.debug('[EducationList] Edit education clicked', { id: edu.id });
-                        onEdit(edu);
-                    }}
-                >
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{edu.degree} in {edu.field}</h3>
-                            <p className="text-gray-600 dark:text-gray-400">{edu.institution}</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {new Date(edu.startDate).getFullYear()} -
-                                {edu.endDate ? ` ${new Date(edu.endDate).getFullYear()}` : ' Present'}
-                                {edu.gpa && ` • GPA: ${edu.gpa.toFixed(2)}`}
-                            </p>
-                        </div>
-                        <button
-                            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onEdit(edu);
-                            }}
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
+                    edu={edu}
+                    onEdit={onEdit}
+                />
             ))}
             <button
                 onClick={() => {
@@ -368,4 +450,52 @@ export function EducationList({
             </button>
         </div>
     );
-}
+});
+
+// Individual Education Card - Memoized
+const EducationCard = memo(function EducationCard({
+    edu,
+    onEdit
+}: {
+    edu: Education & { formattedStartYear: number; formattedEndYear: number | null; formattedGpa: string | null };
+    onEdit: (edu: Education) => void;
+}) {
+    const logger = createLogger({ component: 'EducationCard' });
+
+    const handleClick = useMemo(() => () => {
+        logger.debug('[EducationList] Edit education clicked', { id: edu.id });
+        onEdit(edu);
+    }, [edu.id, onEdit]);
+
+    const handleEditClick = useMemo(() => (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onEdit(edu);
+    }, [edu.id, onEdit]);
+
+    return (
+        <div
+            className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer bg-white dark:bg-gray-800"
+            onClick={handleClick}
+        >
+            <div className="flex justify-between items-start">
+                <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{edu.degree} in {edu.field}</h3>
+                    <p className="text-gray-600 dark:text-gray-400">{edu.institution}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {edu.formattedStartYear} -
+                        {edu.formattedEndYear ? ` ${edu.formattedEndYear}` : ' Present'}
+                        {edu.formattedGpa && ` • GPA: ${edu.formattedGpa}`}
+                    </p>
+                </div>
+                <button
+                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                    onClick={handleEditClick}
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    );
+});
