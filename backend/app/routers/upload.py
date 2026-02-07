@@ -12,6 +12,7 @@ from typing import Optional
 from app.services.resume_parser import resume_parser
 from app.utils.logger import logger, get_request_id
 from app.middleware.auth import verify_auth_token
+from app.utils.rate_limiter import limiter, RateLimitConfig
 
 
 router = APIRouter()
@@ -55,6 +56,7 @@ def validate_file(file: UploadFile, request_id: str) -> None:
 
 
 @router.post("/upload/resume")
+@limiter.limit("10/minute")
 async def upload_resume(
     file: UploadFile = File(...),
     file_type: Optional[str] = Form(default="resume"),
@@ -212,6 +214,7 @@ async def upload_resume(
 
 
 @router.post("/parse-resume")
+@limiter.limit("10/minute")
 async def parse_resume_alt(
     file: UploadFile = File(...),
     user_id: str = Depends(verify_auth_token),
@@ -224,6 +227,7 @@ async def parse_resume_alt(
 
 
 @router.post("/parse-cover-letter")
+@limiter.limit("10/minute")
 async def parse_cover_letter(
     file: UploadFile = File(...),
     user_id: str = Depends(verify_auth_token),
