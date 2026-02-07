@@ -2,31 +2,37 @@ import Skeleton from "@/components/ui/Skeleton";
 
 export default function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Skeleton */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Skeleton className="w-10 h-10 rounded-xl" />
-            <Skeleton className="h-6 w-32" />
-          </div>
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-10 w-10 rounded-full" />
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen" style={{ background: 'var(--background)' }}>
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-        {/* Welcome Section */}
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-96" />
+        {/* Welcome Section - Hero Card */}
+        <div
+          className="rounded-3xl p-8 animate-pulse"
+          style={{ background: 'linear-gradient(135deg, var(--primary), var(--secondary))' }}
+        >
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="mb-6 md:mb-0">
+              <Skeleton className="h-8 w-64 mb-2 bg-white/20" />
+              <Skeleton className="h-4 w-96 bg-white/20" />
+              <div className="mt-6 flex gap-3">
+                <Skeleton className="h-10 w-28 rounded-xl bg-white/30" />
+                <Skeleton className="h-10 w-28 rounded-xl bg-white/20" />
+              </div>
+            </div>
+            <Skeleton className="w-32 h-32 rounded-full bg-white/20" />
+          </div>
         </div>
 
         {/* Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <div
+              key={i}
+              className="p-6 rounded-2xl shadow-sm"
+              style={{
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+              }}
+            >
               <div className="flex justify-between items-start mb-4">
                 <Skeleton className="h-10 w-10 rounded-lg" />
                 <Skeleton className="h-4 w-12" />
@@ -39,7 +45,13 @@ export default function DashboardSkeleton() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Chart Area */}
-          <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+          <div
+            className="lg:col-span-2 p-6 rounded-2xl shadow-sm"
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+            }}
+          >
             <div className="flex justify-between items-center mb-6">
               <Skeleton className="h-6 w-40" />
               <Skeleton className="h-8 w-24 rounded-lg" />
@@ -52,7 +64,13 @@ export default function DashboardSkeleton() {
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+          <div
+            className="p-6 rounded-2xl shadow-sm"
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+            }}
+          >
             <Skeleton className="h-6 w-32 mb-6" />
             <div className="space-y-6">
               {[...Array(4)].map((_, i) => (

@@ -214,7 +214,7 @@ export async function GET(_request: NextRequest) {
             ...weeklyActivity.slice(0, mondayIndex)
         ];
 
-        return NextResponse.json({
+        const responseData = {
             // Basic stats
             completeness,
             experienceCount: user._count.experiences,
@@ -254,6 +254,17 @@ export async function GET(_request: NextRequest) {
                 strongSkills: topSkills.slice(0, 3).map(s => s.name),
                 suggestedSkills: ['React', 'TypeScript', 'Node.js'], // Would come from job market analysis
             }
+        };
+
+        // Generate ETag based on data for cache validation
+        const dataString = JSON.stringify(responseData);
+        const etag = `"${Buffer.from(dataString).toString('base64').slice(0, 32)}"`;
+
+        return NextResponse.json(responseData, {
+            headers: {
+                'ETag': etag,
+                'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+            },
         });
     } catch (error) {
         logger.error('[Analytics] Failed to fetch analytics', { error });

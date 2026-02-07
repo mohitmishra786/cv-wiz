@@ -12,31 +12,6 @@ import { useAnalytics } from '@/lib/hooks/useAnalytics';
 
 const logger = createLogger({ component: 'DashboardPage' });
 
-interface ActivityData {
-    name: string;
-    applications: number;
-}
-
-interface RecentActivity {
-    id: string;
-    type: string;
-    title: string;
-    date: string;
-    company: string;
-}
-
-interface AnalyticsData {
-    completeness: number;
-    experienceCount: number;
-    projectCount: number;
-    skillCount: number;
-    educationCount: number;
-    coverLetterCount: number;
-    weeklyApplicationsCount: number;
-    activity: ActivityData[];
-    recentActivity: RecentActivity[];
-}
-
 export default function DashboardPage() {
     const { data: session, status } = useSession();
     const { t } = useLanguage();

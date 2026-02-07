@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import MobileNav from "@/components/ui/MobileNav";
 import Navbar from "@/components/ui/Navbar";
+import Footer from "@/components/ui/Footer";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
@@ -37,7 +38,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
         style={{ background: 'var(--background)', color: 'var(--foreground)' }}
       >
         <a
@@ -52,9 +53,10 @@ export default function RootLayout({
               <LanguageProvider>
                 <ToastProvider>
                   <Navbar />
-                  <div id="main-content">
+                  <main id="main-content" className="flex-1">
                     {children}
-                  </div>
+                  </main>
+                  <Footer />
                   <MobileNav />
                 </ToastProvider>
               </LanguageProvider>
