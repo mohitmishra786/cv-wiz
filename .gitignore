@@ -40,4 +40,5 @@ npm-debug.log*
 # Extension build
 extension/dist/
 my_cover_letter.pdf
+my_detailed_cv.pdf
 *.pdf
