@@ -30,9 +30,78 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt", ".md", ".markdown"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 
+def validate_filename(filename: str, request_id: str) -> None:
+    """Validate filename to prevent path traversal and ensure safety."""
+    if not filename:
+        raise HTTPException(
+            status_code=400,
+            detail="Filename is required",
+        )
+    
+    # Check for path traversal attempts
+    if ".." in filename or "/" in filename or "\\" in filename:
+        logger.warning("[Upload] Path traversal attempt detected", {
+            "request_id": request_id,
+            "filename": filename,
+        })
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename: path traversal detected",
+        )
+    
+    # Check for null bytes
+    if "\x00" in filename:
+        logger.warning("[Upload] Null byte in filename", {
+            "request_id": request_id,
+            "filename": filename,
+        })
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename: null byte detected",
+        )
+    
+    # Check length (max 255 characters)
+    if len(filename) > 255:
+        logger.warning("[Upload] Filename too long", {
+            "request_id": request_id,
+            "filename_length": len(filename),
+        })
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename: too long (max 255 characters)",
+        )
+    
+    # Check for control characters
+    if any(ord(c) < 32 for c in filename):
+        logger.warning("[Upload] Control characters in filename", {
+            "request_id": request_id,
+            "filename": filename,
+        })
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename: control characters detected",
+        )
+    
+    # Check for safe characters (alphanumeric, spaces, dots, dashes, underscores)
+    safe_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ._-()")
+    if not all(c in safe_chars for c in filename.rsplit(".", 1)[0]):
+        logger.warning("[Upload] Unsafe characters in filename", {
+            "request_id": request_id,
+            "filename": filename,
+        })
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename: unsafe characters detected",
+        )
+
+
 def validate_file(file: UploadFile, request_id: str) -> None:
-    """Validate file type and return file extension."""
+    """Validate file type and filename."""
     filename = file.filename or ""
+    
+    # Validate filename first
+    validate_filename(filename, request_id)
+    
     extension = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     
     # Check by content type first
