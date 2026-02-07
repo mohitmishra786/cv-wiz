@@ -5,11 +5,9 @@
  * Reusable list components for profile sections with memoization
  */
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useCallback } from 'react';
 import type { Experience, Project, Skill, Education } from '@/types';
 import { createLogger } from '@/lib/logger';
-
-const listLogger = createLogger({ component: 'ProfileLists' });
 
 // Empty State Component - Memoized
 export const EmptyState = memo(function EmptyState({
@@ -110,16 +108,17 @@ const ExperienceCard = memo(function ExperienceCard({
     onEdit: (exp: Experience) => void;
 }) {
     const logger = createLogger({ component: 'ExperienceCard' });
+    const { id } = exp;
 
-    const handleClick = useMemo(() => () => {
-        logger.debug('[ExperienceList] Edit experience clicked', { id: exp.id });
+    const handleClick = useCallback(() => {
+        logger.debug('[ExperienceList] Edit experience clicked', { id });
         onEdit(exp);
-    }, [exp.id, onEdit]);
+    }, [id, exp, onEdit, logger]);
 
-    const handleEditClick = useMemo(() => (e: React.MouseEvent) => {
+    const handleEditClick = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         onEdit(exp);
-    }, [exp.id, onEdit]);
+    }, [exp, onEdit]);
 
     return (
         <div
@@ -238,16 +237,17 @@ const ProjectCard = memo(function ProjectCard({
     onEdit: (proj: Project) => void;
 }) {
     const logger = createLogger({ component: 'ProjectCard' });
+    const { id } = proj;
 
-    const handleClick = useMemo(() => () => {
-        logger.debug('[ProjectList] Edit project clicked', { id: proj.id });
+    const handleClick = useCallback(() => {
+        logger.debug('[ProjectList] Edit project clicked', { id });
         onEdit(proj);
-    }, [proj.id, onEdit]);
+    }, [id, proj, onEdit, logger]);
 
-    const handleEditClick = useMemo(() => (e: React.MouseEvent) => {
+    const handleEditClick = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         onEdit(proj);
-    }, [proj.id, onEdit]);
+    }, [proj, onEdit]);
 
     return (
         <div
@@ -375,11 +375,12 @@ const SkillBadge = memo(function SkillBadge({
     onEdit: (skill: Skill) => void;
 }) {
     const logger = createLogger({ component: 'SkillBadge' });
+    const { id } = skill;
 
-    const handleClick = useMemo(() => () => {
-        logger.debug('[SkillList] Edit skill clicked', { id: skill.id });
+    const handleClick = useCallback(() => {
+        logger.debug('[SkillList] Edit skill clicked', { id });
         onEdit(skill);
-    }, [skill.id, onEdit]);
+    }, [id, skill, onEdit, logger]);
 
     return (
         <span
@@ -461,16 +462,17 @@ const EducationCard = memo(function EducationCard({
     onEdit: (edu: Education) => void;
 }) {
     const logger = createLogger({ component: 'EducationCard' });
+    const { id } = edu;
 
-    const handleClick = useMemo(() => () => {
-        logger.debug('[EducationList] Edit education clicked', { id: edu.id });
+    const handleClick = useCallback(() => {
+        logger.debug('[EducationList] Edit education clicked', { id });
         onEdit(edu);
-    }, [edu.id, onEdit]);
+    }, [id, edu, onEdit, logger]);
 
-    const handleEditClick = useMemo(() => (e: React.MouseEvent) => {
+    const handleEditClick = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         onEdit(edu);
-    }, [edu.id, onEdit]);
+    }, [edu, onEdit]);
 
     return (
         <div

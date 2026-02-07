@@ -1,6 +1,6 @@
-"""
-Tests for Audit Log API Security
-"""
+/**
+ * Tests for Audit Log API Security
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET, DELETE } from '@/app/api/audit/route';
