@@ -148,8 +148,11 @@ class ResumeParser:
             logger.info("[ResumeParser] Text extracted successfully", {
                 "text_length": len(text),
                 "filename": filename,
-                "preview": text[:300] if text else None,
             })
+            
+            # Debug-only preview (not in production INFO logs)
+            if text:
+                logger.debug("[ResumeParser] Text preview", {"preview": text[:300]})
             
             if not text or len(text.strip()) < 50:
                 logger.warning("[ResumeParser] Insufficient text extracted", {
@@ -725,9 +728,12 @@ Return ONLY the JSON object, no markdown formatting, no explanation."""
         # All retries failed
         logger.error("[ResumeParser] All LLM extraction attempts failed", {
             "attempts": MAX_RETRIES,
-            "last_error": str(last_error),
+            "last_error": str(last_error) if last_error else "No attempts performed",
         })
-        raise last_error
+        if last_error:
+            raise last_error
+        else:
+            raise RuntimeError("All LLM extraction attempts failed (no attempts performed)")
     
     def _merge_chunk_results(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Merge results from multiple chunks into a single structured result."""
@@ -786,7 +792,7 @@ Return ONLY the JSON object, no markdown formatting, no explanation."""
         
         return merged
     
-    def _deduplicate_list(self, items: List[Dict], *key_fields) -> List[Dict]:
+    def _deduplicate_list(self, items: List[Dict], *key_fields: str) -> List[Dict]:
         """Remove duplicate items based on key fields."""
         seen = set()
         unique = []
@@ -821,13 +827,13 @@ Return ONLY the JSON object, no markdown formatting, no explanation."""
             first_line = lines[0].strip()
             if re.match(r'^[A-Z][a-z]+(\s+[A-Z][a-z]+){1,3}$', first_line):
                 result["name"] = first_line
-                logger.debug("[ResumeParser] Name found", {"name": result["name"]})
+                logger.debug("[ResumeParser] Name found")
         
         # Extract email
         email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', text)
         if email_match:
             result["email"] = email_match.group()
-            logger.debug("[ResumeParser] Email found", {"email": result["email"]})
+            logger.debug("[ResumeParser] Email found")
         
         # Extract phone
         phone_patterns = [
@@ -838,7 +844,7 @@ Return ONLY the JSON object, no markdown formatting, no explanation."""
             phone_match = re.search(pattern, text)
             if phone_match:
                 result["phone"] = phone_match.group().strip()
-                logger.debug("[ResumeParser] Phone found", {"phone": result["phone"]})
+                logger.debug("[ResumeParser] Phone found")
                 break
         
         # Extract skills

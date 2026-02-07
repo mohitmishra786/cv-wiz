@@ -114,7 +114,7 @@ const Navbar: React.FC = () => {
 
                             {/* Not Logged In */}
                             {!isLoading && !session && (
-                                <div className="hidden sm:flex items-center gap-2">
+                                <div className="hidden md:flex items-center gap-2">
                                     <Link
                                         href="/login"
                                         className="flex items-center gap-2 px-4 py-2.5 min-h-[44px] text-sm font-medium rounded-xl transition-all duration-200 hover:opacity-80"
@@ -135,7 +135,7 @@ const Navbar: React.FC = () => {
 
                             {/* Logged In */}
                             {!isLoading && session && (
-                                <div className="hidden sm:flex items-center gap-2">
+                                <div className="hidden md:flex items-center gap-2">
                                     {/* User Info */}
                                     <Link
                                         href="/profile"

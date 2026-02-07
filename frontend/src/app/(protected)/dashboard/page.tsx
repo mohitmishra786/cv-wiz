@@ -34,6 +34,10 @@ export default function DashboardPage() {
 
     // Handle errors and missing data
     if (error || !data) {
+        // Check if it's an auth error (401/403)
+        const errorWithStatus = error as { status?: number } | undefined;
+        const isAuthError = errorWithStatus?.status === 401 || errorWithStatus?.status === 403;
+
         return (
             <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
                 <div className="text-center p-8">
@@ -43,18 +47,39 @@ export default function DashboardPage() {
                         </svg>
                     </div>
                     <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
-                        Failed to load dashboard
+                        {isAuthError ? 'Authentication Required' : 'Failed to load dashboard'}
                     </h2>
                     <p className="mb-4" style={{ color: 'var(--muted-foreground)' }}>
-                        Please sign in or try refreshing the page.
+                        {isAuthError ? 'Please sign in to continue.' : 'An error occurred. Please try again.'}
                     </p>
-                    <Link
-                        href="/login"
-                        className="inline-block px-6 py-3 rounded-xl font-medium"
-                        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
-                    >
-                        Sign In
-                    </Link>
+                    <div className="flex gap-3 justify-center">
+                        {isAuthError ? (
+                            <Link
+                                href="/login"
+                                className="inline-block px-6 py-3 rounded-xl font-medium"
+                                style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                            >
+                                Sign In
+                            </Link>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    className="inline-block px-6 py-3 rounded-xl font-medium"
+                                    style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                                >
+                                    Try Again
+                                </button>
+                                <Link
+                                    href="/login"
+                                    className="inline-block px-6 py-3 rounded-xl font-medium"
+                                    style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
+                                >
+                                    Sign In
+                                </Link>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
         );

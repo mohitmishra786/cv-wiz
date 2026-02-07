@@ -100,16 +100,17 @@ export async function POST(req: Request) {
     await prisma.$transaction(async (tx) => {
       // Update Name and Summary
       if (data.name || data.summary || data.about) {
+        // Bio precedence: about takes priority over summary
+        const bio = data.about || data.summary;
         await tx.user.update({
           where: { id: userId },
           data: {
             ...(data.name && { name: data.name }),
-            ...(data.summary && { bio: data.summary }),
-            ...(data.about && { bio: data.about }),
+            ...(bio && { bio }),
           },
         });
         if (data.name) importStats.name = true;
-        if (data.summary || data.about) importStats.summary = true;
+        if (bio) importStats.summary = true;
       }
 
       // Import Experiences with deduplication
@@ -121,15 +122,26 @@ export async function POST(req: Request) {
             fullDescription += (fullDescription ? "\n\n" : "") + "Key Achievements:\n• " + exp.highlights.join("\n• ");
           }
 
-          // Check for existing experience
-          const existing = await tx.experience.findFirst({
-            where: {
-              userId,
-              company: exp.company,
-              title: exp.title,
-              startDate: exp.startDate ? new Date(exp.startDate) : undefined,
-            },
-          });
+          // Check for existing experience (use description if no startDate)
+          const whereClause: {
+            userId: string;
+            company: string;
+            title: string;
+            startDate?: Date;
+            description?: string;
+          } = {
+            userId,
+            company: exp.company,
+            title: exp.title,
+          };
+          if (exp.startDate) {
+            whereClause.startDate = new Date(exp.startDate);
+          } else {
+            // Use description as additional identifier when startDate missing
+            whereClause.description = fullDescription;
+          }
+
+          const existing = await tx.experience.findFirst({ where: whereClause });
 
           if (!existing) {
             await tx.experience.create({
@@ -138,7 +150,7 @@ export async function POST(req: Request) {
                 company: exp.company,
                 title: exp.title,
                 description: fullDescription,
-                startDate: exp.startDate ? new Date(exp.startDate) : new Date(),
+                startDate: exp.startDate ? new Date(exp.startDate) : new Date(0), // Epoch for unknown dates
                 endDate: exp.endDate ? new Date(exp.endDate) : null,
                 current: exp.current || false,
                 location: exp.location,
@@ -149,22 +161,34 @@ export async function POST(req: Request) {
         }
       }
 
-      // Import Education (handle both "education" and "educations" from LLM)
+      // Import Education with deduplication
       if (allEducation.length) {
         for (const edu of allEducation) {
           const institution = edu.institution || edu.school || "Unknown Institution";
 
-          await tx.education.create({
-            data: {
+          // Check for existing education
+          const existing = await tx.education.findFirst({
+            where: {
               userId,
               institution,
               degree: edu.degree || "Degree",
               field: edu.field || "Field",
-              startDate: edu.startDate ? new Date(edu.startDate) : new Date(),
-              endDate: edu.endDate ? new Date(edu.endDate) : null,
             },
           });
-          importStats.educationsImported++;
+
+          if (!existing) {
+            await tx.education.create({
+              data: {
+                userId,
+                institution,
+                degree: edu.degree || "Degree",
+                field: edu.field || "Field",
+                startDate: edu.startDate ? new Date(edu.startDate) : new Date(),
+                endDate: edu.endDate ? new Date(edu.endDate) : null,
+              },
+            });
+            importStats.educationsImported++;
+          }
         }
       }
 
@@ -240,7 +264,6 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     logger.error('[Import] Profile import failed', {
-      error,
       errorMessage: error instanceof Error ? error.message : 'Unknown error',
       errorStack: error instanceof Error ? error.stack : undefined,
     });
