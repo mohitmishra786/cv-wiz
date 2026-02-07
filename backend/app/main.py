@@ -28,6 +28,7 @@ if settings.sentry_dsn:
 from app.routers import compile, cover_letter, upload, ai  # noqa: E402
 from app.utils.redis_cache import redis_client  # noqa: E402
 from app.utils.rate_limiter import apply_rate_limiting  # noqa: E402
+from app.utils.csrf_protection import CSRFProtectionMiddleware  # noqa: E402
 from app.utils.logger import (  # noqa: E402
     logger, 
     generate_request_id, 
@@ -136,6 +137,13 @@ apply_rate_limiting(app)
 # Add logging middleware FIRST
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(SecurityMiddleware)
+
+# Add CSRF protection middleware
+# Exempt health check and auth-related endpoints
+app.add_middleware(
+    CSRFProtectionMiddleware,
+    exempt_paths=["/health", "/", "/api/py/health", "/api/py/"]
+)
 
 # Configure CORS
 # SECURITY: Never use "*" with allow_credentials=True - this is a security vulnerability
