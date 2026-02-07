@@ -8,6 +8,8 @@
 import { useState } from 'react';
 import type { Experience } from '@/types';
 import { createLogger } from '@/lib/logger';
+import { auth } from '@/lib/auth';
+import { generateBackendToken } from '@/lib/jwt';
 
 const logger = createLogger({ component: 'ExperienceForm' });
 
@@ -43,23 +45,33 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
         setIsEnhancing(true);
         setError('');
         try {
+            const session = await auth();
+            if (!session?.user?.id) {
+                throw new Error('Not authenticated');
+            }
+
+            const backendToken = await generateBackendToken(session.user.id, session.user.email || undefined);
+
             const bullets = formData.highlights.split('\n').filter(b => b.trim());
             const enhancedBullets = [];
 
             for (const bullet of bullets) {
                 const res = await fetch('/api/py/ai/enhance-bullet', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        bullet, 
-                        job_description: targetJD || undefined 
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${backendToken}`,
+                    },
+                    body: JSON.stringify({
+                        bullet,
+                        job_description: targetJD || undefined
                     }),
                 });
                 const data = await res.json();
                 if (res.ok) {
                     enhancedBullets.push(data.enhanced_bullet);
                 } else {
-                    enhancedBullets.push(bullet); // Fallback to original
+                    enhancedBullets.push(bullet);
                 }
             }
 
