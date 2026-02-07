@@ -10,6 +10,30 @@ import { isValidEmail } from '@/lib/utils';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
 import { isRateLimited, getClientIP, rateLimits } from '@/lib/rate-limit';
 
+function sanitizeError(error: unknown): { message: string; code: string } {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorCode = (error as { code?: string }).code || 'UNKNOWN_ERROR';
+
+    const sensitivePatterns = [
+        /password/i,
+        /secret/i,
+        /token/i,
+        /api[_-]?key/i,
+        /credential/i,
+        /connection string/i,
+        /database/i,
+        /prisma/i,
+        /at\s+.*\.ts:?\d*/,
+        /\/[a-zA-Z0-9_/-]+\.(ts|js):\d+:\d+/,
+    ];
+
+    if (sensitivePatterns.some(pattern => pattern.test(errorMessage))) {
+        return { message: 'An internal error occurred', code: errorCode };
+    }
+
+    return { message: 'An internal error occurred', code: errorCode };
+}
+
 export async function POST(request: NextRequest) {
     const requestId = getOrCreateRequestId(request.headers);
     const logger = createRequestLogger(requestId);
@@ -158,27 +182,13 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         logger.failOperation('user:register', error);
 
-        // Log additional context for debugging
-        logger.error('Registration error details', {
-            errorType: error instanceof Error ? error.constructor.name : typeof error,
-            errorMessage: error instanceof Error ? error.message : String(error),
-            errorCode: (error as { code?: string }).code,
-            stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5) : undefined,
-            envCheck: {
-                DATABASE_URL: process.env.DATABASE_URL ? 'set' : 'NOT SET',
-                CV_DATABASE_DATABASE_URL: process.env.CV_DATABASE_DATABASE_URL ? 'set' : 'NOT SET',
-                NODE_ENV: process.env.NODE_ENV,
-            }
-        });
+        const sanitized = sanitizeError(error);
 
         return NextResponse.json(
             {
-                error: 'Internal server error',
+                error: sanitized.message,
+                code: sanitized.code,
                 requestId,
-                debug: process.env.NODE_ENV !== 'production' ? {
-                    message: error instanceof Error ? error.message : String(error),
-                    code: (error as { code?: string }).code,
-                } : undefined
             },
             { status: 500 }
         );
