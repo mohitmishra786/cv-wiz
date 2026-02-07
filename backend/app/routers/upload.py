@@ -5,12 +5,14 @@ API endpoint for uploading and parsing resume/cover letter files.
 
 import time
 import traceback
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from fastapi.responses import JSONResponse
 from typing import Optional
 
 from app.services.resume_parser import resume_parser
 from app.utils.logger import logger, get_request_id
+from app.middleware.auth import verify_auth_token
+from app.utils.rate_limiter import limiter, RateLimitConfig
 
 
 router = APIRouter()
@@ -28,9 +30,78 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt", ".md", ".markdown"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 
+def validate_filename(filename: str, request_id: str) -> None:
+    """Validate filename to prevent path traversal and ensure safety."""
+    if not filename:
+        raise HTTPException(
+            status_code=400,
+            detail="Filename is required",
+        )
+    
+    # Check for path traversal attempts
+    if ".." in filename or "/" in filename or "\\" in filename:
+        logger.warning("[Upload] Path traversal attempt detected", {
+            "request_id": request_id,
+            "filename": filename,
+        })
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename: path traversal detected",
+        )
+    
+    # Check for null bytes
+    if "\x00" in filename:
+        logger.warning("[Upload] Null byte in filename", {
+            "request_id": request_id,
+            "filename": filename,
+        })
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename: null byte detected",
+        )
+    
+    # Check length (max 255 characters)
+    if len(filename) > 255:
+        logger.warning("[Upload] Filename too long", {
+            "request_id": request_id,
+            "filename_length": len(filename),
+        })
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename: too long (max 255 characters)",
+        )
+    
+    # Check for control characters
+    if any(ord(c) < 32 for c in filename):
+        logger.warning("[Upload] Control characters in filename", {
+            "request_id": request_id,
+            "filename": filename,
+        })
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename: control characters detected",
+        )
+    
+    # Check for safe characters (alphanumeric, spaces, dots, dashes, underscores)
+    safe_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ._-()")
+    if not all(c in safe_chars for c in filename.rsplit(".", 1)[0]):
+        logger.warning("[Upload] Unsafe characters in filename", {
+            "request_id": request_id,
+            "filename": filename,
+        })
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename: unsafe characters detected",
+        )
+
+
 def validate_file(file: UploadFile, request_id: str) -> None:
-    """Validate file type and return file extension."""
+    """Validate file type and filename."""
     filename = file.filename or ""
+    
+    # Validate filename first
+    validate_filename(filename, request_id)
+    
     extension = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     
     # Check by content type first
@@ -54,9 +125,11 @@ def validate_file(file: UploadFile, request_id: str) -> None:
 
 
 @router.post("/upload/resume")
+@limiter.limit("10/minute")
 async def upload_resume(
     file: UploadFile = File(...),
     file_type: Optional[str] = Form(default="resume"),
+    user_id: str = Depends(verify_auth_token),
 ) -> JSONResponse:
     """
     Upload and parse a resume file.
@@ -73,6 +146,7 @@ async def upload_resume(
     
     logger.start_operation("upload_resume", {
         "request_id": request_id,
+        "user_id": user_id,
         "filename": file.filename,
         "content_type": file.content_type,
         "file_type": file_type,
@@ -209,19 +283,23 @@ async def upload_resume(
 
 
 @router.post("/parse-resume")
+@limiter.limit("10/minute")
 async def parse_resume_alt(
     file: UploadFile = File(...),
+    user_id: str = Depends(verify_auth_token),
 ) -> JSONResponse:
     """
     Alternative endpoint for resume parsing (for compatibility).
     Same functionality as /upload/resume.
     """
-    return await upload_resume(file=file, file_type="resume")
+    return await upload_resume(file=file, file_type="resume", user_id=user_id)
 
 
 @router.post("/parse-cover-letter")
+@limiter.limit("10/minute")
 async def parse_cover_letter(
     file: UploadFile = File(...),
+    user_id: str = Depends(verify_auth_token),
 ) -> JSONResponse:
     """
     Parse a cover letter file and extract the text content.
@@ -229,4 +307,4 @@ async def parse_cover_letter(
     Accepts PDF, DOCX, TXT, and MD files.
     Returns the text content of the cover letter.
     """
-    return await upload_resume(file=file, file_type="cover-letter")
+    return await upload_resume(file=file, file_type="cover-letter", user_id=user_id)

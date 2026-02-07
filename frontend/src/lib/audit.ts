@@ -25,7 +25,8 @@ export type AuditAction =
     | 'REGISTER'
     | 'PASSWORD_CHANGE'
     | 'PASSWORD_RESET'
-    | 'SETTINGS_UPDATE';
+    | 'SETTINGS_UPDATE'
+    | 'AUDIT_CLEANUP';
 
 export type EntityType =
     | 'User'

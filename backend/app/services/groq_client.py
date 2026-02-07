@@ -6,10 +6,12 @@ Wrapper for the Groq API for generating cover letters.
 import time
 import json
 from typing import Optional, List, Dict, Any
+from functools import partial
 from groq import AsyncGroq
 
 from app.config import get_settings
 from app.utils.logger import logger, get_request_id, log_llm_request
+from app.utils.request_deduplicator import get_deduplicator
 
 
 class GroqClient:
@@ -37,7 +39,28 @@ class GroqClient:
     ) -> tuple[str, str]:
         """
         Generate a cover letter using Groq's LLM.
+        Uses request deduplication to prevent duplicate API calls.
         """
+        deduplicator = get_deduplicator()
+        
+        # Use deduplication to prevent duplicate API calls
+        return await deduplicator.execute(
+            "cover_letter",
+            self._generate_cover_letter_internal,
+            candidate_info,
+            job_description,
+            tone,
+            max_words,
+        )
+    
+    async def _generate_cover_letter_internal(
+        self,
+        candidate_info: str,
+        job_description: str,
+        tone: str,
+        max_words: int,
+    ) -> tuple[str, str]:
+        """Internal method for actual cover letter generation."""
         request_id = get_request_id()
         start_time = time.time()
         
@@ -119,7 +142,17 @@ class GroqClient:
             raise
 
     async def enhance_bullet(self, bullet: str, job_description: Optional[str] = None) -> str:
-        """Rewrite a resume bullet point to be more impactful."""
+        """Rewrite a resume bullet point to be more impactful. Uses request deduplication."""
+        deduplicator = get_deduplicator()
+        return await deduplicator.execute(
+            "enhance_bullet",
+            self._enhance_bullet_internal,
+            bullet,
+            job_description,
+        )
+    
+    async def _enhance_bullet_internal(self, bullet: str, job_description: Optional[str] = None) -> str:
+        """Internal method for bullet enhancement."""
         request_id = get_request_id()
         
         system_prompt = "You are an expert resume writer. Rewrite the user's bullet point to be more impactful, outcome-oriented, and professional. Use strong action verbs. Keep it concise (one sentence)."
@@ -142,7 +175,17 @@ class GroqClient:
             return bullet
 
     async def generate_interview_prep(self, candidate_info: str, job_description: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Generate interview questions and suggested answers."""
+        """Generate interview questions and suggested answers. Uses request deduplication."""
+        deduplicator = get_deduplicator()
+        return await deduplicator.execute(
+            "interview_prep",
+            self._generate_interview_prep_internal,
+            candidate_info,
+            job_description,
+        )
+    
+    async def _generate_interview_prep_internal(self, candidate_info: str, job_description: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Internal method for interview prep generation."""
         request_id = get_request_id()
         
         system_prompt = """You are an expert interviewer. Based on the candidate's profile and the job description, generate 5 relevant interview questions.
@@ -172,7 +215,16 @@ Return the result as a JSON array of objects with keys: "question", "suggested_a
             return []
 
     async def suggest_skills(self, experience_text: str) -> List[str]:
-        """Suggest skills based on work experience description."""
+        """Suggest skills based on work experience description. Uses request deduplication."""
+        deduplicator = get_deduplicator()
+        return await deduplicator.execute(
+            "suggest_skills",
+            self._suggest_skills_internal,
+            experience_text,
+        )
+    
+    async def _suggest_skills_internal(self, experience_text: str) -> List[str]:
+        """Internal method for skill suggestions."""
         request_id = get_request_id()
         
         system_prompt = """You are a career expert. Analyze the provided work experience and extract/infer relevant technical and soft skills.

@@ -16,12 +16,16 @@ import {
 } from '@/lib/audit';
 import { createRequestLogger, getOrCreateRequestId } from '@/lib/logger';
 
-// Simple admin check - in production, use proper role-based access control
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// Admin check - verifies user has admin role
 async function isAdmin(userId: string): Promise<boolean> {
-    // For now, allow all authenticated users to view their own logs
-    // In production, check against admin roles/permissions
-    return true;
+    // Check user role in database
+    const { default: prisma } = await import('@/lib/prisma');
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+    });
+    
+    return user?.role === 'ADMIN';
 }
 
 /**
@@ -249,14 +253,14 @@ export async function DELETE(request: NextRequest) {
         logger.info('Audit cleanup completed', { requestId, deletedCount });
 
         // Log the cleanup action
-        const { auditAuth } = await import('@/lib/audit');
-        await auditAuth(
-            request,
-            'LOGIN', // Using LOGIN as a generic admin action
-            currentUserId,
-            true,
-            { action: 'audit_cleanup', deletedCount, retentionDays }
-        );
+        const { auditFromRequest } = await import('@/lib/audit');
+        await auditFromRequest(request, {
+            userId: currentUserId,
+            action: 'AUDIT_CLEANUP',
+            entityType: 'User',
+            entityId: currentUserId,
+            metadata: { action: 'audit_cleanup', deletedCount, retentionDays, success: true },
+        });
 
         logger.endOperation('audit:cleanup');
 

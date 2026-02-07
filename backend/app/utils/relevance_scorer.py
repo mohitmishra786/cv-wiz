@@ -33,10 +33,11 @@ class RelevanceScorer:
     """
     Scores profile items based on relevance to a job description.
     Uses keyword matching with TF-IDF-like weighting.
+    Implements caching to avoid re-processing identical job descriptions.
     """
     
     # Common words to ignore in matching
-    STOP_WORDS = {
+    STOP_WORDS = frozenset({
         "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
         "of", "with", "by", "from", "as", "is", "was", "are", "were", "been",
         "be", "have", "has", "had", "do", "does", "did", "will", "would",
@@ -48,20 +49,58 @@ class RelevanceScorer:
         "only", "own", "same", "so", "than", "too", "very", "just", "also",
         "about", "into", "through", "during", "before", "after", "above",
         "below", "between", "under", "again", "further", "then", "once",
-    }
+    })
     
     # Boost factors for recent items and specific matches
     RECENCY_BOOST = 1.2  # Boost for items in last 2 years
     TITLE_MATCH_BOOST = 2.0  # Boost when job title matches
     SKILL_EXACT_MATCH_BOOST = 1.5  # Boost for exact skill matches
     
+    # Class-level cache for processed job descriptions
+    _cache: dict = {}
+    _cache_max_size: int = 100  # Maximum cached job descriptions
+    
+    def __new__(cls, job_description: str):
+        """
+        Implement caching to return cached instances for identical job descriptions.
+        This avoids re-processing the same job description multiple times.
+        """
+        if not job_description:
+            return super().__new__(cls)
+        
+        # Create a cache key from the job description
+        import hashlib
+        cache_key = hashlib.md5(job_description.lower().encode()).hexdigest()
+        
+        # Return cached instance if available
+        if cache_key in cls._cache:
+            return cls._cache[cache_key]
+        
+        # Create new instance
+        instance = super().__new__(cls)
+        
+        # Cache the instance (with simple LRU eviction)
+        if len(cls._cache) >= cls._cache_max_size:
+            # Remove oldest entry (simple FIFO)
+            oldest_key = next(iter(cls._cache))
+            del cls._cache[oldest_key]
+        
+        cls._cache[cache_key] = instance
+        instance._cache_key = cache_key
+        return instance
+    
     def __init__(self, job_description: str):
         """
         Initialize scorer with a job description.
+        Uses caching to avoid re-processing identical descriptions.
         
         Args:
             job_description: Full job posting text
         """
+        # Skip initialization if already initialized (cached instance)
+        if hasattr(self, '_initialized'):
+            return
+        
         self.job_description = job_description.lower()
         self.jd_tokens = self._tokenize(job_description)
         self.jd_keyword_freq = Counter(self.jd_tokens)
@@ -69,6 +108,24 @@ class RelevanceScorer:
         # Extract potential job title and company (heuristic)
         self.job_title = self._extract_job_title(job_description)
         self.required_skills = self._extract_required_skills(job_description)
+        
+        self._initialized = True
+    
+    @classmethod
+    def clear_cache(cls) -> int:
+        """Clear the job description cache. Returns number of entries cleared."""
+        count = len(cls._cache)
+        cls._cache.clear()
+        return count
+    
+    @classmethod
+    def get_cache_stats(cls) -> dict:
+        """Get cache statistics."""
+        return {
+            "cached_entries": len(cls._cache),
+            "max_size": cls._cache_max_size,
+            "cache_keys": list(cls._cache.keys()),
+        }
     
     def _tokenize(self, text: str) -> list[str]:
         """

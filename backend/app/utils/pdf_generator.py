@@ -4,13 +4,33 @@ Generates ATS-friendly resume PDFs using WeasyPrint.
 """
 
 import base64
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
+from typing import Optional
 
 from jinja2 import Environment, BaseLoader
 from weasyprint import HTML, CSS
 from weasyprint.text.fonts import FontConfiguration
 
 from app.models.resume import CompiledResume
+from app.utils.logger import logger
+
+
+# Thread pool for PDF generation to avoid blocking the event loop
+_pdf_executor: Optional[ThreadPoolExecutor] = None
+
+
+def get_pdf_executor() -> ThreadPoolExecutor:
+    """Get or create the thread pool executor for PDF generation."""
+    global _pdf_executor
+    if _pdf_executor is None:
+        _pdf_executor = ThreadPoolExecutor(
+            max_workers=4,
+            thread_name_prefix="pdf_generator"
+        )
+        logger.info("[PDFGenerator] Thread pool executor initialized")
+    return _pdf_executor
 
 
 # Base CSS for ATS-friendly resume
@@ -265,6 +285,9 @@ class PDFGenerator:
     """
     Generates ATS-friendly PDF resumes from compiled resume data.
     Uses WeasyPrint for HTML to PDF conversion.
+    
+    Note: PDF generation is CPU-intensive and runs in a thread pool
+    to avoid blocking the async event loop.
     """
     
     def __init__(self):
@@ -293,17 +316,17 @@ class PDFGenerator:
             publications=resume.publications,
         )
     
-    def generate_pdf(
+    def _generate_pdf_sync(
         self,
-        resume: CompiledResume,
+        html_content: str,
         max_pages: int = 1,
     ) -> bytes:
         """
-        Generate PDF from compiled resume.
+        Synchronous PDF generation (runs in thread pool).
         
         Args:
-            resume: Compiled resume with selected items
-            max_pages: Maximum allowed pages (enforced strictly)
+            html_content: HTML content to convert
+            max_pages: Maximum allowed pages
         
         Returns:
             PDF bytes
@@ -311,8 +334,6 @@ class PDFGenerator:
         Raises:
             ValueError: If generated PDF exceeds max_pages
         """
-        html_content = self.generate_html(resume)
-        
         # Generate PDF
         html_doc = HTML(string=html_content)
         css = CSS(string=BASE_CSS, font_config=self.font_config)
@@ -331,13 +352,55 @@ class PDFGenerator:
         document.write_pdf(pdf_buffer)
         return pdf_buffer.getvalue()
     
-    def generate_pdf_base64(
+    async def generate_pdf(
+        self,
+        resume: CompiledResume,
+        max_pages: int = 1,
+    ) -> bytes:
+        """
+        Generate PDF from compiled resume asynchronously.
+        
+        This method runs the CPU-intensive PDF generation in a thread pool
+        to avoid blocking the async event loop.
+        
+        Args:
+            resume: Compiled resume with selected items
+            max_pages: Maximum allowed pages (enforced strictly)
+        
+        Returns:
+            PDF bytes
+        
+        Raises:
+            ValueError: If generated PDF exceeds max_pages
+        """
+        html_content = self.generate_html(resume)
+        
+        # Run PDF generation in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        executor = get_pdf_executor()
+        
+        try:
+            pdf_bytes = await loop.run_in_executor(
+                executor,
+                self._generate_pdf_sync,
+                html_content,
+                max_pages
+            )
+            return pdf_bytes
+        except Exception as e:
+            logger.error("[PDFGenerator] PDF generation failed", {
+                "error": str(e),
+                "resume_name": resume.name,
+            })
+            raise
+    
+    async def generate_pdf_base64(
         self,
         resume: CompiledResume,
         max_pages: int = 1,
     ) -> str:
         """
-        Generate PDF and return as base64 encoded string.
+        Generate PDF and return as base64 encoded string asynchronously.
         
         Args:
             resume: Compiled resume with selected items
@@ -346,7 +409,7 @@ class PDFGenerator:
         Returns:
             Base64 encoded PDF string
         """
-        pdf_bytes = self.generate_pdf(resume, max_pages)
+        pdf_bytes = await self.generate_pdf(resume, max_pages)
         return base64.b64encode(pdf_bytes).decode("utf-8")
     
     def preview_html(self, resume: CompiledResume) -> str:

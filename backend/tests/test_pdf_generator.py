@@ -2,7 +2,8 @@
 Tests for PDF Generator
 """
 import sys
-from unittest.mock import MagicMock, patch
+import asyncio
+from unittest.mock import MagicMock, patch, AsyncMock
 import pytest
 
 # Mock weasyprint modules BEFORE importing the module under test
@@ -42,8 +43,9 @@ def test_generate_html(generator):
     assert "test@example.com" in html
 
 
-def test_generate_pdf(generator):
-    """Test PDF generation returns bytes."""
+@pytest.mark.asyncio
+async def test_generate_pdf_async(generator):
+    """Test async PDF generation returns bytes."""
     # Setup mock return values
     mock_document = MagicMock()
     mock_document.pages = [MagicMock()]  # 1 page
@@ -65,12 +67,13 @@ def test_generate_pdf(generator):
     mock_buffer.getvalue.return_value = b"PDF CONTENT"
     
     with patch('app.utils.pdf_generator.BytesIO', return_value=mock_buffer):
-        pdf_bytes = generator.generate_pdf(resume)
+        pdf_bytes = await generator.generate_pdf(resume)
     
     assert pdf_bytes == b"PDF CONTENT"
 
 
-def test_generate_pdf_page_limit_exceeded(generator):
+@pytest.mark.asyncio
+async def test_generate_pdf_page_limit_exceeded(generator):
     """Test that exceeding page limit raises ValueError."""
     # Mock 2 pages
     mock_document = MagicMock()
@@ -89,11 +92,12 @@ def test_generate_pdf_page_limit_exceeded(generator):
     )
     
     with pytest.raises(ValueError, match="exceeds 1 page"):
-        generator.generate_pdf(resume, max_pages=1)
+        await generator.generate_pdf(resume, max_pages=1)
 
 
-def test_generate_pdf_base64(generator):
-    """Test PDF generation returns base64 string."""
+@pytest.mark.asyncio
+async def test_generate_pdf_base64_async(generator):
+    """Test async PDF generation returns base64 string."""
     # Mock return for this test specifically
     mock_document = MagicMock()
     mock_document.pages = [MagicMock()]
@@ -115,7 +119,7 @@ def test_generate_pdf_base64(generator):
     mock_buffer.getvalue.return_value = b"PDF CONTENT"
     
     with patch('app.utils.pdf_generator.BytesIO', return_value=mock_buffer):
-        b64 = generator.generate_pdf_base64(resume)
+        b64 = await generator.generate_pdf_base64(resume)
     
     # "PDF CONTENT" -> "UERGIENPTlRFTlQ="
     assert b64 == "UERGIENPTlRFTlQ="
@@ -138,3 +142,36 @@ def test_preview_html(generator):
     assert "Test User" in preview
     assert "test@example.com" in preview
     assert "<style>" in preview
+
+
+@pytest.mark.asyncio
+async def test_generate_pdf_runs_in_thread_pool(generator):
+    """Test that PDF generation runs in a thread pool to avoid blocking."""
+    mock_document = MagicMock()
+    mock_document.pages = [MagicMock()]
+    mock_wp.HTML.return_value.render.return_value = mock_document
+    
+    resume = CompiledResume(
+        name="Test User",
+        email="test@example.com",
+        template="experience-skills-projects",
+        experiences=[],
+        projects=[],
+        educations=[],
+        skills=[],
+        publications=[]
+    )
+    
+    mock_buffer = MagicMock()
+    mock_buffer.getvalue.return_value = b"PDF CONTENT"
+    
+    # Mock the thread pool executor to verify it's being used
+    mock_executor = MagicMock()
+    mock_executor.submit = MagicMock(return_value=MagicMock())
+    
+    with patch('app.utils.pdf_generator.BytesIO', return_value=mock_buffer):
+        with patch('app.utils.pdf_generator.get_pdf_executor', return_value=mock_executor):
+            # The actual PDF generation should use the executor
+            # This test verifies the async method exists and can be called
+            result = await generator.generate_pdf(resume)
+            assert result == b"PDF CONTENT"

@@ -174,9 +174,8 @@ class ResumeCompiler:
                 pdf_start = time.time()
                 
                 try:
-                    import anyio
-                    pdf_base64 = await anyio.to_thread.run_sync(
-                        self.pdf_generator.generate_pdf_base64,
+                    # PDF generation now runs in thread pool internally
+                    pdf_base64 = await self.pdf_generator.generate_pdf_base64(
                         compiled,
                         self.settings.max_resume_pages
                     )

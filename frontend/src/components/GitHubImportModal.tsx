@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/ToastProvider';
 import { Project } from '@/types';
+import { isValidGitHubUsername, sanitizeGitHubUsername } from '@/lib/github-validation';
 
 interface GitHubImportModalProps {
     isOpen: boolean;
@@ -20,7 +21,18 @@ export default function GitHubImportModal({ isOpen, onClose, onImport }: GitHubI
     const { error } = useToast();
 
     const fetchRepos = async () => {
-        if (!username.trim()) return;
+        const trimmedUsername = username.trim();
+        if (!trimmedUsername) {
+            error('Please enter a GitHub username');
+            return;
+        }
+
+        // Validate username format on client side
+        if (!isValidGitHubUsername(trimmedUsername)) {
+            error('Invalid GitHub username. Use only letters, numbers, and hyphens. Cannot start or end with a hyphen.');
+            return;
+        }
+
         setLoading(true);
         try {
             const res = await fetch('/api/integrations/github', {
@@ -72,7 +84,7 @@ export default function GitHubImportModal({ isOpen, onClose, onImport }: GitHubI
                             <input
                                 type="text"
                                 value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                onChange={(e) => setUsername(sanitizeGitHubUsername(e.target.value))}
                                 onKeyDown={(e) => e.key === 'Enter' && fetchRepos()}
                                 placeholder="e.g. facebook"
                                 className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
