@@ -8,6 +8,47 @@ import { logger } from './logger';
 import type { NextRequest } from 'next/server';
 import type { Prisma } from '@prisma/client';
 
+export const ALLOWED_TABLES = [
+    'user',
+    'experience',
+    'skill',
+    'education',
+    'project',
+    'publication',
+    'coverLetter',
+    'userSettings',
+    'feedback',
+    'auditLog',
+    'account',
+    'session',
+] as const;
+
+type AllowedTable = typeof ALLOWED_TABLES[number];
+
+function validateTableName(table: string): table is AllowedTable {
+    return ALLOWED_TABLES.includes(table as AllowedTable);
+}
+
+export function sanitizeTableName(table: string): AllowedTable {
+    if (!validateTableName(table)) {
+        throw new Error(`Invalid table name: ${table}`);
+    }
+    return table;
+}
+
+export function sanitizeEntityType(entityType: string): EntityType {
+    const validTypes: EntityType[] = [
+        'User', 'Experience', 'Skill', 'Education', 'Project',
+        'Publication', 'CoverLetter', 'UserSettings', 'Feedback', 'Profile'
+    ];
+
+    if (!validTypes.includes(entityType as EntityType)) {
+        throw new Error(`Invalid entity type: ${entityType}`);
+    }
+
+    return entityType as EntityType;
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -344,10 +385,11 @@ export async function getEntityAuditLogs(
         actions?: AuditAction[];
     } = {}
 ) {
+    const sanitizedType = sanitizeEntityType(entityType);
     const { limit = 50, offset = 0, actions } = options;
 
     const where: Prisma.AuditLogWhereInput = {
-        entityType,
+        entityType: sanitizedType,
         entityId,
     };
 
@@ -392,12 +434,24 @@ export async function getUserAuditLogs(
 ) {
     const { limit = 50, offset = 0, actions, startDate, endDate } = options;
 
+    const sanitizedActions = actions?.map(a => {
+        const validActions: AuditAction[] = [
+            'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT',
+            'VIEW', 'EXPORT', 'IMPORT', 'SHARE', 'REGISTER',
+            'PASSWORD_CHANGE', 'PASSWORD_RESET', 'SETTINGS_UPDATE', 'AUDIT_CLEANUP'
+        ];
+        if (!validActions.includes(a)) {
+            throw new Error(`Invalid audit action: ${a}`);
+        }
+        return a;
+    });
+
     const where: Prisma.AuditLogWhereInput = {
         userId,
     };
 
-    if (actions?.length) {
-        where.action = { in: actions };
+    if (sanitizedActions?.length) {
+        where.action = { in: sanitizedActions };
     }
 
     if (startDate || endDate) {
