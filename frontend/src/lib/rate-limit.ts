@@ -3,8 +3,6 @@
  * Simple in-memory rate limiting with Redis fallback
  */
 
-import { headers } from 'next/headers';
-
 interface RateLimitEntry {
     count: number;
     resetTime: number;

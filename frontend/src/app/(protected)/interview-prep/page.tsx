@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import { createLogger } from '@/lib/logger';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -26,7 +25,6 @@ interface Skill {
 }
 
 export default function InterviewPrepPage() {
-    const { data: session } = useSession();
     const { error: toastError } = useToast();
     const [jobDescription, setJobDescription] = useState('');
     const [questions, setQuestions] = useState<Question[]>([]);

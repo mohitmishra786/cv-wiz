@@ -5,12 +5,6 @@ const MAX_COMMENT_LENGTH = 2000;
 const MIN_COMMENT_LENGTH = 10;
 const MAX_REQUEST_BODY_SIZE = 1024 * 1024;
 
-interface FeedbackRequestBody {
-    rating?: unknown;
-    comment?: unknown;
-    category?: unknown;
-}
-
 function validateFeedbackRequest(body: unknown): { valid: boolean; data: Record<string, unknown> | null; error?: string } {
     if (!body || typeof body !== 'object') {
         return { valid: false, data: null, error: 'Invalid request body' };
