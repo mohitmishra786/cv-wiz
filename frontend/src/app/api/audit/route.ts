@@ -16,12 +16,16 @@ import {
 } from '@/lib/audit';
 import { createRequestLogger, getOrCreateRequestId } from '@/lib/logger';
 
-// Simple admin check - in production, use proper role-based access control
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// Admin check - verifies user has admin role
 async function isAdmin(userId: string): Promise<boolean> {
-    // For now, allow all authenticated users to view their own logs
-    // In production, check against admin roles/permissions
-    return true;
+    // Check user role in database
+    const { default: prisma } = await import('@/lib/prisma');
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+    });
+    
+    return user?.role === 'ADMIN';
 }
 
 /**
