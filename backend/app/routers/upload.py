@@ -5,12 +5,13 @@ API endpoint for uploading and parsing resume/cover letter files.
 
 import time
 import traceback
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from fastapi.responses import JSONResponse
 from typing import Optional
 
 from app.services.resume_parser import resume_parser
 from app.utils.logger import logger, get_request_id
+from app.middleware.auth import verify_auth_token
 
 
 router = APIRouter()
@@ -57,6 +58,7 @@ def validate_file(file: UploadFile, request_id: str) -> None:
 async def upload_resume(
     file: UploadFile = File(...),
     file_type: Optional[str] = Form(default="resume"),
+    user_id: str = Depends(verify_auth_token),
 ) -> JSONResponse:
     """
     Upload and parse a resume file.
@@ -73,6 +75,7 @@ async def upload_resume(
     
     logger.start_operation("upload_resume", {
         "request_id": request_id,
+        "user_id": user_id,
         "filename": file.filename,
         "content_type": file.content_type,
         "file_type": file_type,
@@ -211,17 +214,19 @@ async def upload_resume(
 @router.post("/parse-resume")
 async def parse_resume_alt(
     file: UploadFile = File(...),
+    user_id: str = Depends(verify_auth_token),
 ) -> JSONResponse:
     """
     Alternative endpoint for resume parsing (for compatibility).
     Same functionality as /upload/resume.
     """
-    return await upload_resume(file=file, file_type="resume")
+    return await upload_resume(file=file, file_type="resume", user_id=user_id)
 
 
 @router.post("/parse-cover-letter")
 async def parse_cover_letter(
     file: UploadFile = File(...),
+    user_id: str = Depends(verify_auth_token),
 ) -> JSONResponse:
     """
     Parse a cover letter file and extract the text content.
@@ -229,4 +234,4 @@ async def parse_cover_letter(
     Accepts PDF, DOCX, TXT, and MD files.
     Returns the text content of the cover letter.
     """
-    return await upload_resume(file=file, file_type="cover-letter")
+    return await upload_resume(file=file, file_type="cover-letter", user_id=user_id)
