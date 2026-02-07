@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import type { Project } from '@/types';
 import { createLogger } from '@/lib/logger';
+import { sanitizeUrl } from '@/lib/sanitization';
 
 const logger = createLogger({ component: 'ProjectForm' });
 
@@ -44,8 +45,14 @@ export default function ProjectForm({ project, onSubmit, onCancel }: ProjectForm
         if (!formData.description.trim()) {
             newErrors.description = 'Description is required';
         }
-        if (formData.url && !formData.url.match(/^https?:\/\/.+/)) {
-            newErrors.url = 'Please enter a valid URL starting with http:// or https://';
+        if (formData.url) {
+            // Use sanitizeUrl to validate URL and block dangerous protocols
+            const sanitizedUrl = sanitizeUrl(formData.url);
+            if (sanitizedUrl === null) {
+                newErrors.url = 'Invalid URL. URLs must start with http:// or https://';
+            } else if (!sanitizedUrl.match(/^https?:\/\/.+/)) {
+                newErrors.url = 'Please enter a valid URL starting with http:// or https://';
+            }
         }
 
         setErrors(newErrors);
@@ -66,13 +73,16 @@ export default function ProjectForm({ project, onSubmit, onCancel }: ProjectForm
         setLoading(true);
 
         try {
+            // Sanitize URL to prevent javascript: protocol injection
+            const sanitizedUrl = formData.url ? sanitizeUrl(formData.url) : undefined;
+            
             const data: Partial<Project> = {
                 ...formData,
                 technologies: formData.technologies.split(',').map(t => t.trim()).filter(Boolean),
                 highlights: formData.highlights.split('\n').filter(h => h.trim()),
                 startDate: formData.startDate || undefined,
                 endDate: formData.endDate || undefined,
-                url: formData.url || undefined,
+                url: sanitizedUrl,
             };
 
             await onSubmit(data);
