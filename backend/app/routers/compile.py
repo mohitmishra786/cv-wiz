@@ -6,6 +6,7 @@ API endpoint for generating tailored resumes.
 import time
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import Response
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.models.resume import ResumeRequest, ResumeResponse
 from app.services.profile_service import ProfileService
@@ -15,6 +16,9 @@ from app.utils.rate_limiter import limiter, RateLimitConfig
 
 
 router = APIRouter()
+
+# HTTP Bearer security scheme for Authorization header
+security = HTTPBearer(auto_error=False)
 
 
 # Dependency injection for services
@@ -26,11 +30,33 @@ def get_resume_compiler() -> ResumeCompiler:
     return ResumeCompiler()
 
 
+def get_auth_token(
+    resume_request: ResumeRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> str:
+    """
+    Extract auth token from Authorization header (preferred) or request body (fallback).
+    
+    This provides backward compatibility while encouraging secure header-based auth.
+    """
+    if credentials and credentials.credentials:
+        return credentials.credentials
+    
+    if resume_request.auth_token:
+        return resume_request.auth_token
+    
+    raise HTTPException(
+        status_code=401,
+        detail="Missing authentication token. Provide via Authorization header or authToken field.",
+    )
+
+
 @router.post("/compile", response_model=ResumeResponse)
 @limiter.limit(RateLimitConfig.COMPILE_RESUME)
 async def compile_resume(
     request: Request,
     resume_request: ResumeRequest,
+    auth_token: str = Depends(get_auth_token),
     profile_service: ProfileService = Depends(get_profile_service),
     compiler: ResumeCompiler = Depends(get_resume_compiler),
 ) -> ResumeResponse:
@@ -62,17 +88,18 @@ async def compile_resume(
             detail=f"Job description is too long ({job_description_length} characters). Maximum allowed: 50,000 characters.",
         )
     
+    auth_source = "header" if auth_token != resume_request.auth_token else "body"
     logger.start_operation("compile_resume", {
         "request_id": request_id,
         "job_description_length": job_description_length,
         "template": resume_request.template,
-        "has_auth_token": bool(resume_request.auth_token),
+        "auth_source": auth_source,
     })
     
     try:
         # Validate auth token and get user profile
         logger.info("Fetching user profile", {"request_id": request_id})
-        profile = await profile_service.get_profile(resume_request.auth_token)
+        profile = await profile_service.get_profile(auth_token)
         
         if profile is None:
             logger.warning("Profile fetch failed - invalid token", {"request_id": request_id})
@@ -141,6 +168,7 @@ async def compile_resume(
 async def compile_resume_pdf(
     request: Request,
     resume_request: ResumeRequest,
+    auth_token: str = Depends(get_auth_token),
     profile_service: ProfileService = Depends(get_profile_service),
     compiler: ResumeCompiler = Depends(get_resume_compiler),
 ) -> Response:
@@ -179,7 +207,7 @@ async def compile_resume_pdf(
     
     try:
         # Validate auth token and get user profile
-        profile = await profile_service.get_profile(resume_request.auth_token)
+        profile = await profile_service.get_profile(auth_token)
         
         if profile is None:
             logger.warning("PDF compile failed - invalid token", {"request_id": request_id})
