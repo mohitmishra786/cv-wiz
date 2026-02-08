@@ -1,10 +1,12 @@
 """
 Profile Service
 Fetches user profile data from the Next.js frontend API.
+Uses shared HTTP client for better resource management.
 """
 
 import time
 from typing import Optional
+import asyncio
 import httpx
 
 from app.config import get_settings
@@ -12,21 +14,54 @@ from app.models.user import UserProfile
 from app.utils.logger import logger, get_request_id, log_auth_operation
 
 
+# Module-level shared HTTP client (lazy initialization)
+_http_client = None
+_http_client_lock = asyncio.Lock()
+
+
+async def get_shared_http_client() -> httpx.AsyncClient:
+    """Get or create the shared HTTP client instance."""
+    global _http_client
+    async with _http_client_lock:
+        if _http_client is None:
+            _http_client = httpx.AsyncClient(
+                timeout=30.0,
+                follow_redirects=True,
+                limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+            )
+            logger.info("[ProfileService] Shared HTTP client created")
+    return _http_client
+
+
+async def close_shared_http_client():
+    """Close the shared HTTP client. Should be called on shutdown."""
+    global _http_client
+    if _http_client is not None:
+        await _http_client.aclose()
+        _http_client = None
+        logger.info("[ProfileService] Shared HTTP client closed")
+
+
 class ProfileService:
     """
     Service for fetching and managing user profile data.
     Communicates with the Next.js frontend API.
+    Uses shared HTTP client for better resource management.
     """
     
     def __init__(self):
-        """Initialize profile service with HTTP client."""
+        """Initialize profile service with shared HTTP client."""
         settings = get_settings()
         self.base_url = settings.frontend_api_url
-        self.client = httpx.AsyncClient(
-            timeout=30.0,
-            follow_redirects=True,
-        )
         logger.info("ProfileService initialized", {"base_url": self.base_url})
+    
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit."""
+        await self.close()
     
     async def get_profile(self, auth_token: str) -> Optional[UserProfile]:
         """
@@ -47,7 +82,8 @@ class ProfileService:
                 "url": f"{self.base_url}/api/profile",
             })
             
-            response = await self.client.get(
+            client = await get_shared_http_client()
+            response = await client.get(
                 f"{self.base_url}/api/profile",
                 headers={
                     "Authorization": f"Bearer {auth_token}",
@@ -129,7 +165,8 @@ class ProfileService:
         try:
             logger.debug("Validating auth token", {"request_id": request_id})
             
-            response = await self.client.get(
+            client = await get_shared_http_client()
+            response = await client.get(
                 f"{self.base_url}/api/auth/session",
                 headers={
                     "Authorization": f"Bearer {auth_token}",
@@ -169,6 +206,7 @@ class ProfileService:
             return None
     
     async def close(self):
-        """Close HTTP client."""
-        logger.debug("Closing ProfileService HTTP client")
-        await self.client.aclose()
+        """Close ProfileService (note: shared client is not closed here)."""
+        logger.debug("ProfileService.close called (shared client not closed)")
+        # The shared HTTP client is managed at module level and should be closed
+        # explicitly via close_shared_http_client() during application shutdown

@@ -20,6 +20,9 @@ from app.utils.logger import logger
 # Thread pool for PDF generation to avoid blocking the event loop
 _pdf_executor: Optional[ThreadPoolExecutor] = None
 
+# Shared FontConfiguration instance to avoid redundant font loading
+_font_configuration: Optional[FontConfiguration] = None
+
 
 def get_pdf_executor() -> ThreadPoolExecutor:
     """Get or create the thread pool executor for PDF generation."""
@@ -31,6 +34,20 @@ def get_pdf_executor() -> ThreadPoolExecutor:
         )
         logger.info("[PDFGenerator] Thread pool executor initialized")
     return _pdf_executor
+
+
+def get_shared_font_configuration() -> FontConfiguration:
+    """
+    Get or create the shared FontConfiguration instance.
+    
+    FontConfiguration is expensive to create as it loads system fonts.
+    Sharing this instance across all PDFGenerator instances improves performance.
+    """
+    global _font_configuration
+    if _font_configuration is None:
+        _font_configuration = FontConfiguration()
+        logger.info("[PDFGenerator] Shared FontConfiguration created")
+    return _font_configuration
 
 
 # Base CSS for ATS-friendly resume
@@ -291,10 +308,10 @@ class PDFGenerator:
     """
     
     def __init__(self):
-        """Initialize PDF generator with Jinja2 environment."""
+        """Initialize PDF generator with Jinja2 environment and shared font config."""
         self.env = Environment(loader=BaseLoader())
         self.template = self.env.from_string(RESUME_TEMPLATE)
-        self.font_config = FontConfiguration()
+        self.font_config = get_shared_font_configuration()
     
     def generate_html(self, resume: CompiledResume) -> str:
         """

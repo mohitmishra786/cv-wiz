@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
-from app.utils.rate_limiter import apply_rate_limiting, limiter  # noqa: E402
+from app.utils.rate_limiter import apply_rate_limiting  # noqa: E402
 from app.utils.redis_cache import redis_client  # noqa: E402
 from app.utils.csrf_protection import CSRFProtectionMiddleware  # noqa: E402
 from app.utils.logger import (  # noqa: E402
@@ -21,7 +21,8 @@ from app.utils.logger import (  # noqa: E402
     generate_request_id, 
     set_request_context, 
     clear_request_context,
-    log_api_request
+    log_api_request,
+    sanitize_query_params
 )
 
 # Initialize Sentry
@@ -59,10 +60,11 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         set_request_context(request_id=request_id)
         
         # Log request start
+        sanitized_query = sanitize_query_params(request.query_params)
         logger.info(f"[REQUEST] {request.method} {request.url.path}", {
             "method": request.method,
             "path": request.url.path,
-            "query": str(request.query_params) if request.query_params else None,
+            "query": sanitized_query,
             "client_ip": request.client.host if request.client else None,
             "user_agent": request.headers.get("user-agent", "")[:100],
         })
@@ -117,6 +119,11 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     await redis_client.close()
+    
+    # Close shared HTTP client
+    from app.services.profile_service import close_shared_http_client
+    await close_shared_http_client()
+    
     logger.info("[SHUTDOWN] CV-Wiz API shutdown complete")
 
 

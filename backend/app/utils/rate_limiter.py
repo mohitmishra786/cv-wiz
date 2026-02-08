@@ -3,21 +3,45 @@ Rate Limiting Utilities
 Provides rate limiting for API endpoints using slowapi.
 """
 
-import time
+from __future__ import annotations
 
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-from fastapi import Request, HTTPException
+import time
+import warnings
+from typing import TYPE_CHECKING
+
+from fastapi import Request
+from starlette.responses import JSONResponse
 
 from app.utils.logger import logger
 
+if TYPE_CHECKING:
+    from fastapi import FastAPI
 
-# Create limiter instance with Redis storage if available, otherwise in-memory
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["100/minute"],  # Default global rate limit
-)
+try:
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    from slowapi.errors import RateLimitExceeded
+    SLOWAPI_AVAILABLE = True
+except ImportError as e:
+    SLOWAPI_AVAILABLE = False
+    logger.warning("slowapi not available, rate limiting disabled", {"error": str(e)})
+    Limiter = None
+    RateLimitExceeded = Exception
+
+
+def get_remote_address_fallback(request: Request) -> str:
+    """Fallback function to get remote address if slowapi is not available."""
+    return request.client.host if request.client else "unknown"
+
+
+if SLOWAPI_AVAILABLE and Limiter:
+    limiter = Limiter(
+        key_func=get_remote_address,
+        default_limits=["100/minute"],  # Default global rate limit
+    )
+else:
+    limiter = None
+    warnings.warn("Rate limiting is disabled due to missing slowapi dependency")
 
 
 def get_user_identifier(request: Request) -> str:
@@ -25,15 +49,20 @@ def get_user_identifier(request: Request) -> str:
     Get unique identifier for rate limiting.
     Uses auth token if available, falls back to IP address.
     """
+    import hashlib
+    
     # Try to get user ID from auth token
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
-        token = auth_header.replace("Bearer ", "")
-        # Use token prefix as identifier (don't store full tokens)
-        return f"user:{token[:16]}"
+        token = auth_header[len("Bearer "):]
+        # Use a hash of the token as identifier to avoid prefix collisions
+        token_hash = hashlib.sha256(token.encode()).hexdigest()[:16]
+        return f"user:{token_hash}"
     
     # Fall back to IP address
-    return get_remote_address(request)
+    if SLOWAPI_AVAILABLE:
+        return get_remote_address(request)
+    return get_remote_address_fallback(request)
 
 
 class RateLimitConfig:
@@ -55,10 +84,13 @@ class RateLimitConfig:
     UPLOAD_RESUME = ["10/minute", "50/hour"]
 
 
-def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
     """
     Custom handler for rate limit exceeded errors.
     """
+    if not SLOWAPI_AVAILABLE:
+        return JSONResponse(status_code=200, content={})
+    
     client_id = get_user_identifier(request)
     logger.warning("Rate limit exceeded", {
         "client_id": client_id[:50] if client_id else None,
@@ -66,20 +98,25 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
         "method": request.method,
     })
     
-    raise HTTPException(
+    return JSONResponse(
         status_code=429,
-        detail="Rate limit exceeded. Please try again later.",
+        content={"detail": "Rate limit exceeded. Please try again later."},
         headers={"Retry-After": "60"},
     )
 
 
-def apply_rate_limiting(app):
+def apply_rate_limiting(app: "FastAPI") -> None:
     """
     Apply rate limiting to FastAPI application.
     
     Args:
         app: FastAPI application instance
     """
+    if not SLOWAPI_AVAILABLE or not limiter:
+        logger.warning("Rate limiting not available, skipping initialization")
+        app.state.limiter = None
+        return
+    
     # Add limiter state to app
     app.state.limiter = limiter
     

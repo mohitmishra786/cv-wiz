@@ -5,6 +5,7 @@ API endpoint for generating tailored cover letters.
 
 import time
 from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.models.cover_letter import CoverLetterRequest, CoverLetterResponse
 from app.services.profile_service import ProfileService
@@ -14,6 +15,9 @@ from app.utils.rate_limiter import limiter, RateLimitConfig
 
 
 router = APIRouter()
+
+# HTTP Bearer security scheme for Authorization header
+security = HTTPBearer(auto_error=False)
 
 
 # Dependency injection
@@ -25,11 +29,33 @@ def get_cover_letter_generator() -> CoverLetterGenerator:
     return CoverLetterGenerator()
 
 
+def get_auth_token(
+    cover_request: CoverLetterRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> str:
+    """
+    Extract auth token from Authorization header (preferred) or request body (fallback).
+    
+    This provides backward compatibility while encouraging secure header-based auth.
+    """
+    if credentials and credentials.credentials:
+        return credentials.credentials
+    
+    if cover_request.auth_token:
+        return cover_request.auth_token
+    
+    raise HTTPException(
+        status_code=401,
+        detail="Missing authentication token. Provide via Authorization header or authToken field.",
+    )
+
+
 @router.post("/cover-letter", response_model=CoverLetterResponse)
 @limiter.limit(RateLimitConfig.GENERATE_COVER_LETTER)
 async def generate_cover_letter(
     request: Request,
     cover_request: CoverLetterRequest,
+    auth_token: str = Depends(get_auth_token),
     profile_service: ProfileService = Depends(get_profile_service),
     generator: CoverLetterGenerator = Depends(get_cover_letter_generator),
 ) -> CoverLetterResponse:
@@ -61,18 +87,19 @@ async def generate_cover_letter(
             detail=f"Job description is too long ({job_description_length} characters). Maximum allowed: 50,000 characters.",
         )
     
+    auth_source = "header" if auth_token != cover_request.auth_token else "body"
     logger.start_operation("generate_cover_letter", {
         "request_id": request_id,
         "job_description_length": job_description_length,
         "tone": cover_request.tone,
         "max_words": cover_request.max_words,
-        "has_auth_token": bool(cover_request.auth_token),
+        "auth_source": auth_source,
     })
     
     try:
         # Validate auth token and get user profile
         logger.info("Fetching user profile for cover letter", {"request_id": request_id})
-        profile = await profile_service.get_profile(cover_request.auth_token)
+        profile = await profile_service.get_profile(auth_token)
         
         if profile is None:
             logger.warning("Cover letter auth failed - invalid token", {"request_id": request_id})
@@ -158,6 +185,7 @@ async def generate_cover_letter(
 async def preview_prompt(
     request: Request,
     cover_request: CoverLetterRequest,
+    auth_token: str = Depends(get_auth_token),
     profile_service: ProfileService = Depends(get_profile_service),
     generator: CoverLetterGenerator = Depends(get_cover_letter_generator),
 ) -> dict:
@@ -192,7 +220,7 @@ async def preview_prompt(
     logger.start_operation("preview_cover_letter_prompt", {"request_id": request_id})
     
     try:
-        profile = await profile_service.get_profile(cover_request.auth_token)
+        profile = await profile_service.get_profile(auth_token)
         
         if profile is None:
             logger.warning("Preview auth failed", {"request_id": request_id})
@@ -254,4 +282,4 @@ async def preview_prompt(
         raise
     except Exception as e:
         logger.fail_operation("preview_cover_letter_prompt", e, {"request_id": request_id})
-        raise
+        raise HTTPException(status_code=500, detail=f"Cover letter preview failed: {str(e)}")
