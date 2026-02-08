@@ -1,6 +1,6 @@
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 from datetime import datetime
 from app.services.groq_client import GroqClient
 from app.models.user import Experience, Project, Skill, Education
@@ -14,7 +14,7 @@ def mock_settings():
 
 @pytest.fixture
 def mock_groq(mock_settings):
-    with patch("app.services.groq_client.Groq") as mock:
+    with patch("app.services.groq_client.AsyncGroq") as mock:
         yield mock
 
 @pytest.fixture
@@ -29,7 +29,7 @@ async def test_generate_cover_letter(client, mock_groq):
     mock_response.usage.prompt_tokens = 10
     mock_response.usage.completion_tokens = 20
     
-    client.client.chat.completions.create.return_value = mock_response
+    client.client.chat.completions.create = AsyncMock(return_value=mock_response)
     
     result, model = await client.generate_cover_letter("Candidate Info", "Job Description")
     
@@ -48,7 +48,7 @@ async def test_generate_cover_letter(client, mock_groq):
 async def test_enhance_bullet(client, mock_groq):
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content="Enhanced Bullet"))]
-    client.client.chat.completions.create.return_value = mock_response
+    client.client.chat.completions.create = AsyncMock(return_value=mock_response)
     
     result = await client.enhance_bullet("Original Bullet")
     assert result == "Enhanced Bullet"
@@ -69,7 +69,7 @@ async def test_generate_interview_prep(client, mock_groq):
     mock_content = '{"questions": [{"question": "Q1", "suggested_answer": "A1", "key_points": ["P1"]}]}'
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content=mock_content))]
-    client.client.chat.completions.create.return_value = mock_response
+    client.client.chat.completions.create = AsyncMock(return_value=mock_response)
     
     result = await client.generate_interview_prep("Candidate Info", "Job Description")
     assert len(result) == 1
@@ -90,7 +90,7 @@ async def test_suggest_skills(client, mock_groq):
     mock_content = '{"skills": ["Python", "Docker"]}'
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content=mock_content))]
-    client.client.chat.completions.create.return_value = mock_response
+    client.client.chat.completions.create = AsyncMock(return_value=mock_response)
     
     result = await client.suggest_skills("I wrote backend code")
     assert "Python" in result

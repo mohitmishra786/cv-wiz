@@ -10,12 +10,16 @@ import OnboardingTour, { useOnboardingTour, RestartTourButton } from '../../Onbo
 // Mock driver.js
 const mockDrive = vi.fn();
 const mockDestroy = vi.fn();
+let mockOnDestroyed: (() => void) | undefined;
 
 vi.mock('driver.js', () => ({
-    driver: vi.fn(() => ({
-        drive: mockDrive,
-        destroy: mockDestroy,
-    })),
+    driver: vi.fn((config: { onDestroyed?: () => void }) => {
+        mockOnDestroyed = config.onDestroyed;
+        return {
+            drive: mockDrive,
+            destroy: mockDestroy,
+        };
+    }),
 }));
 
 // Mock localStorage
@@ -105,7 +109,7 @@ describe('OnboardingTour', () => {
         expect(mockDrive).toHaveBeenCalled();
     });
 
-    it('should call onComplete callback when tour is destroyed', () => {
+    it('should call onComplete callback when tour is destroyed', async () => {
         const onComplete = vi.fn();
         localStorageMock.getItem.mockReturnValue(null);
 
@@ -115,9 +119,10 @@ describe('OnboardingTour', () => {
             vi.advanceTimersByTime(2000);
         });
 
-        // Get the onDestroyed callback from driver config
-        const driverConfig = vi.mocked(await import('driver.js')).driver.mock.calls[0][0];
-        driverConfig.onDestroyed();
+        // Simulate tour completion by calling onDestroyed callback
+        if (mockOnDestroyed) {
+            mockOnDestroyed();
+        }
 
         expect(localStorageMock.setItem).toHaveBeenCalled();
         expect(onComplete).toHaveBeenCalled();

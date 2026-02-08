@@ -5,12 +5,13 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 import { ErrorBoundary } from '../../ErrorBoundary';
 import { GlobalErrorBoundary } from '../../GlobalErrorBoundary';
 
 // Mock Sentry
-jest.mock('@sentry/nextjs', () => ({
-    captureException: jest.fn(),
+vi.mock('@sentry/nextjs', () => ({
+    captureException: vi.fn(),
 }));
 
 // Component that throws an error
@@ -30,7 +31,7 @@ describe('ErrorBoundary', () => {
     // Suppress console.error for expected errors
     const originalConsoleError = console.error;
     beforeAll(() => {
-        console.error = jest.fn();
+        console.error = vi.fn();
     });
 
     afterAll(() => {
@@ -38,7 +39,7 @@ describe('ErrorBoundary', () => {
     });
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it('renders children when there is no error', () => {
@@ -90,7 +91,7 @@ describe('ErrorBoundary', () => {
     });
 
     it('calls onError callback when error occurs', () => {
-        const onError = jest.fn();
+        const onError = vi.fn();
         const testError = new Error('Test callback error');
 
         render(
@@ -129,7 +130,7 @@ describe('ErrorBoundary', () => {
 
     it('shows error details in development mode', () => {
         const originalEnv = process.env.NODE_ENV;
-        process.env.NODE_ENV = 'development';
+        (process.env as { NODE_ENV: string }).NODE_ENV = 'development';
 
         render(
             <ErrorBoundary>
@@ -139,12 +140,12 @@ describe('ErrorBoundary', () => {
 
         expect(screen.getByText('Development error message')).toBeInTheDocument();
 
-        process.env.NODE_ENV = originalEnv;
+        (process.env as { NODE_ENV: string | undefined }).NODE_ENV = originalEnv;
     });
 
     it('hides error details in production mode', () => {
         const originalEnv = process.env.NODE_ENV;
-        process.env.NODE_ENV = 'production';
+        (process.env as { NODE_ENV: string }).NODE_ENV = 'production';
 
         render(
             <ErrorBoundary>
@@ -154,14 +155,14 @@ describe('ErrorBoundary', () => {
 
         expect(screen.queryByText('Production error message')).not.toBeInTheDocument();
 
-        process.env.NODE_ENV = originalEnv;
+        (process.env as { NODE_ENV: string | undefined }).NODE_ENV = originalEnv;
     });
 });
 
 describe('GlobalErrorBoundary', () => {
     const originalConsoleError = console.error;
     beforeAll(() => {
-        console.error = jest.fn();
+        console.error = vi.fn();
     });
 
     afterAll(() => {
@@ -169,7 +170,7 @@ describe('GlobalErrorBoundary', () => {
     });
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it('renders children when there is no error', () => {
@@ -197,7 +198,7 @@ describe('GlobalErrorBoundary', () => {
 
     it('shows error details in development mode', () => {
         const originalEnv = process.env.NODE_ENV;
-        process.env.NODE_ENV = 'development';
+        (process.env as { NODE_ENV: string }).NODE_ENV = 'development';
 
         render(
             <GlobalErrorBoundary>
@@ -207,7 +208,7 @@ describe('GlobalErrorBoundary', () => {
 
         expect(screen.getByText('Global development error')).toBeInTheDocument();
 
-        process.env.NODE_ENV = originalEnv;
+        (process.env as { NODE_ENV: string | undefined }).NODE_ENV = originalEnv;
     });
 
     it('shows support link', () => {

@@ -19,6 +19,7 @@ import {
     createListItemAriaAttributes,
 } from '../keyboardNavigation';
 import { renderHook, act } from '@testing-library/react';
+import { vi } from 'vitest';
 
 // ============================================================================
 // matchesKeyCombo Tests
@@ -311,7 +312,7 @@ describe('useKeyboardNavigation', () => {
 
 describe('useArrowKeyNavigation', () => {
     it('initializes with correct state', () => {
-        const onSelect = jest.fn();
+        const onSelect = vi.fn();
         const { result } = renderHook(() =>
             useArrowKeyNavigation(5, onSelect)
         );
@@ -320,7 +321,7 @@ describe('useArrowKeyNavigation', () => {
     });
 
     it('navigates down with arrow key', () => {
-        const onSelect = jest.fn();
+        const onSelect = vi.fn();
         const { result } = renderHook(() =>
             useArrowKeyNavigation(5, onSelect)
         );
@@ -328,7 +329,7 @@ describe('useArrowKeyNavigation', () => {
         act(() => {
             result.current.handleKeyDown({
                 key: 'ArrowDown',
-                preventDefault: jest.fn(),
+                preventDefault: vi.fn(),
             } as unknown as React.KeyboardEvent);
         });
 
@@ -336,7 +337,7 @@ describe('useArrowKeyNavigation', () => {
     });
 
     it('navigates up with arrow key', () => {
-        const onSelect = jest.fn();
+        const onSelect = vi.fn();
         const { result } = renderHook(() =>
             useArrowKeyNavigation(5, onSelect)
         );
@@ -348,7 +349,7 @@ describe('useArrowKeyNavigation', () => {
         act(() => {
             result.current.handleKeyDown({
                 key: 'ArrowUp',
-                preventDefault: jest.fn(),
+                preventDefault: vi.fn(),
             } as unknown as React.KeyboardEvent);
         });
 
@@ -356,7 +357,7 @@ describe('useArrowKeyNavigation', () => {
     });
 
     it('wraps around at end', () => {
-        const onSelect = jest.fn();
+        const onSelect = vi.fn();
         const { result } = renderHook(() =>
             useArrowKeyNavigation(3, onSelect)
         );
@@ -368,7 +369,7 @@ describe('useArrowKeyNavigation', () => {
         act(() => {
             result.current.handleKeyDown({
                 key: 'ArrowDown',
-                preventDefault: jest.fn(),
+                preventDefault: vi.fn(),
             } as unknown as React.KeyboardEvent);
         });
 
@@ -376,7 +377,7 @@ describe('useArrowKeyNavigation', () => {
     });
 
     it('calls onSelect on Enter', () => {
-        const onSelect = jest.fn();
+        const onSelect = vi.fn();
         const { result } = renderHook(() =>
             useArrowKeyNavigation(5, onSelect)
         );
@@ -388,7 +389,7 @@ describe('useArrowKeyNavigation', () => {
         act(() => {
             result.current.handleKeyDown({
                 key: 'Enter',
-                preventDefault: jest.fn(),
+                preventDefault: vi.fn(),
             } as unknown as React.KeyboardEvent);
         });
 
@@ -396,7 +397,7 @@ describe('useArrowKeyNavigation', () => {
     });
 
     it('navigates to first on Home key', () => {
-        const onSelect = jest.fn();
+        const onSelect = vi.fn();
         const { result } = renderHook(() =>
             useArrowKeyNavigation(5, onSelect)
         );
@@ -408,7 +409,7 @@ describe('useArrowKeyNavigation', () => {
         act(() => {
             result.current.handleKeyDown({
                 key: 'Home',
-                preventDefault: jest.fn(),
+                preventDefault: vi.fn(),
             } as unknown as React.KeyboardEvent);
         });
 
@@ -416,7 +417,7 @@ describe('useArrowKeyNavigation', () => {
     });
 
     it('navigates to last on End key', () => {
-        const onSelect = jest.fn();
+        const onSelect = vi.fn();
         const { result } = renderHook(() =>
             useArrowKeyNavigation(5, onSelect)
         );
@@ -428,7 +429,7 @@ describe('useArrowKeyNavigation', () => {
         act(() => {
             result.current.handleKeyDown({
                 key: 'End',
-                preventDefault: jest.fn(),
+                preventDefault: vi.fn(),
             } as unknown as React.KeyboardEvent);
         });
 
@@ -481,20 +482,20 @@ describe('createListItemAriaAttributes', () => {
 
 describe('commonShortcuts', () => {
     it('creates save shortcut', () => {
-        const handler = jest.fn();
+        const handler = vi.fn();
         const shortcut = commonShortcuts.save(handler);
 
         expect(shortcut.key).toBe('s');
         expect(shortcut.ctrl).toBe(true);
         expect(shortcut.description).toBe('Save');
 
-        const event = { preventDefault: jest.fn() } as unknown as KeyboardEvent;
+        const event = { preventDefault: vi.fn() } as unknown as KeyboardEvent;
         shortcut.handler(event);
         expect(handler).toHaveBeenCalled();
     });
 
     it('creates search shortcut', () => {
-        const handler = jest.fn();
+        const handler = vi.fn();
         const shortcut = commonShortcuts.search(handler);
 
         expect(shortcut.key).toBe('k');
@@ -503,7 +504,7 @@ describe('commonShortcuts', () => {
     });
 
     it('creates close shortcut', () => {
-        const handler = jest.fn();
+        const handler = vi.fn();
         const shortcut = commonShortcuts.close(handler);
 
         expect(shortcut.key).toBe('Escape');
@@ -511,7 +512,7 @@ describe('commonShortcuts', () => {
     });
 
     it('creates help shortcut', () => {
-        const handler = jest.fn();
+        const handler = vi.fn();
         const shortcut = commonShortcuts.help(handler);
 
         expect(shortcut.key).toBe('?');

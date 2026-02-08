@@ -213,7 +213,9 @@ async def test_get_stats(deduplicator):
     assert stats["in_flight_count"] == 1
     assert stats["ttl_seconds"] == 2.0
     assert len(stats["requests"]) == 1
-    assert stats["requests"][0]["key"] == "test"
+    # Key format is "prefix:hash" where hash is first 16 chars of SHA256
+    assert stats["requests"][0]["key"].startswith("test:")
+    assert len(stats["requests"][0]["key"]) == len("test:") + 16  # prefix + 16-char hash
 
     # Wait for the request to complete
     await task

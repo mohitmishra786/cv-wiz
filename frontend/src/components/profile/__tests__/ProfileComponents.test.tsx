@@ -1,8 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { ProfileHeader } from './ProfileHeader';
-import { ProfileTabs } from './ProfileTabs';
-import { ExperienceList, ProjectList, SkillList, EducationList } from './ProfileLists';
+import { ProfileHeader } from '../ProfileHeader';
+import { ProfileTabs } from '../ProfileTabs';
+import { ExperienceList, ProjectList, SkillList, EducationList } from '../ProfileLists';
 import type { UserProfile, Experience, Project, Skill, Education } from '@/types';
 
 // Mock the logger
@@ -22,6 +22,7 @@ describe('ProfileHeader', () => {
         projects: [],
         skills: [],
         educations: [],
+        publications: [],
     };
 
     it('renders profile name and email', () => {
@@ -115,6 +116,7 @@ describe('ExperienceList', () => {
             location: 'Remote',
             description: 'Developed web applications',
             highlights: ['Built API', 'Led team'],
+            keywords: ['React', 'TypeScript'],
         },
     ];
 
@@ -251,6 +253,7 @@ describe('EducationList', () => {
             startDate: '2016-09-01',
             endDate: '2020-06-01',
             gpa: 3.8,
+            honors: ['Dean\'s List', ' magna cum laude'],
         },
     ];
 
