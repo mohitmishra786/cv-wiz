@@ -114,7 +114,10 @@ async def test_compile_cached_resume(compiler, sample_profile, mock_cache):
 
 @pytest.mark.asyncio
 async def test_pdf_generation_failure(compiler, sample_profile, mock_pdf_generator, mock_cache):
-    mock_pdf_generator.generate_pdf_base64.side_effect = Exception("PDF Error")
+    # Make the async method raise an exception
+    async def raise_error(*args, **kwargs):
+        raise Exception("PDF Error")
+    mock_pdf_generator.generate_pdf_base64 = raise_error
     
     response = await compiler.compile(sample_profile, "jd")
     assert response.success  # Still success for JSON
