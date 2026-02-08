@@ -4,20 +4,37 @@ Provides rate limiting for API endpoints using slowapi.
 """
 
 import time
+import warnings
 
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 from fastapi import Request, HTTPException
 
 from app.utils.logger import logger
 
+try:
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    from slowapi.errors import RateLimitExceeded
+    SLOWAPI_AVAILABLE = True
+except ImportError as e:
+    SLOWAPI_AVAILABLE = False
+    logger.warning("slowapi not available, rate limiting disabled", {"error": str(e)})
+    Limiter = None
+    RateLimitExceeded = Exception
 
-# Create limiter instance with Redis storage if available, otherwise in-memory
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["100/minute"],  # Default global rate limit
-)
+
+def get_remote_address_fallback(request: Request) -> str:
+    """Fallback function to get remote address if slowapi is not available."""
+    return request.client.host if request.client else "unknown"
+
+
+if SLOWAPI_AVAILABLE and Limiter:
+    limiter = Limiter(
+        key_func=get_remote_address,
+        default_limits=["100/minute"],  # Default global rate limit
+    )
+else:
+    limiter = None
+    warnings.warn("Rate limiting is disabled due to missing slowapi dependency")
 
 
 def get_user_identifier(request: Request) -> str:
@@ -33,7 +50,9 @@ def get_user_identifier(request: Request) -> str:
         return f"user:{token[:16]}"
     
     # Fall back to IP address
-    return get_remote_address(request)
+    if SLOWAPI_AVAILABLE:
+        return get_remote_address(request)
+    return get_remote_address_fallback(request)
 
 
 class RateLimitConfig:
@@ -55,10 +74,13 @@ class RateLimitConfig:
     UPLOAD_RESUME = ["10/minute", "50/hour"]
 
 
-def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+def rate_limit_exceeded_handler(request: Request, exc: Exception):
     """
     Custom handler for rate limit exceeded errors.
     """
+    if not SLOWAPI_AVAILABLE:
+        return
+    
     client_id = get_user_identifier(request)
     logger.warning("Rate limit exceeded", {
         "client_id": client_id[:50] if client_id else None,
@@ -80,6 +102,11 @@ def apply_rate_limiting(app):
     Args:
         app: FastAPI application instance
     """
+    if not SLOWAPI_AVAILABLE or not limiter:
+        logger.warning("Rate limiting not available, skipping initialization")
+        app.state.limiter = None
+        return
+    
     # Add limiter state to app
     app.state.limiter = limiter
     
