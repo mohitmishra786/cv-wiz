@@ -61,31 +61,64 @@ export async function GET(request: NextRequest) {
         logger.info('User authenticated', { requestId, userId });
         logAuthOperation('profile:get:authenticated', userId, true);
 
-        // Fetch complete profile with all relations
+        // Fetch complete profile with all relations from latest version
         logger.info('Fetching profile from database', { requestId, userId });
         logDbOperation('findUnique', 'User', { userId, includeRelations: true });
 
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            include: {
-                experiences: {
-                    orderBy: [{ current: 'desc' }, { startDate: 'desc' }],
-                },
-                projects: {
-                    orderBy: { order: 'asc' },
-                },
-                educations: {
-                    orderBy: { startDate: 'desc' },
-                },
-                skills: {
-                    orderBy: [{ category: 'asc' }, { order: 'asc' }],
-                },
-                publications: {
-                    orderBy: { date: 'desc' },
-                },
-                settings: true,
-            },
+        // Get the latest resume version first
+        const latestVersion = await prisma.resumeVersion.findFirst({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
         });
+
+        let user;
+
+        if (latestVersion && latestVersion.snapshot) {
+            logger.info('Using latest resume version snapshot', {
+                requestId,
+                userId,
+                versionId: latestVersion.id,
+                createdAt: latestVersion.createdAt,
+            });
+
+            const snapshot = latestVersion.snapshot as Record<string, unknown>;
+            user = {
+                id: snapshot.id as string,
+                email: snapshot.email as string,
+                name: snapshot.name as string | null,
+                image: snapshot.image as string | null,
+                experiences: (snapshot.experiences as Record<string, unknown>[]) || [],
+                projects: (snapshot.projects as Record<string, unknown>[]) || [],
+                educations: (snapshot.educations as Record<string, unknown>[]) || [],
+                skills: (snapshot.skills as Record<string, unknown>[]) || [],
+                publications: (snapshot.publications as Record<string, unknown>[]) || [],
+                settings: snapshot.settings as Record<string, unknown> | null,
+            };
+        } else {
+            logger.info('No resume version found, fetching live data', { requestId, userId });
+
+            user = await prisma.user.findUnique({
+                where: { id: userId },
+                include: {
+                    experiences: {
+                        orderBy: [{ current: 'desc' }, { startDate: 'desc' }],
+                    },
+                    projects: {
+                        orderBy: { order: 'asc' },
+                    },
+                    educations: {
+                        orderBy: { startDate: 'desc' },
+                    },
+                    skills: {
+                        orderBy: [{ category: 'asc' }, { order: 'asc' }],
+                    },
+                    publications: {
+                        orderBy: { date: 'desc' },
+                    },
+                    settings: true,
+                },
+            });
+        }
 
         if (!user) {
             logger.error('User not found in database', { requestId, userId });

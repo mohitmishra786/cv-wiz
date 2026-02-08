@@ -12,6 +12,7 @@ import { createRequestLogger, getOrCreateRequestId, logAuthOperation } from '@/l
 import { prisma } from '@/lib/prisma';
 import { generateBackendToken } from '@/lib/jwt';
 import { getBackendUrl } from '@/lib/backend-url';
+import { Prisma } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
 
@@ -383,6 +384,54 @@ export async function POST(request: NextRequest) {
                     projectsCreated,
                     educationCount: education.length,
                 });
+
+                // Create a new resume version with complete snapshot
+                const snapshot = await tx.user.findUnique({
+                    where: { id: userId },
+                    include: {
+                        experiences: true,
+                        projects: true,
+                        educations: true,
+                        skills: true,
+                        publications: true,
+                    },
+                });
+
+                if (snapshot) {
+                    await tx.resumeVersion.create({
+                        data: {
+                            userId,
+                            name: file.name || 'Resume Upload',
+                            snapshot: snapshot as unknown as Prisma.InputJsonValue,
+                        },
+                    });
+
+                    // Keep only the last 3 versions
+                    const allVersions = await tx.resumeVersion.findMany({
+                        where: { userId },
+                        orderBy: { createdAt: 'desc' },
+                        select: { id: true },
+                    });
+
+                    if (allVersions.length > 3) {
+                        const versionsToDelete = allVersions.slice(3);
+                        await tx.resumeVersion.deleteMany({
+                            where: {
+                                id: { in: versionsToDelete.map(v => v.id) },
+                            },
+                        });
+                        logger.debug('[Upload] Cleaned up old versions', {
+                            deleted: versionsToDelete.length,
+                            remaining: 3,
+                        });
+                    }
+
+                    logger.info('[Upload] Created resume version', {
+                        requestId,
+                        userId,
+                        versionName: file.name,
+                    });
+                }
             }, {
                 timeout: 30000, // 30 seconds for large skill lists
             });

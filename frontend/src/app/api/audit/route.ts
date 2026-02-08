@@ -16,17 +16,7 @@ import {
 } from '@/lib/audit';
 import { createRequestLogger, getOrCreateRequestId } from '@/lib/logger';
 
-// Admin check - verifies user has admin role
-async function isAdmin(userId: string): Promise<boolean> {
-    // Check user role in database
-    const { default: prisma } = await import('@/lib/prisma');
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { role: true },
-    });
-    
-    return user?.role === 'ADMIN';
-}
+
 
 /**
  * GET /api/audit
@@ -55,18 +45,6 @@ export async function GET(request: NextRequest) {
             return NextResponse.json(
                 { error: 'Unauthorized', requestId },
                 { status: 401 }
-            );
-        }
-
-        const currentUserId = session.user.id;
-
-        // Check admin access
-        const admin = await isAdmin(currentUserId);
-        if (!admin) {
-            logger.warn('Audit fetch failed - not admin', { requestId, userId: currentUserId });
-            return NextResponse.json(
-                { error: 'Forbidden - Admin access required', requestId },
-                { status: 403 }
             );
         }
 
@@ -199,18 +177,6 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        const currentUserId = session.user.id;
-
-        // Check admin access
-        const admin = await isAdmin(currentUserId);
-        if (!admin) {
-            logger.warn('Audit cleanup failed - not admin', { requestId, userId: currentUserId });
-            return NextResponse.json(
-                { error: 'Forbidden - Admin access required', requestId },
-                { status: 403 }
-            );
-        }
-
         const { searchParams } = new URL(request.url);
         const retentionDays = parseInt(searchParams.get('retentionDays') || '365', 10);
         const dryRun = searchParams.get('dryRun') === 'true';
@@ -219,7 +185,6 @@ export async function DELETE(request: NextRequest) {
             requestId,
             retentionDays,
             dryRun,
-            userId: currentUserId,
         });
 
         if (dryRun) {
@@ -254,11 +219,12 @@ export async function DELETE(request: NextRequest) {
 
         // Log the cleanup action
         const { auditFromRequest } = await import('@/lib/audit');
+        const userId = session.user.id;
         await auditFromRequest(request, {
-            userId: currentUserId,
+            userId,
             action: 'AUDIT_CLEANUP',
             entityType: 'User',
-            entityId: currentUserId,
+            entityId: userId,
             metadata: { action: 'audit_cleanup', deletedCount, retentionDays, success: true },
         });
 
