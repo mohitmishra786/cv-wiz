@@ -4,7 +4,11 @@ API endpoint for uploading and parsing resume/cover letter files.
 """
 
 import time
+import asyncio
+import tempfile
+import os
 import traceback
+from pathlib import Path
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, Request
 from fastapi.responses import JSONResponse
 from typing import Optional
@@ -13,6 +17,11 @@ from app.services.resume_parser import resume_parser
 from app.utils.logger import logger, get_request_id
 from app.middleware.auth import verify_auth_token
 from app.utils.rate_limiter import limiter, RateLimitConfig
+
+
+# Semaphore to limit concurrent parsing operations (prevents resource exhaustion)
+MAX_CONCURRENT_PARSES = 3
+parse_semaphore = asyncio.Semaphore(MAX_CONCURRENT_PARSES)
 
 
 router = APIRouter()
@@ -157,64 +166,101 @@ async def upload_resume(
         # Validate file type
         validate_file(file, request_id)
         
-        # Validate file size BEFORE reading into memory
-        # file.size is available in newer Starlette/FastAPI versions
-        # If not, we check it after a partial read or use this if available
-        actual_size = getattr(file, "size", None)
-        if actual_size is not None and actual_size > MAX_FILE_SIZE:
-            logger.warning("[Upload] File too large (pre-check)", {
-                "request_id": request_id,
-                "size_bytes": actual_size,
-                "max_bytes": MAX_FILE_SIZE,
-            })
-            raise HTTPException(
-                status_code=400,
-                detail=f"File too large ({actual_size // 1024 // 1024}MB). Maximum size is {MAX_FILE_SIZE // 1024 // 1024}MB",
-            )
+        # Use semaphore to limit concurrent parsing operations
+        async with parse_semaphore:
+            # Validate file size BEFORE reading into memory
+            actual_size = getattr(file, "size", None)
+            if actual_size is not None and actual_size > MAX_FILE_SIZE:
+                logger.warning("[Upload] File too large (pre-check)", {
+                    "request_id": request_id,
+                    "size_bytes": actual_size,
+                    "max_bytes": MAX_FILE_SIZE,
+                })
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"File too large ({actual_size // 1024 // 1024}MB). Maximum size is {MAX_FILE_SIZE // 1024 // 1024}MB",
+                )
 
-        # Read file content in chunks to be even safer, though for 10MB it's okay-ish
-        # but the point is to avoid reading 1GB if size wasn't in headers
-        content = await file.read()
-        file_size = len(content)
-        
-        logger.info("[Upload] File received", {
-            "request_id": request_id,
-            "filename": file.filename,
-            "size_bytes": file_size,
-            "file_type": file_type,
-        })
-        
-        # Secondary size check in case getattr(file, "size") was None
-        if file_size > MAX_FILE_SIZE:
-            logger.warning("[Upload] File too large", {
-                "request_id": request_id,
-                "size_bytes": file_size,
-                "max_bytes": MAX_FILE_SIZE,
-            })
-            raise HTTPException(
-                status_code=400,
-                detail=f"File too large ({file_size // 1024 // 1024}MB). Maximum size is {MAX_FILE_SIZE // 1024 // 1024}MB",
-            )
-        
-        if file_size == 0:
-            logger.warning("[Upload] Empty file", {"request_id": request_id})
-            raise HTTPException(
-                status_code=400,
-                detail="File is empty",
-            )
-        
-        # Parse the file
-        logger.info("[Upload] Starting file parsing", {
-            "request_id": request_id,
-            "filename": file.filename,
-            "file_type": file_type,
-        })
-        
-        result = await resume_parser.parse_file(
-            content, 
-            file.filename or "unknown",
-            file_type=file_type or "resume",
-        )
+            # Stream file to temporary file instead of reading all into memory
+            # This prevents OOM for large files and allows memory-efficient processing
+            temp_file = None
+            try:
+                # Create a temporary file
+                with tempfile.NamedTemporaryFile(delete=False, suffix=Path(file.filename or "upload").suffix) as temp_file:
+                    temp_path = temp_file.name
+                    file_size = 0
+                    chunk_size = 8192  # 8KB chunks
+                    
+                    logger.info("[Upload] Starting file stream to temp file", {
+                        "request_id": request_id,
+                        "filename": file.filename,
+                    })
+                    
+                    # Stream file content in chunks
+                    while True:
+                        chunk = await file.read(chunk_size)
+                        if not chunk:
+                            break
+                        file_size += len(chunk)
+                        
+                        # Check size limit while streaming
+                        if file_size > MAX_FILE_SIZE:
+                            logger.warning("[Upload] File too large (during stream)", {
+                                "request_id": request_id,
+                                "size_bytes": file_size,
+                                "max_bytes": MAX_FILE_SIZE,
+                            })
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"File too large ({file_size // 1024 // 1024}MB). Maximum size is {MAX_FILE_SIZE // 1024 // 1024}MB",
+                            )
+                        
+                        temp_file.write(chunk)
+                
+                logger.info("[Upload] File streamed successfully", {
+                    "request_id": request_id,
+                    "filename": file.filename,
+                    "size_bytes": file_size,
+                    "temp_path": temp_path,
+                })
+                
+                if file_size == 0:
+                    logger.warning("[Upload] Empty file", {"request_id": request_id})
+                    raise HTTPException(
+                        status_code=400,
+                        detail="File is empty",
+                    )
+                
+                # Parse the file from temp path
+                logger.info("[Upload] Starting file parsing", {
+                    "request_id": request_id,
+                    "filename": file.filename,
+                    "file_type": file_type,
+                    "temp_path": temp_path,
+                })
+                
+                result = await resume_parser.parse_file(
+                    temp_path,
+                    file.filename or "unknown",
+                    file_type=file_type or "resume",
+                    is_file_path=True,  # Indicate that we're passing a file path
+                )
+                
+            finally:
+                # Clean up temporary file
+                if temp_path and os.path.exists(temp_path):
+                    try:
+                        os.unlink(temp_path)
+                        logger.debug("[Upload] Cleaned up temp file", {
+                            "request_id": request_id,
+                            "temp_path": temp_path,
+                        })
+                    except Exception as cleanup_error:
+                        logger.warning("[Upload] Failed to clean up temp file", {
+                            "request_id": request_id,
+                            "temp_path": temp_path,
+                            "error": str(cleanup_error),
+                        })
         
         duration_ms = (time.time() - start_time) * 1000
         

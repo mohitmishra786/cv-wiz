@@ -11,12 +11,13 @@ Enhanced with:
 """
 
 import io
+import os
 import re
 import json
 import time
 import traceback
 import asyncio
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass
 
 from app.utils.logger import logger, log_function_call
@@ -112,18 +113,66 @@ class ResumeParser:
         })
     
     @log_function_call
-    async def parse_file(self, file_content: bytes, filename: str, file_type: str = "resume") -> Dict[str, Any]:
+    async def parse_file(
+        self, 
+        file_input: bytes | str, 
+        filename: str, 
+        file_type: str = "resume",
+        is_file_path: bool = False
+    ) -> Dict[str, Any]:
         """
-        Parse a resume or cover letter file and extract structured data.
+        Parse resume/cover letter file and extract structured data.
         
         Args:
-            file_content: Raw bytes of the uploaded file
+            file_input: File content as bytes OR file path as string
             filename: Original filename for type detection
             file_type: "resume" or "cover-letter"
+            is_file_path: If True, file_input is a file path; if False, it's bytes
             
         Returns:
             Dictionary containing extracted data
         """
+        start_time = time.time()
+        
+        # If file_input is a path, read the file
+        if is_file_path:
+            if not isinstance(file_input, str):
+                logger.error("[ResumeParser] is_file_path=True but file_input is not a string")
+                return {"error": "Invalid file input: expected file path when is_file_path=True"}
+            
+            file_path = file_input
+            file_size = os.path.getsize(file_path)
+            
+            logger.start_operation("resume_parse", {
+                "filename": filename,
+                "file_size": file_size,
+                "file_type": file_type,
+                "file_path": file_path,
+            })
+            
+            # Read file content from path
+            try:
+                with open(file_path, 'rb') as f:
+                    file_content = f.read()
+            except Exception as e:
+                logger.error("[ResumeParser] Failed to read file from path", {
+                    "file_path": file_path,
+                    "error": str(e),
+                })
+                return {"error": f"Failed to read file: {str(e)}"}
+        else:
+            # Legacy behavior: file_input is bytes
+            if not isinstance(file_input, bytes):
+                logger.error("[ResumeParser] is_file_path=False but file_input is not bytes")
+                return {"error": "Invalid file input: expected bytes when is_file_path=False"}
+            
+            file_content = file_input
+            
+            logger.start_operation("resume_parse", {
+                "filename": filename,
+                "file_size": len(file_content),
+                "file_type": file_type,
+            })
         start_time = time.time()
         logger.start_operation("resume_parse", {
             "filename": filename,
