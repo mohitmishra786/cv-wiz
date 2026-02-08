@@ -52,7 +52,10 @@ def sample_profile():
 def mock_pdf_generator():
     with patch("app.services.resume_compiler.PDFGenerator") as mock:
         instance = mock.return_value
-        instance.generate_pdf_base64.return_value = "base64encodedpdf"
+        # Make the mocked method async
+        async def mock_generate_pdf_base64(*args, **kwargs):
+            return "base64encodedpdf"
+        instance.generate_pdf_base64 = mock_generate_pdf_base64
         yield instance
 
 @pytest.fixture
