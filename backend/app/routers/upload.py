@@ -184,6 +184,7 @@ async def upload_resume(
             # Stream file to temporary file instead of reading all into memory
             # This prevents OOM for large files and allows memory-efficient processing
             temp_file = None
+            temp_path = None  # Initialize for finally block
             try:
                 # Create a temporary file
                 with tempfile.NamedTemporaryFile(delete=False, suffix=Path(file.filename or "upload").suffix) as temp_file:
