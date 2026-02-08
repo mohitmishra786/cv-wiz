@@ -78,7 +78,7 @@ describe('withTransaction', () => {
         });
 
         const result = await withTransaction(async (tx) => {
-            return tx.user.create({ data: { name: 'Test' } });
+            return tx.user.create({ data: { name: 'Test', email: 'test@example.com' } });
         });
 
         expect(result).toEqual({ id: 'user-1' });
