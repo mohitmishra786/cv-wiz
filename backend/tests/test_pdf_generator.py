@@ -2,8 +2,7 @@
 Tests for PDF Generator
 """
 import sys
-import asyncio
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 import pytest
 
 # Mock weasyprint modules BEFORE importing the module under test

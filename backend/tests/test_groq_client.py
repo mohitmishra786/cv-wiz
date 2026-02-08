@@ -57,10 +57,10 @@ async def test_enhance_bullet(client, mock_groq):
 async def test_enhance_bullet_with_jd(client, mock_groq):
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content="Enhanced Bullet"))]
-    client.client.chat.completions.create.return_value = mock_response
-    
+    client.client.chat.completions.create = AsyncMock(return_value=mock_response)
+
     await client.enhance_bullet("Original Bullet", "Job Description")
-    
+
     args, kwargs = client.client.chat.completions.create.call_args
     assert "Job Description" in kwargs["messages"][0]["content"]
 
@@ -70,7 +70,7 @@ async def test_generate_interview_prep(client, mock_groq):
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content=mock_content))]
     client.client.chat.completions.create = AsyncMock(return_value=mock_response)
-    
+
     result = await client.generate_interview_prep("Candidate Info", "Job Description")
     assert len(result) == 1
     assert result[0]["question"] == "Q1"
@@ -80,8 +80,8 @@ async def test_generate_interview_prep_failure(client, mock_groq):
     # Simulate invalid JSON response
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content="Invalid JSON"))]
-    client.client.chat.completions.create.return_value = mock_response
-    
+    client.client.chat.completions.create = AsyncMock(return_value=mock_response)
+
     result = await client.generate_interview_prep("Candidate Info")
     assert result == []
 
@@ -96,7 +96,7 @@ async def test_suggest_skills(client, mock_groq):
     assert "Python" in result
     assert "Docker" in result
 
-def test_format_candidate_info(client):
+def test_format_candidate_info(client) -> None:
     experiences = [
         Experience(
             id="e1",
@@ -128,7 +128,7 @@ def test_format_candidate_info(client):
             startDate=datetime(2016, 1, 1)
         )
     ]
-    
+
     formatted = client.format_candidate_info(
         name="John Doe",
         email="john@example.com",
@@ -137,7 +137,7 @@ def test_format_candidate_info(client):
         skills=skills,
         educations=educations
     )
-    
+
     assert "John Doe" in formatted
     assert "Tech Corp" in formatted
     assert "Dev" in formatted

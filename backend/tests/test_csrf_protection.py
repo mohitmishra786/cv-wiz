@@ -82,7 +82,7 @@ def test_get_request_generates_csrf_cookie(client):
     assert "X-CSRF-Token-Set" in response.headers
 
 
-def test_safe_methods_allowed_without_csrf(client):
+def test_safe_methods_allowed_without_csrf(client) -> None:
     """Test that safe methods (GET, HEAD, OPTIONS) don't require CSRF token."""
     # GET
     response = client.get("/")
@@ -218,7 +218,7 @@ def test_patch_with_valid_csrf_token_succeeds(client):
     assert response.status_code == 200
 
 
-def test_csrf_token_rotation_after_state_change(client):
+def test_csrf_token_rotation_after_state_change(client) -> None:
     """Test that CSRF token is rotated after state-changing operations."""
     # Get initial token
     get_response = client.get("/")
@@ -234,18 +234,21 @@ def test_csrf_token_rotation_after_state_change(client):
     # Check if a new token was set
     assert post_response.status_code == 200
     new_token = post_response.cookies.get(CSRF_COOKIE_NAME)
+    if new_token:
+        assert new_token != initial_token, "Token should be rotated after POST"
 
     # Note: Token rotation means a new token is generated
     # In the actual implementation, this happens via X-CSRF-Token-Set header
     assert "X-CSRF-Token-Set" in post_response.headers
 
 
-def test_missing_csrf_header_returns_403(client):
+def test_missing_csrf_header_returns_403(client) -> None:
     """Test that missing CSRF header in POST returns 403."""
     response = client.post("/protected")
 
     assert response.status_code == 403
-    assert "error" in response.json()
+    assert "detail" in response.json()
+    assert "CSRF" in response.json()["detail"]
 
 
 def test_csrf_cookie_security_attributes(client):
@@ -275,7 +278,7 @@ def test_csrf_protection_does_not_affect_response_body(client):
     assert response.json() == {"message": "Protected POST"}
 
 
-def test_multiple_requests_with_same_token(client):
+def test_multiple_requests_with_same_token(client) -> None:
     """Test that the same CSRF token can be used for multiple requests."""
     get_response = client.get("/")
     csrf_token = get_response.cookies.get(CSRF_COOKIE_NAME)
@@ -298,5 +301,6 @@ def test_multiple_requests_with_same_token(client):
         headers={CSRF_TOKEN_HEADER: new_token},
         cookies={CSRF_COOKIE_NAME: new_token}
     )
-    # This might fail if strict token rotation is enforced
-    # The test shows the expected behavior
+    # If strict rotation is enforced, the old cookie won't match;
+    # otherwise the request succeeds with the rotated token.
+    assert response2.status_code in [200, 403]

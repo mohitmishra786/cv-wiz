@@ -4,7 +4,8 @@ Updated to require authentication for all endpoints
 """
 import pytest
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from typing import Generator
 from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
@@ -13,20 +14,20 @@ from app.config import get_settings
 
 
 @pytest.fixture
-def valid_token():
+def valid_token() -> str:
     """Generate a valid JWT token for testing."""
     settings = get_settings()
     payload = {
         "sub": "test-user-id",
         "email": "test@example.com",
         "name": "Test User",
-        "exp": datetime.utcnow() + timedelta(hours=1),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
     }
     return jwt.encode(payload, settings.nextauth_secret, algorithm="HS256")
 
 
 @pytest.fixture
-def mock_groq_client():
+def mock_groq_client() -> AsyncMock:
     """Mock the GroqClient for testing."""
     mock = AsyncMock()
     mock.enhance_bullet.return_value = "Enhanced bullet point with better impact"
@@ -42,20 +43,20 @@ def mock_groq_client():
 
 
 @pytest.fixture
-def client(mock_groq_client):
+def client(mock_groq_client: AsyncMock) -> Generator[TestClient, None, None]:
     """Create test client with mocked GroqClient."""
     with patch("app.routers.ai.GroqClient", return_value=mock_groq_client):
         with TestClient(app) as c:
             yield c
 
 
-def test_enhance_bullet_validation(client):
+def test_enhance_bullet_validation(client: TestClient) -> None:
     """Test validation error for enhance-bullet - requires auth first."""
     response = client.post("/ai/enhance-bullet", json={})
     assert response.status_code == 401  # Auth required before validation
 
 
-def test_enhance_bullet_success(client, valid_token, mock_groq_client):
+def test_enhance_bullet_success(client: TestClient, valid_token: str, mock_groq_client: AsyncMock) -> None:
     """Test successful bullet enhancement with authentication."""
     response = client.post(
         "/ai/enhance-bullet",
@@ -67,7 +68,7 @@ def test_enhance_bullet_success(client, valid_token, mock_groq_client):
     mock_groq_client.enhance_bullet.assert_called_once()
 
 
-def test_interview_prep_success(client, valid_token, mock_groq_client):
+def test_interview_prep_success(client: TestClient, valid_token: str, mock_groq_client: AsyncMock) -> None:
     """Test successful interview prep generation with authentication."""
     response = client.post(
         "/ai/interview-prep",
@@ -80,7 +81,7 @@ def test_interview_prep_success(client, valid_token, mock_groq_client):
     mock_groq_client.generate_interview_prep.assert_called_once()
 
 
-def test_suggest_skills_success(client, valid_token, mock_groq_client):
+def test_suggest_skills_success(client: TestClient, valid_token: str, mock_groq_client: AsyncMock) -> None:
     """Test successful skill suggestion with authentication."""
     response = client.post(
         "/ai/suggest-skills",
@@ -92,7 +93,7 @@ def test_suggest_skills_success(client, valid_token, mock_groq_client):
     mock_groq_client.suggest_skills.assert_called_once()
 
 
-def test_suggest_skills_too_short(client, valid_token):
+def test_suggest_skills_too_short(client: TestClient, valid_token: str) -> None:
     """Test validation for short text with authentication."""
     response = client.post(
         "/ai/suggest-skills",
