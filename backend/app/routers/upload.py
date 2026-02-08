@@ -5,7 +5,7 @@ API endpoint for uploading and parsing resume/cover letter files.
 
 import time
 import traceback
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, Request
 from fastapi.responses import JSONResponse
 from typing import Optional
 
@@ -127,6 +127,7 @@ def validate_file(file: UploadFile, request_id: str) -> None:
 @router.post("/upload/resume")
 @limiter.limit("10/minute")
 async def upload_resume(
+    request: Request,
     file: UploadFile = File(...),
     file_type: Optional[str] = Form(default="resume"),
     user_id: str = Depends(verify_auth_token),
@@ -285,6 +286,7 @@ async def upload_resume(
 @router.post("/parse-resume")
 @limiter.limit("10/minute")
 async def parse_resume_alt(
+    request: Request,
     file: UploadFile = File(...),
     user_id: str = Depends(verify_auth_token),
 ) -> JSONResponse:
@@ -292,19 +294,20 @@ async def parse_resume_alt(
     Alternative endpoint for resume parsing (for compatibility).
     Same functionality as /upload/resume.
     """
-    return await upload_resume(file=file, file_type="resume", user_id=user_id)
+    return await upload_resume(request, file=file, file_type="resume", user_id=user_id)
 
 
 @router.post("/parse-cover-letter")
 @limiter.limit("10/minute")
 async def parse_cover_letter(
+    request: Request,
     file: UploadFile = File(...),
     user_id: str = Depends(verify_auth_token),
 ) -> JSONResponse:
     """
-    Parse a cover letter file and extract the text content.
+    Parse a cover letter file and extract text content.
     
     Accepts PDF, DOCX, TXT, and MD files.
-    Returns the text content of the cover letter.
+    Returns text content of cover letter.
     """
-    return await upload_resume(file=file, file_type="cover-letter", user_id=user_id)
+    return await upload_resume(request, file=file, file_type="cover-letter", user_id=user_id)

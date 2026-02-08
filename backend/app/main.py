@@ -13,6 +13,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
+from app.utils.rate_limiter import apply_rate_limiting, limiter  # noqa: E402
+from app.utils.redis_cache import redis_client  # noqa: E402
+from app.utils.csrf_protection import CSRFProtectionMiddleware  # noqa: E402
+from app.utils.logger import (  # noqa: E402
+    logger, 
+    generate_request_id, 
+    set_request_context, 
+    clear_request_context,
+    log_api_request
+)
 
 # Initialize Sentry
 settings = get_settings()
@@ -24,18 +34,6 @@ if settings.sentry_dsn:
         profiles_sample_rate=1.0,
         environment=settings.environment,
     )
-
-from app.routers import compile, cover_letter, upload, ai  # noqa: E402
-from app.utils.redis_cache import redis_client  # noqa: E402
-from app.utils.rate_limiter import apply_rate_limiting  # noqa: E402
-from app.utils.csrf_protection import CSRFProtectionMiddleware  # noqa: E402
-from app.utils.logger import (  # noqa: E402
-    logger, 
-    generate_request_id, 
-    set_request_context, 
-    clear_request_context,
-    log_api_request
-)
 
 
 class SecurityMiddleware(BaseHTTPMiddleware):
@@ -131,8 +129,11 @@ app = FastAPI(
     root_path="/api/py",  # For Vercel deployment with Next.js rewrites
 )
 
-# Initialize rate limiting
+# Initialize rate limiting BEFORE importing routers
 apply_rate_limiting(app)
+
+# Now import routers (after rate limiting is set up)
+from app.routers import compile, cover_letter, upload, ai  # noqa: E402
 
 # Add logging middleware FIRST
 app.add_middleware(LoggingMiddleware)
