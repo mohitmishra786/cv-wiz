@@ -267,3 +267,86 @@ def log_auth_operation(operation: str, user_id: Optional[str] = None, success: b
     
     level = logging.INFO if success else logging.WARNING
     logger._log(level, f"[AUTH] {operation}", log_data)
+
+
+def sanitize_query_params(query_params: Any) -> Optional[Dict[str, str]]:
+    """
+    Sanitize query parameters by removing sensitive data.
+    
+    Masks passwords, tokens, API keys, and other sensitive parameters.
+    
+    Args:
+        query_params: Query parameters from FastAPI request
+        
+    Returns:
+        Sanitized dictionary or None
+    """
+    if not query_params:
+        return None
+    
+    # Sensitive parameter names to mask
+    sensitive_keys = {
+        "password", "passwd", "pwd",
+        "token", "auth_token", "access_token", "refresh_token", "id_token",
+        "api_key", "apikey", "api-key", "x-api-key",
+        "secret", "client_secret",
+        "credential", "credentials",
+        "session", "session_id",
+        "auth", "authorization",
+        "jwt", "bearer",
+    }
+    
+    sanitized = {}
+    for key, value in dict(query_params).items():
+        # Mask sensitive keys
+        if key.lower() in sensitive_keys:
+            sanitized[key] = "***"
+        else:
+            # For non-sensitive keys, still limit length
+            str_value = str(value)
+            if len(str_value) > 100:
+                sanitized[key] = str_value[:100] + "..."
+            else:
+                sanitized[key] = str_value
+    
+    return sanitized if sanitized else None
+
+
+def sanitize_dict(data: Dict[str, Any], sensitive_keys: Optional[set] = None) -> Dict[str, Any]:
+    """
+    Sanitize a dictionary by masking sensitive values.
+    
+    Args:
+        data: Dictionary to sanitize
+        sensitive_keys: Set of sensitive key names (defaults to standard set)
+        
+    Returns:
+        Sanitized dictionary
+    """
+    if sensitive_keys is None:
+        sensitive_keys = {
+            "password", "passwd", "pwd",
+            "token", "auth_token", "access_token", "refresh_token", "id_token",
+            "api_key", "apikey", "api-key", "x-api-key",
+            "secret", "client_secret",
+            "credential", "credentials",
+            "session", "session_id",
+            "auth", "authorization",
+            "jwt", "bearer",
+        }
+    
+    sanitized = {}
+    for key, value in data.items():
+        if key.lower() in sensitive_keys:
+            sanitized[key] = "***"
+        elif isinstance(value, dict):
+            sanitized[key] = sanitize_dict(value, sensitive_keys)
+        elif isinstance(value, list):
+            sanitized[key] = [
+                sanitize_dict(item, sensitive_keys) if isinstance(item, dict) else item
+                for item in value
+            ]
+        else:
+            sanitized[key] = value
+    
+    return sanitized

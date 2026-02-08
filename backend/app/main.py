@@ -21,7 +21,8 @@ from app.utils.logger import (  # noqa: E402
     generate_request_id, 
     set_request_context, 
     clear_request_context,
-    log_api_request
+    log_api_request,
+    sanitize_query_params
 )
 
 # Initialize Sentry
@@ -59,10 +60,11 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         set_request_context(request_id=request_id)
         
         # Log request start
+        sanitized_query = sanitize_query_params(request.query_params)
         logger.info(f"[REQUEST] {request.method} {request.url.path}", {
             "method": request.method,
             "path": request.url.path,
-            "query": str(request.query_params) if request.query_params else None,
+            "query": sanitized_query,
             "client_ip": request.client.host if request.client else None,
             "user_agent": request.headers.get("user-agent", "")[:100],
         })
