@@ -1,9 +1,9 @@
 """
 Redis Cache Utilities
 Provides caching for repeated API requests with fallback mechanisms.
+Optimized with orjson for faster JSON serialization.
 """
 
-import json
 import hashlib
 from typing import Optional, Any
 from enum import Enum
@@ -12,6 +12,50 @@ import redis.asyncio as redis
 
 from app.config import get_settings
 from app.utils.logger import logger
+
+# Try to use orjson for faster JSON serialization, fall back to standard json
+try:
+    import orjson
+    _use_orjson = True
+    logger.info("Using orjson for optimized JSON serialization")
+except ImportError:
+    import json
+    _use_orjson = False
+    logger.info("orjson not available, using standard json module")
+
+
+def _json_dumps(obj: Any) -> str:
+    """
+    Serialize object to JSON string using fastest available method.
+    
+    Args:
+        obj: Object to serialize
+        
+    Returns:
+        JSON string
+    """
+    if _use_orjson:
+        # orjson returns bytes, need to decode to str
+        return orjson.dumps(obj).decode('utf-8')
+    else:
+        # Standard json module
+        return json.dumps(obj, default=str)
+
+
+def _json_loads(data: str) -> Any:
+    """
+    Deserialize JSON string to object using fastest available method.
+    
+    Args:
+        data: JSON string
+        
+    Returns:
+        Deserialized object
+    """
+    if _use_orjson:
+        return orjson.loads(data)
+    else:
+        return json.loads(data)
 
 
 class CacheStatus(Enum):
@@ -159,7 +203,7 @@ async def get_cached(key: str) -> Optional[dict]:
         if value:
             redis_client.record_success()
             logger.debug("Cache hit", {"key": key[:50]})
-            return json.loads(value)
+            return _json_loads(value)
         else:
             logger.debug("Cache miss", {"key": key[:50]})
     except Exception as e:
@@ -191,7 +235,7 @@ async def set_cached(key: str, value: Any, ttl: Optional[int] = None) -> bool:
         if not client:
             return False
         
-        serialized = json.dumps(value, default=str)
+        serialized = _json_dumps(value)
         await client.set(
             key,
             serialized,
