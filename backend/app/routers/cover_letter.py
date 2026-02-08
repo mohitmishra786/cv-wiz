@@ -282,4 +282,4 @@ async def preview_prompt(
         raise
     except Exception as e:
         logger.fail_operation("preview_cover_letter_prompt", e, {"request_id": request_id})
-        raise
+        raise HTTPException(status_code=500, detail=f"Cover letter preview failed: {str(e)}")

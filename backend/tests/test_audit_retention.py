@@ -3,8 +3,7 @@ Test audit log retention service.
 """
 
 import pytest
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
+from datetime import datetime, timedelta, timezone
 
 from app.services.audit_retention import (
     AuditLogRetentionService,
@@ -45,7 +44,7 @@ class TestAuditLogRetentionService:
         service = AuditLogRetentionService(retention_days=retention_days)
         
         cutoff = service.get_cutoff_date()
-        expected_cutoff = datetime.utcnow() - timedelta(days=retention_days)
+        expected_cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
         
         # Should be within 1 second of expected
         assert abs((cutoff - expected_cutoff).total_seconds()) < 1
@@ -84,7 +83,7 @@ class TestAuditLogRetentionService:
         """Test cleanup decision when cleanup ran recently."""
         service = AuditLogRetentionService()
         
-        recent_cleanup = datetime.utcnow() - timedelta(hours=12)
+        recent_cleanup = datetime.now(timezone.utc) - timedelta(hours=12)
         should_run = service.should_cleanup_run(recent_cleanup)
         assert should_run is False
     
@@ -92,7 +91,7 @@ class TestAuditLogRetentionService:
         """Test cleanup decision when cleanup ran over a day ago."""
         service = AuditLogRetentionService()
         
-        old_cleanup = datetime.utcnow() - timedelta(days=2)
+        old_cleanup = datetime.now(timezone.utc) - timedelta(days=2)
         should_run = service.should_cleanup_run(old_cleanup)
         assert should_run is True
 
@@ -102,6 +101,9 @@ class TestAuditRetentionSingleton:
     
     def test_get_singleton_returns_same_instance(self):
         """Test that get_audit_retention_service returns singleton."""
+        import app.services.audit_retention
+        app.services.audit_retention._retention_service = None
+        
         service1 = get_audit_retention_service()
         service2 = get_audit_retention_service()
         

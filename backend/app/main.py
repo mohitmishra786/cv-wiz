@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
-from app.utils.rate_limiter import apply_rate_limiting, limiter  # noqa: E402
+from app.utils.rate_limiter import apply_rate_limiting  # noqa: E402
 from app.utils.redis_cache import redis_client  # noqa: E402
 from app.utils.csrf_protection import CSRFProtectionMiddleware  # noqa: E402
 from app.utils.logger import (  # noqa: E402

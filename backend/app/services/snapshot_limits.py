@@ -5,7 +5,6 @@ Implements size limits and compression for resume snapshots to prevent unbounded
 
 import json
 from typing import Any, Dict, Optional
-from datetime import datetime
 
 from app.utils.logger import logger
 
@@ -27,6 +26,7 @@ class SnapshotSizeValidator:
         self,
         max_size: int = MAX_SNAPSHOT_SIZE,
         warning_size: int = WARNING_SNAPSHOT_SIZE,
+        max_array_length: int = MAX_ARRAY_LENGTH,
     ):
         """
         Initialize validator with size limits.
@@ -34,9 +34,11 @@ class SnapshotSizeValidator:
         Args:
             max_size: Maximum allowed snapshot size in bytes
             warning_size: Size threshold for warnings
+            max_array_length: Maximum items in arrays
         """
         self.max_size = max_size
         self.warning_size = warning_size
+        self.max_array_length = max_array_length
         logger.debug("[SnapshotValidator] Initialized", {
             "max_size": max_size,
             "warning_size": warning_size,
@@ -82,9 +84,9 @@ class SnapshotSizeValidator:
             
             # Check array lengths
             for key, value in snapshot.items():
-                if isinstance(value, list) and len(value) > self.MAX_ARRAY_LENGTH:
+                if isinstance(value, list) and len(value) > self.max_array_length:
                     result["warnings"].append(
-                        f"Array '{key}' has {len(value)} items (max recommended: {self.MAX_ARRAY_LENGTH})"
+                        f"Array '{key}' has {len(value)} items (max recommended: {self.max_array_length})"
                     )
                     result["recommendations"].append(f"Trim {key} to most recent entries")
             
@@ -128,10 +130,10 @@ class SnapshotSizeValidator:
         truncation_count = 0
         
         for key, value in truncated.items():
-            if isinstance(value, list) and len(value) > self.MAX_ARRAY_LENGTH:
+            if isinstance(value, list) and len(value) > self.max_array_length:
                 # Keep most recent items
                 original_length = len(value)
-                truncated[key] = value[-self.MAX_ARRAY_LENGTH:]
+                truncated[key] = value[-self.max_array_length:]
                 truncation_count += original_length - len(truncated[key])
                 
                 logger.info("[SnapshotValidator] Truncated array", {
@@ -187,10 +189,15 @@ class SnapshotStorageManager:
     Manages snapshot storage with size limits and compression strategies.
     """
     
-    def __init__(self):
-        """Initialize storage manager."""
-        self.validator = SnapshotSizeValidator()
-        logger.info("[SnapshotStorage] Manager initialized")
+    def __init__(self, max_size: int = SnapshotSizeValidator.MAX_SNAPSHOT_SIZE):
+        """
+        Initialize storage manager.
+        
+        Args:
+            max_size: Maximum snapshot size in bytes
+        """
+        self.validator = SnapshotSizeValidator(max_size=max_size)
+        logger.info("[SnapshotStorage] Manager initialized", {"max_size": max_size})
     
     def prepare_snapshot_for_storage(
         self,
@@ -224,6 +231,7 @@ class SnapshotStorageManager:
                 "size_bytes": validation["size_bytes"],
             })
             snapshot = self.validator.compress_snapshot_metadata(snapshot)
+            validation = self.validator.validate_snapshot(snapshot)
             validation["compressed"] = True
         
         return snapshot, validation

@@ -36,7 +36,7 @@ def _json_dumps(obj: Any) -> str:
     """
     if _use_orjson:
         # orjson returns bytes, need to decode to str
-        return orjson.dumps(obj).decode('utf-8')
+        return orjson.dumps(obj, default=str).decode('utf-8')
     else:
         # Standard json module
         return json.dumps(obj, default=str)

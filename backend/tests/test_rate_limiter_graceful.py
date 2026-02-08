@@ -4,7 +4,7 @@ Test rate limiter with graceful degradation when slowapi is unavailable.
 
 import pytest
 from unittest.mock import Mock, patch
-from fastapi import Request, HTTPException
+from fastapi import Request
 
 from app.utils.rate_limiter import (
     limiter,
@@ -29,8 +29,9 @@ def test_get_user_identifier_with_token():
     mock_request.headers = {"Authorization": "Bearer test_token_123456789"}
     
     identifier = get_user_identifier(mock_request)
-    assert identifier.startswith("user:test_token_1")
-    assert len(identifier) == 21  # "user:" + 16 chars of token
+    # Token is now hashed for security, so we just check it starts with "user:"
+    assert identifier.startswith("user:")
+    assert len(identifier) == 21  # "user:" + 16 char hash
 
 
 def test_get_user_identifier_without_token():

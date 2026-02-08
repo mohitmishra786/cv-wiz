@@ -11,7 +11,7 @@ class TestSharedFontConfiguration:
     
     def test_get_shared_font_configuration_singleton(self):
         """Test that get_shared_font_configuration returns the same instance."""
-        from app.utils.pdf_generator import get_shared_font_configuration, _font_configuration
+        from app.utils.pdf_generator import get_shared_font_configuration
         
         # Reset module-level font config
         import app.utils.pdf_generator
@@ -46,7 +46,7 @@ class TestOptimizedJSONSerialization:
     
     def test_json_dumps_with_orjson(self):
         """Test JSON serialization with orjson if available."""
-        from app.utils.redis_cache import _json_dumps, _use_orjson
+        from app.utils.redis_cache import _json_dumps
         
         test_data = {"key": "value", "number": 123, "nested": {"a": 1}}
         result = _json_dumps(test_data)
@@ -101,15 +101,16 @@ class TestOptimizedJSONSerialization:
     @pytest.mark.asyncio
     async def test_redis_cache_uses_optimized_json(self):
         """Test that Redis cache functions use optimized JSON functions."""
-        from app.utils.redis_cache import set_cached, get_cached
+        from app.utils.redis_cache import set_cached, get_cached, redis_client, CacheStatus
+        from unittest.mock import AsyncMock
         
         # Mock Redis client
         mock_client = Mock()
-        mock_client.set = Mock(return_value=True)
-        mock_client.get = Mock(return_value='{"key": "value"}')
+        mock_client.set = AsyncMock(return_value=True)
+        mock_client.get = AsyncMock(return_value='{"key": "value"}')
         
-        with patch('app.utils.redis_cache.redis_client.get_client', return_value=mock_client):
-            with patch('app.utils.redis_cache.redis_client.is_available', True):
+        with patch.object(redis_client, 'get_client', return_value=mock_client):
+            with patch.object(redis_client, '_status', CacheStatus.HEALTHY):
                 # Test set_cached uses optimized serialization
                 result = await set_cached("test_key", {"test": "data"})
                 assert result is True
@@ -151,7 +152,8 @@ class TestCachePerformance:
         json_time = time.time() - start
         
         # orjson should be faster (though this may vary by system)
-        print(f"\norjson time: {orjson_time:.4f}s, json time: {json_time:.4f}s")
+        from app.utils.logger import logger
+        logger.info(f"orjson time: {orjson_time:.4f}s, json time: {json_time:.4f}s")
         # We don't assert strict performance due to system variations
         assert orjson_time > 0
         assert json_time > 0

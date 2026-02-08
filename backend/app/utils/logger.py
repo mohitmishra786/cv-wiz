@@ -284,22 +284,10 @@ def sanitize_query_params(query_params: Any) -> Optional[Dict[str, str]]:
     if not query_params:
         return None
     
-    # Sensitive parameter names to mask
-    sensitive_keys = {
-        "password", "passwd", "pwd",
-        "token", "auth_token", "access_token", "refresh_token", "id_token",
-        "api_key", "apikey", "api-key", "x-api-key",
-        "secret", "client_secret",
-        "credential", "credentials",
-        "session", "session_id",
-        "auth", "authorization",
-        "jwt", "bearer",
-    }
-    
     sanitized = {}
     for key, value in dict(query_params).items():
         # Mask sensitive keys
-        if key.lower() in sensitive_keys:
+        if key.lower() in DEFAULT_SENSITIVE_KEYS:
             sanitized[key] = "***"
         else:
             # For non-sensitive keys, still limit length
@@ -324,16 +312,7 @@ def sanitize_dict(data: Dict[str, Any], sensitive_keys: Optional[set] = None) ->
         Sanitized dictionary
     """
     if sensitive_keys is None:
-        sensitive_keys = {
-            "password", "passwd", "pwd",
-            "token", "auth_token", "access_token", "refresh_token", "id_token",
-            "api_key", "apikey", "api-key", "x-api-key",
-            "secret", "client_secret",
-            "credential", "credentials",
-            "session", "session_id",
-            "auth", "authorization",
-            "jwt", "bearer",
-        }
+        sensitive_keys = DEFAULT_SENSITIVE_KEYS
     
     sanitized = {}
     for key, value in data.items():

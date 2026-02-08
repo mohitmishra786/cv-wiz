@@ -6,6 +6,7 @@ import pytest
 from unittest.mock import Mock, patch, AsyncMock
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
+from jwt.exceptions import PyJWTError
 
 from app.middleware.auth import (
     verify_auth_token,
@@ -121,6 +122,7 @@ class TestVerifyAuthTokenWithDB:
                     
                     assert exc_info.value.status_code == 401
                     assert "not found" in exc_info.value.detail.lower()
+                    mock_service.close.assert_called_once()
     
     @pytest.mark.asyncio
     async def test_verify_auth_with_db_user_id_mismatch(self, mock_credentials, mock_settings):
@@ -140,6 +142,7 @@ class TestVerifyAuthTokenWithDB:
                     
                     assert exc_info.value.status_code == 401
                     assert "does not match" in exc_info.value.detail.lower()
+                    mock_service.close.assert_called_once()
 
 
 class TestOptionalAuth:
@@ -166,7 +169,6 @@ class TestOptionalAuth:
         """Test optional auth with invalid token returns None."""
         with patch('app.middleware.auth.get_settings', return_value=mock_settings):
             with patch('app.middleware.auth.jwt.decode') as mock_decode:
-                from jwt.exceptions import PyJWTError
                 mock_decode.side_effect = PyJWTError("Invalid token")
                 
                 user_id = await optional_auth(mock_credentials)
@@ -189,7 +191,6 @@ class TestGetUserIdFromToken:
         """Test user ID extraction with invalid token."""
         with patch('app.middleware.auth.get_settings', return_value=mock_settings):
             with patch('app.middleware.auth.jwt.decode') as mock_decode:
-                from jwt.exceptions import PyJWTError
                 mock_decode.side_effect = PyJWTError("Invalid token")
                 
                 user_id = get_user_id_from_token("invalid_token")

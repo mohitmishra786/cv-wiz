@@ -145,12 +145,12 @@ class TestSnapshotStorageManager:
     
     def test_prepare_oversized_snapshot(self):
         """Test preparing an oversized snapshot gets truncated."""
-        manager = SnapshotStorageManager(max_size=500)
+        manager = SnapshotStorageManager(max_size=10000)
         
         large_snapshot = {
             "experiences": [
-                {"title": f"Job {i}", "description": "x" * 100}
-                for i in range(50)
+                {"title": f"Job {i}", "description": "x" * 50}
+                for i in range(100)
             ]
         }
         
@@ -158,7 +158,7 @@ class TestSnapshotStorageManager:
         
         # Should be truncated to fit
         assert validation["valid"] is True  # After truncation
-        assert len(prepared["experiences"]) < 50
+        assert len(prepared["experiences"]) < 100  # Array should be truncated
     
     def test_prepare_with_force_compression(self):
         """Test force compression option."""

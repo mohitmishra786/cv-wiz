@@ -19,17 +19,17 @@ _http_client = None
 _http_client_lock = asyncio.Lock()
 
 
-def get_shared_http_client():
+async def get_shared_http_client() -> httpx.AsyncClient:
     """Get or create the shared HTTP client instance."""
     global _http_client
-    if _http_client is None:
-        settings = get_settings()
-        _http_client = httpx.AsyncClient(
-            timeout=30.0,
-            follow_redirects=True,
-            limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
-        )
-        logger.info("[ProfileService] Shared HTTP client created")
+    async with _http_client_lock:
+        if _http_client is None:
+            _http_client = httpx.AsyncClient(
+                timeout=30.0,
+                follow_redirects=True,
+                limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+            )
+            logger.info("[ProfileService] Shared HTTP client created")
     return _http_client
 
 
@@ -53,8 +53,7 @@ class ProfileService:
         """Initialize profile service with shared HTTP client."""
         settings = get_settings()
         self.base_url = settings.frontend_api_url
-        self.use_shared_client = True
-        logger.info("ProfileService initialized", {"base_url": self.base_url, "use_shared_client": True})
+        logger.info("ProfileService initialized", {"base_url": self.base_url})
     
     async def __aenter__(self):
         """Async context manager entry."""
@@ -83,7 +82,7 @@ class ProfileService:
                 "url": f"{self.base_url}/api/profile",
             })
             
-            client = get_shared_http_client() if self.use_shared_client else self.client
+            client = await get_shared_http_client()
             response = await client.get(
                 f"{self.base_url}/api/profile",
                 headers={
@@ -166,7 +165,7 @@ class ProfileService:
         try:
             logger.debug("Validating auth token", {"request_id": request_id})
             
-            client = get_shared_http_client() if self.use_shared_client else self.client
+            client = await get_shared_http_client()
             response = await client.get(
                 f"{self.base_url}/api/auth/session",
                 headers={

@@ -3,12 +3,19 @@ Rate Limiting Utilities
 Provides rate limiting for API endpoints using slowapi.
 """
 
+from __future__ import annotations
+
 import time
 import warnings
+from typing import TYPE_CHECKING
 
-from fastapi import Request, HTTPException
+from fastapi import Request
+from starlette.responses import JSONResponse
 
 from app.utils.logger import logger
+
+if TYPE_CHECKING:
+    from fastapi import FastAPI
 
 try:
     from slowapi import Limiter
@@ -42,12 +49,15 @@ def get_user_identifier(request: Request) -> str:
     Get unique identifier for rate limiting.
     Uses auth token if available, falls back to IP address.
     """
+    import hashlib
+    
     # Try to get user ID from auth token
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
-        token = auth_header.replace("Bearer ", "")
-        # Use token prefix as identifier (don't store full tokens)
-        return f"user:{token[:16]}"
+        token = auth_header[len("Bearer "):]
+        # Use a hash of the token as identifier to avoid prefix collisions
+        token_hash = hashlib.sha256(token.encode()).hexdigest()[:16]
+        return f"user:{token_hash}"
     
     # Fall back to IP address
     if SLOWAPI_AVAILABLE:
@@ -74,12 +84,12 @@ class RateLimitConfig:
     UPLOAD_RESUME = ["10/minute", "50/hour"]
 
 
-def rate_limit_exceeded_handler(request: Request, exc: Exception):
+def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
     """
     Custom handler for rate limit exceeded errors.
     """
     if not SLOWAPI_AVAILABLE:
-        return
+        return JSONResponse(status_code=200, content={})
     
     client_id = get_user_identifier(request)
     logger.warning("Rate limit exceeded", {
@@ -88,14 +98,14 @@ def rate_limit_exceeded_handler(request: Request, exc: Exception):
         "method": request.method,
     })
     
-    raise HTTPException(
+    return JSONResponse(
         status_code=429,
-        detail="Rate limit exceeded. Please try again later.",
+        content={"detail": "Rate limit exceeded. Please try again later."},
         headers={"Retry-After": "60"},
     )
 
 
-def apply_rate_limiting(app):
+def apply_rate_limiting(app: "FastAPI") -> None:
     """
     Apply rate limiting to FastAPI application.
     

@@ -18,7 +18,7 @@ import json
 import time
 import traceback
 import asyncio
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 
 from app.utils.logger import logger, log_function_call
@@ -49,10 +49,9 @@ RETRY_BASE_DELAY = 1.0  # seconds
 
 # Module-level shared AsyncGroq client (lazy initialization)
 _groq_client = None
-_groq_client_lock = asyncio.Lock()
 
 
-def get_groq_client():
+def get_groq_client() -> Optional[Any]:
     """Get or create the shared AsyncGroq client instance."""
     global _groq_client
     if _groq_client is None:
@@ -192,12 +191,6 @@ class ResumeParser:
                 "file_size": len(file_content),
                 "file_type": file_type,
             })
-        start_time = time.time()
-        logger.start_operation("resume_parse", {
-            "filename": filename,
-            "file_size": len(file_content),
-            "file_type": file_type,
-        })
         
         try:
             # Determine file type and extract text

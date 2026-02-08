@@ -1,0 +1,142 @@
+# CodeRabbit Configuration
+# AI-powered code review automation
+
+# Language preferences
+language: en
+
+# Default review mode (can be 'chill', 'balanced', or 'strict')
+review_mode: balanced
+
+# Enable/disable specific features
+features:
+  # Generate summary of PR changes
+  summary: true
+  # Provide improvement suggestions
+  suggestions: true
+  # Security scanning
+  security: true
+  # Performance analysis
+  performance: true
+  # Code style checks
+  style: true
+
+# Configuration for specific file types
+file_type_config:
+  python:
+    # Maximum line length for Python files
+    max_line_length: 100
+    # Enable type hint checking
+    require_type_hints: true
+    # Enable docstring checking
+    require_docstrings: true
+  
+  javascript:
+    # Maximum line length for JavaScript files
+    max_line_length: 120
+    # Require semicolons
+    require_semicolons: true
+  
+  typescript:
+    # Maximum line length for TypeScript files
+    max_line_length: 120
+    # Strict type checking
+    strict_types: true
+
+# Directories to exclude from review
+exclude:
+  - node_modules/
+  - venv/
+  - .venv/
+  - __pycache__/
+  - dist/
+  - build/
+  - .next/
+  - coverage/
+  - *.min.js
+  - *.min.css
+
+# Severity levels for different issue types
+severity:
+  security_issues: critical
+  bug_risks: high
+  performance_issues: medium
+  style_issues: low
+  documentation: low
+
+# Custom rules for backend (Python)
+backend_rules:
+  - Always use type hints in function signatures
+  - Use async/await for I/O operations
+  - Use structured logging (app.utils.logger)
+  - Never log sensitive data (passwords, tokens, API keys)
+  - Catch specific exceptions, not bare Exception
+  - Use environment variables for secrets
+  - Add docstrings to all classes and public methods
+
+# Custom rules for frontend (TypeScript/React)
+frontend_rules:
+  - Use functional components with hooks
+  - Use TypeScript strict mode
+  - Avoid any types
+  - Use proper prop types
+  - Follow React best practices
+  - Use Server Components by default (Next.js 15)
+
+# Ignore patterns for common false positives
+ignore_patterns:
+  # Ignore TODO comments in test files
+  - pattern: "TODO:"
+    files: ["tests/**/*.py", "**/*.test.ts", "**/*.test.tsx"]
+  # Ignore console.log in development files
+  - pattern: "console\\.log"
+    files: ["**/*.dev.tsx", "**/*.dev.ts"]
+  # Ignore mock objects in tests
+  - pattern: "Mock\\("
+    files: ["tests/**/*.py", "**/*.test.ts", "**/*.test.tsx"]
+
+# PR title conventions
+pr_title_conventions:
+  # Allow these prefixes
+  allowed_prefixes:
+    - feat
+    - fix
+    - docs
+    - style
+    - refactor
+    - perf
+    - test
+    - chore
+    - ci
+  # Require conventional commits format
+  require_conventional: true
+
+# Review focus areas for this repository
+review_focus:
+  backend:
+    - Type safety and type hints
+    - Async/await usage
+    - Error handling
+    - Security vulnerabilities
+    - SQL injection risks
+    - Authentication/authorization
+    - Rate limiting
+    - Data validation
+  
+  frontend:
+    - Type safety
+    - Component reusability
+    - Performance optimization
+    - Accessibility
+    - State management
+    - Error handling
+
+# Integration with CI/CD
+ci_integration:
+  # Fail CI on critical issues
+  fail_on_critical: true
+  # Post review as PR comment
+  post_as_comment: true
+  # Include inline comments
+  inline_comments: true
+  # Max comments per PR (0 = unlimited)
+  max_comments: 50

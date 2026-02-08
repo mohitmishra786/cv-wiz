@@ -3,8 +3,7 @@ Audit Log Retention Service
 Provides periodic cleanup of old audit log entries to prevent unbounded table growth.
 """
 
-import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from app.utils.logger import logger
@@ -48,7 +47,7 @@ class AuditLogRetentionService:
         Returns:
             DateTime before which logs should be deleted
         """
-        cutoff = datetime.utcnow() - timedelta(days=self.retention_days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=self.retention_days)
         logger.debug("[AuditRetention] Calculated cutoff date", {
             "cutoff": cutoff.isoformat(),
             "retention_days": self.retention_days,
@@ -122,7 +121,7 @@ class AuditLogRetentionService:
             
             return {
                 "total_logs": 0,  # Placeholder
-                "logs eligible for cleanup": 0,  # Placeholder
+                "logs_eligible_for_cleanup": 0,  # Placeholder
                 "retention_days": self.retention_days,
                 "cutoff_date": self.get_cutoff_date().isoformat(),
             }
@@ -148,7 +147,7 @@ class AuditLogRetentionService:
             return True
         
         # Run cleanup daily
-        time_since_cleanup = datetime.utcnow() - last_cleanup
+        time_since_cleanup = datetime.now(timezone.utc) - last_cleanup
         return time_since_cleanup >= timedelta(days=1)
 
 

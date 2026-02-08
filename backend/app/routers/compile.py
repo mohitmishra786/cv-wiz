@@ -286,7 +286,7 @@ async def compile_resume_pdf(
         raise
     except Exception as e:
         logger.fail_operation("compile_resume_pdf", e, {"request_id": request_id})
-        raise
+        raise HTTPException(status_code=500, detail=f"PDF compilation failed: {str(e)}")
 
 
 @router.get("/templates")

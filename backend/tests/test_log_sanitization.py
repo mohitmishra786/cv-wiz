@@ -2,7 +2,6 @@
 Test query parameter sanitization to prevent sensitive data logging.
 """
 
-import pytest
 from starlette.datastructures import QueryParams
 
 from app.utils.logger import sanitize_query_params, sanitize_dict

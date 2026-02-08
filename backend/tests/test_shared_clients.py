@@ -3,7 +3,7 @@ Test shared HTTP client and AsyncGroq client optimizations.
 """
 
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch
 
 
 class TestSharedGroqClient:
@@ -38,6 +38,10 @@ class TestSharedGroqClient:
             mock_settings.return_value = mock_config
             
             from app.services.resume_parser import get_groq_client
+            
+            # Reset module-level client
+            import app.services.resume_parser
+            app.services.resume_parser._groq_client = None
             
             client = get_groq_client()
             assert client is None
