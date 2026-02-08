@@ -119,6 +119,11 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     await redis_client.close()
+    
+    # Close shared HTTP client
+    from app.services.profile_service import close_shared_http_client
+    await close_shared_http_client()
+    
     logger.info("[SHUTDOWN] CV-Wiz API shutdown complete")
 
 

@@ -8,6 +8,7 @@ Enhanced with:
 - llama-3.3-70b-versatile model for better accuracy
 - Comprehensive logging for debugging
 - Retry logic with exponential backoff
+- Shared AsyncGroq client for efficiency
 """
 
 import io
@@ -44,6 +45,24 @@ MAX_CHUNK_CHARS = 4000  # Conservative limit (model has 131k context)
 MAX_OUTPUT_TOKENS = 8000
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 1.0  # seconds
+
+
+# Module-level shared AsyncGroq client (lazy initialization)
+_groq_client = None
+_groq_client_lock = asyncio.Lock()
+
+
+def get_groq_client():
+    """Get or create the shared AsyncGroq client instance."""
+    global _groq_client
+    if _groq_client is None:
+        settings = get_settings()
+        if not settings.groq_api_key:
+            return None
+        from groq import AsyncGroq
+        _groq_client = AsyncGroq(api_key=settings.groq_api_key)
+        logger.info("[ResumeParser] Shared AsyncGroq client created")
+    return _groq_client
 
 
 @dataclass
@@ -259,9 +278,9 @@ class ResumeParser:
             }
         
         try:
-            from groq import AsyncGroq
-            
-            client = AsyncGroq(api_key=self.settings.groq_api_key)
+            client = get_groq_client()
+            if not client:
+                raise ValueError("Groq client not available")
             
             prompt = f"""Extract structured information from this cover letter. Return ONLY valid JSON:
 
@@ -630,12 +649,12 @@ Return ONLY JSON, no markdown or explanation."""
     
     async def _llm_extract_chunk(self, text: str, section_hints: List[str], is_first_chunk: bool) -> Dict[str, Any]:
         """Extract structured data from a single chunk using LLM with retry logic."""
-        from groq import AsyncGroq
-        
         logger.start_operation("llm_chunk_extract")
         start_time = time.time()
         
-        client = AsyncGroq(api_key=self.settings.groq_api_key)
+        client = get_groq_client()
+        if not client:
+            raise ValueError("Groq client not available")
         
         # Build dynamic prompt based on section hints
         sections_to_extract = []
