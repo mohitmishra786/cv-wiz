@@ -165,7 +165,7 @@ async def test_cleanup_expired_method(deduplicator):
     """Test the cleanup_expired method."""
 
     # Manually insert an expired request
-    expired_future = asyncio.get_event_loop().create_future()
+    expired_future = asyncio.get_running_loop().create_future()
     expired_request = InFlightRequest(
         future=expired_future,
         timestamp=datetime.utcnow() - timedelta(seconds=10),
@@ -174,7 +174,7 @@ async def test_cleanup_expired_method(deduplicator):
     deduplicator._in_flight["expired_key"] = expired_request
 
     # Insert a non-expired request
-    valid_future = asyncio.get_event_loop().create_future()
+    valid_future = asyncio.get_running_loop().create_future()
     valid_request = InFlightRequest(
         future=valid_future,
         timestamp=datetime.utcnow(),

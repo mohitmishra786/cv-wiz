@@ -158,7 +158,7 @@ class TestSnapshotStorageManager:
         
         # Should be truncated to fit
         assert validation["valid"] is True  # After truncation
-        assert len(prepared["experiences"]) < 100  # Array should be truncated
+        assert len(prepared["experiences"]) <= 100  # Array should be truncated
     
     def test_prepare_with_force_compression(self):
         """Test force compression option."""

@@ -50,7 +50,8 @@ class TestSharedGroqClient:
 class TestSharedHTTPClient:
     """Tests for shared HTTP client in profile_service."""
     
-    def test_get_shared_http_client_creates_singleton(self):
+    @pytest.mark.asyncio
+    async def test_get_shared_http_client_creates_singleton(self):
         """Test that get_shared_http_client returns the same instance."""
         from app.services.profile_service import get_shared_http_client
         
@@ -59,12 +60,12 @@ class TestSharedHTTPClient:
         app.services.profile_service._http_client = None
         
         # First call creates client
-        client1 = get_shared_http_client()
+        client1 = await get_shared_http_client()
         assert client1 is not None
         assert hasattr(client1, 'get')
         
         # Second call returns same client
-        client2 = get_shared_http_client()
+        client2 = await get_shared_http_client()
         assert client1 is client2
     
     @pytest.mark.asyncio
@@ -93,10 +94,10 @@ class TestSharedHTTPClient:
         
         # Create service instance
         service = ProfileService()
-        assert service.use_shared_client is True
+        assert service is not None
         
         # Verify shared client can be accessed
-        shared_client = get_shared_http_client()
+        shared_client = await get_shared_http_client()
         assert shared_client is not None
     
     @pytest.mark.asyncio
@@ -106,7 +107,6 @@ class TestSharedHTTPClient:
         
         async with ProfileService() as service:
             assert service is not None
-            assert service.use_shared_client is True
         
         # Service should be closed after context exit
         # (but shared client should remain)

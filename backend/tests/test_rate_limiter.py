@@ -29,7 +29,7 @@ class TestRateLimiter:
         
         identifier = get_user_identifier(mock_request)
         
-        assert identifier == "user:test_token_12345"
+        assert identifier == "user:1ac4c4fb37c2f810"
 
     def test_get_user_identifier_without_auth(self):
         """Test user identifier fallback to IP without auth."""

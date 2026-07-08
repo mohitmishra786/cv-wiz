@@ -98,7 +98,7 @@ class TestVerifyAuthTokenWithDB:
                 mock_service.validate_token.return_value = "user123"
                 mock_service.close = AsyncMock()
                 
-                with patch('app.middleware.auth.ProfileService', return_value=mock_service):
+                with patch('app.services.profile_service.ProfileService', return_value=mock_service):
                     user_id = await verify_auth_token_with_db(mock_credentials)
                     assert user_id == "user123"
                     mock_service.validate_token.assert_called_once_with("test_token_12345")
@@ -116,7 +116,7 @@ class TestVerifyAuthTokenWithDB:
                 mock_service.validate_token.return_value = None
                 mock_service.close = AsyncMock()
                 
-                with patch('app.middleware.auth.ProfileService', return_value=mock_service):
+                with patch('app.services.profile_service.ProfileService', return_value=mock_service):
                     with pytest.raises(HTTPException) as exc_info:
                         await verify_auth_token_with_db(mock_credentials)
                     
@@ -136,7 +136,7 @@ class TestVerifyAuthTokenWithDB:
                 mock_service.validate_token.return_value = "user456"
                 mock_service.close = AsyncMock()
                 
-                with patch('app.middleware.auth.ProfileService', return_value=mock_service):
+                with patch('app.services.profile_service.ProfileService', return_value=mock_service):
                     with pytest.raises(HTTPException) as exc_info:
                         await verify_auth_token_with_db(mock_credentials)
                     
