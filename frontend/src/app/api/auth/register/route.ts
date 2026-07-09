@@ -6,28 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
-import { isValidEmail } from '@/lib/utils';
 import { createRequestLogger, getOrCreateRequestId, logDbOperation, logAuthOperation } from '@/lib/logger';
 import { isRateLimited, getClientIP, rateLimits, validateBotProtection } from '@/lib/rate-limit';
-
-interface RegistrationInput {
-    email: string;
-    password: string;
-    name: string | undefined;
-    honeypot: string | undefined;
-}
-
-function parseRegistrationBody(body: unknown): RegistrationInput {
-    if (typeof body !== 'object' || body === null) {
-        throw new Error('Invalid request body');
-    }
-    const data = body as Record<string, unknown>;
-    const email = typeof data.email === 'string' ? data.email : '';
-    const password = typeof data.password === 'string' ? data.password : '';
-    const name = typeof data.name === 'string' ? data.name : undefined;
-    const honeypot = typeof data.honeypot === 'string' ? data.honeypot : undefined;
-    return { email, password, name, honeypot };
-}
+import { parseRegistrationInput, parseHoneypot, ValidationError } from '@/lib/input-validation';
 
 function sanitizeError(error: unknown): { message: string; code: string } {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -72,9 +53,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const input = parseRegistrationBody(await request.json());
+        const body = await request.json();
 
-        if (!validateBotProtection(input.honeypot)) {
+        if (!validateBotProtection(parseHoneypot(body))) {
             logger.warn('Registration blocked - bot detected via honeypot', { clientIP });
             return NextResponse.json(
                 { error: 'Registration is temporarily unavailable', requestId },
@@ -82,47 +63,23 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const { email, password, name } = parseRegistrationInput(body);
+
         logger.info('Registration attempt', {
-            email: input.email ? `${input.email.substring(0, 3)}***` : undefined,
-            hasPassword: !!input.password,
-            hasName: !!input.name
+            email: `${email.substring(0, 3)}***`,
+            hasPassword: true,
+            hasName: !!name
         });
-
-        if (!input.email || !input.password) {
-            logger.warn('Registration failed: missing required fields', { hasEmail: !!input.email, hasPassword: !!input.password });
-            return NextResponse.json(
-                { error: 'Email and password are required', requestId },
-                { status: 400 }
-            );
-        }
-
-        // Validate email format
-        if (!isValidEmail(input.email)) {
-            logger.warn('Registration failed: invalid email format');
-            return NextResponse.json(
-                { error: 'Invalid email format', requestId },
-                { status: 400 }
-            );
-        }
-
-        // Validate password strength
-        if (input.password.length < 8) {
-            logger.warn('Registration failed: password too short');
-            return NextResponse.json(
-                { error: 'Password must be at least 8 characters', requestId },
-                { status: 400 }
-            );
-        }
 
         // Check database connection
         logger.info('Checking database connection...');
-        logDbOperation('findUnique', 'User', { email: `${input.email.substring(0, 3)}***` });
+        logDbOperation('findUnique', 'User', { email: `${email.substring(0, 3)}***` });
 
         // Check if user already exists
         let existingUser;
         try {
             existingUser = await prisma.user.findUnique({
-                where: { email: input.email },
+                where: { email: email },
             });
         } catch (dbError) {
             logger.error('Database error during user lookup', {
@@ -144,19 +101,19 @@ export async function POST(request: NextRequest) {
 
         // Hash password
         logger.info('Hashing password...');
-        const passwordHash = await bcrypt.hash(input.password, 12);
+        const passwordHash = await bcrypt.hash(password, 12);
 
         // Create user
         logger.info('Creating user in database...');
-        logDbOperation('create', 'User', { email: `${input.email.substring(0, 3)}***` });
+        logDbOperation('create', 'User', { email: `${email.substring(0, 3)}***` });
 
         let user;
         try {
             user = await prisma.user.create({
                 data: {
-                    email: input.email,
+                    email: email,
                     passwordHash,
-                    name: input.name || null,
+                    name: name || null,
                 },
                 select: {
                     id: true,
@@ -205,6 +162,14 @@ export async function POST(request: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
+        if (error instanceof ValidationError) {
+            logger.warn('Registration validation failed', { error: error.message });
+            return NextResponse.json(
+                { error: error.message, requestId },
+                { status: 400 }
+            );
+        }
+
         logger.failOperation('user:register', error);
 
         const sanitized = sanitizeError(error);
