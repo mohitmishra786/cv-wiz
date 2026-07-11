@@ -17,12 +17,12 @@ from app.utils.rate_limiter import apply_rate_limiting  # noqa: E402
 from app.utils.redis_cache import redis_client  # noqa: E402
 from app.utils.csrf_protection import CSRFProtectionMiddleware  # noqa: E402
 from app.utils.logger import (  # noqa: E402
-    logger, 
-    generate_request_id, 
-    set_request_context, 
+    logger,
+    generate_request_id,
+    set_request_context,
     clear_request_context,
     log_api_request,
-    sanitize_query_params
+    sanitize_query_params,
 )
 
 # Initialize Sentry
@@ -50,46 +50,55 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
-    """Middleware to log all requests with timing and correlation IDs"""
-    
+    """
+    Middleware to log all requests with timing and correlation IDs.
+
+    SECURITY: Never logs Authorization headers, cookies, tokens, or auth bodies.
+    Query params are sanitized; request bodies are never logged here.
+    """
+
     async def dispatch(self, request: Request, call_next):
-        # Generate or extract request ID
+        # Generate or extract request ID (safe header — not auth)
         request_id = request.headers.get("x-request-id") or generate_request_id()
-        
+
         # Set request context for logging
         set_request_context(request_id=request_id)
-        
-        # Log request start
+
+        # Log request start — sanitized query only; never headers/body with secrets
         sanitized_query = sanitize_query_params(request.query_params)
         logger.info(f"[REQUEST] {request.method} {request.url.path}", {
             "method": request.method,
             "path": request.url.path,
             "query": sanitized_query,
             "client_ip": request.client.host if request.client else None,
-            "user_agent": request.headers.get("user-agent", "")[:100],
+            # User-Agent only (truncated); do NOT log Authorization, Cookie, or body
+            "user_agent": (request.headers.get("user-agent") or "")[:100],
+            "has_authorization": "authorization" in request.headers,
+            "has_cookie": "cookie" in request.headers,
         })
-        
+
         start_time = time.time()
-        
+
         try:
             response = await call_next(request)
             duration_ms = (time.time() - start_time) * 1000
-            
+
             # Add request ID to response headers
             response.headers["x-request-id"] = request_id
-            
-            # Log response
+
+            # Log response (path/status/timing only — no auth material)
             log_api_request(
-                request.method, 
-                request.url.path, 
-                response.status_code, 
-                duration_ms
+                request.method,
+                request.url.path,
+                response.status_code,
+                duration_ms,
             )
-            
+
             return response
-            
+
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
+            # Never include request headers/body in error logs
             logger.error(f"[REQUEST ERROR] {request.method} {request.url.path}", {
                 "method": request.method,
                 "path": request.url.path,

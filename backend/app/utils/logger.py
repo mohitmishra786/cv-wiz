@@ -18,13 +18,85 @@ request_id_var: ContextVar[str] = ContextVar('request_id', default='')
 user_id_var: ContextVar[str] = ContextVar('user_id', default='')
 session_id_var: ContextVar[str] = ContextVar('session_id', default='')
 
-# Standard set of sensitive keys to mask in logs
+# Standard set of sensitive keys to mask in logs (exact match after normalize)
 DEFAULT_SENSITIVE_KEYS: set = {
     "password", "passwd", "secret", "token", "api_key", "apikey", "api-key",
-    "access_token", "refresh_token", "auth_token", "authorization",
+    "access_token", "refresh_token", "auth_token", "authtoken", "authorization",
     "jwt", "key", "private_key", "secret_key",
     "session_id", "csrf_token", "otp", "pin", "ssn",
+    "cookie", "cookies", "set_cookie", "set-cookie",
+    "x_api_key", "x-api-key", "bearer",
 }
+
+# Substrings that mark a key as sensitive (covers camelCase like authToken, cookieHeader)
+_SENSITIVE_KEY_SUBSTRINGS: tuple = (
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "authorization",
+    "cookie",
+    "api_key",
+    "apikey",
+    "private_key",
+    "csrf",
+    "session",
+    "jwt",
+    "bearer",
+)
+
+
+def is_sensitive_key(key: str, sensitive_keys: Optional[set] = None) -> bool:
+    """
+    Return True if a key name should be redacted in logs.
+
+    Matches exact normalized names and common sensitive substrings so
+    variants like authToken, Cookie, Authorization are covered.
+
+    When ``sensitive_keys`` is provided, only exact (case-insensitive /
+    hyphen-normalized) membership in that set is used — no substring rules.
+    """
+    if not key:
+        return False
+    key_lower = key.lower()
+    key_norm = key_lower.replace("-", "_")
+
+    if sensitive_keys is not None:
+        return key_lower in sensitive_keys or key_norm in sensitive_keys
+
+    if key_lower in DEFAULT_SENSITIVE_KEYS or key_norm in DEFAULT_SENSITIVE_KEYS:
+        return True
+    for sub in _SENSITIVE_KEY_SUBSTRINGS:
+        if sub in key_norm or sub in key_lower:
+            return True
+    return False
+
+
+def sanitize_headers(headers: Any) -> Optional[Dict[str, str]]:
+    """
+    Sanitize HTTP headers for safe logging.
+
+    Never logs Authorization, Cookie, or other credential-bearing headers.
+    """
+    if not headers:
+        return None
+
+    try:
+        items = dict(headers).items()
+    except (TypeError, ValueError):
+        return None
+
+    sanitized: Dict[str, str] = {}
+    for key, value in items:
+        if is_sensitive_key(str(key)):
+            sanitized[str(key)] = "***"
+        else:
+            str_value = str(value)
+            if len(str_value) > 100:
+                sanitized[str(key)] = str_value[:100] + "..."
+            else:
+                sanitized[str(key)] = str_value
+    return sanitized if sanitized else None
 
 
 class StructuredFormatter(logging.Formatter):
@@ -169,11 +241,17 @@ def log_function_call(func):
         func_name = f"{func.__module__}.{func.__name__}"
         start_time = time.time()
         
-        # Mask sensitive data in kwargs
-        safe_kwargs = {k: "***" if k in ("password", "token", "secret", "api_key") else v 
-                       for k, v in kwargs.items()}
+        # Mask sensitive data in kwargs (never log tokens/passwords/auth bodies)
+        safe_kwargs = {
+            k: "***" if is_sensitive_key(k) else v
+            for k, v in kwargs.items()
+        }
         
-        logger.debug(f"Calling {func_name}", {"args_count": len(args), "kwargs": list(safe_kwargs.keys())})
+        logger.debug(f"Calling {func_name}", {
+            "args_count": len(args),
+            "kwargs": list(safe_kwargs.keys()),
+            "kwargs_redacted": sanitize_dict(safe_kwargs) if safe_kwargs else None,
+        })
         
         try:
             result = await func(*args, **kwargs)
@@ -194,11 +272,17 @@ def log_function_call(func):
         func_name = f"{func.__module__}.{func.__name__}"
         start_time = time.time()
         
-        # Mask sensitive data in kwargs
-        safe_kwargs = {k: "***" if k in ("password", "token", "secret", "api_key") else v 
-                       for k, v in kwargs.items()}
+        # Mask sensitive data in kwargs (never log tokens/passwords/auth bodies)
+        safe_kwargs = {
+            k: "***" if is_sensitive_key(k) else v
+            for k, v in kwargs.items()
+        }
         
-        logger.debug(f"Calling {func_name}", {"args_count": len(args), "kwargs": list(safe_kwargs.keys())})
+        logger.debug(f"Calling {func_name}", {
+            "args_count": len(args),
+            "kwargs": list(safe_kwargs.keys()),
+            "kwargs_redacted": sanitize_dict(safe_kwargs) if safe_kwargs else None,
+        })
         
         try:
             result = func(*args, **kwargs)
@@ -281,7 +365,8 @@ def sanitize_query_params(query_params: Any) -> Optional[Dict[str, str]]:
     """
     Sanitize query parameters by removing sensitive data.
     
-    Masks passwords, tokens, API keys, and other sensitive parameters.
+    Masks passwords, tokens, API keys, cookies, authorization, and other
+    sensitive parameters. Never logs raw auth credentials.
     
     Args:
         query_params: Query parameters from FastAPI request
@@ -294,8 +379,8 @@ def sanitize_query_params(query_params: Any) -> Optional[Dict[str, str]]:
     
     sanitized = {}
     for key, value in dict(query_params).items():
-        # Mask sensitive keys
-        if key.lower() in DEFAULT_SENSITIVE_KEYS:
+        # Mask sensitive keys (token, authorization, password, cookie, etc.)
+        if is_sensitive_key(key):
             sanitized[key] = "***"
         else:
             # For non-sensitive keys, still limit length
@@ -312,19 +397,18 @@ def sanitize_dict(data: Dict[str, Any], sensitive_keys: Optional[set] = None) ->
     """
     Sanitize a dictionary by masking sensitive values.
     
+    Covers request bodies with authToken, password, cookie, authorization, etc.
+    
     Args:
         data: Dictionary to sanitize
-        sensitive_keys: Set of sensitive key names (defaults to standard set)
+        sensitive_keys: Optional set of additional exact sensitive key names
         
     Returns:
         Sanitized dictionary
     """
-    if sensitive_keys is None:
-        sensitive_keys = DEFAULT_SENSITIVE_KEYS
-    
     sanitized = {}
     for key, value in data.items():
-        if key.lower() in sensitive_keys:
+        if is_sensitive_key(key, sensitive_keys):
             sanitized[key] = "***"
         elif isinstance(value, dict):
             sanitized[key] = sanitize_dict(value, sensitive_keys)
