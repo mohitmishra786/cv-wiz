@@ -1,6 +1,9 @@
 /**
  * Experience Form Component
  * Form for adding/editing work experience
+ *
+ * AI Enhance goes through /api/ai/enhance-bullet (server-authenticated proxy).
+ * Never mint backend JWTs or call AUTH_SECRET from the browser.
  */
 
 'use client';
@@ -8,8 +11,12 @@
 import { useState } from 'react';
 import type { Experience } from '@/types';
 import { createLogger } from '@/lib/logger';
-import { auth } from '@/lib/auth';
-import { generateBackendToken } from '@/lib/jwt';
+import {
+    assertAuthenticatedResponse,
+    AuthenticationError,
+    isAuthenticationError,
+    redirectToLogin,
+} from '@/lib/auth-errors';
 
 const logger = createLogger({ component: 'ExperienceForm' });
 
@@ -36,6 +43,14 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
     const [isEnhancing, setIsEnhancing] = useState(false);
     const [error, setError] = useState('');
 
+    const handleAuthFailure = (err: unknown): void => {
+        logger.warn('[ExperienceForm] Authentication failure', {
+            message: err instanceof Error ? err.message : String(err),
+        });
+        setError('Your session has expired. Redirecting to login…');
+        redirectToLogin('/profile');
+    };
+
     const handleAIEnhance = async () => {
         if (!formData.highlights.trim()) {
             setError('Please enter some achievements to enhance');
@@ -45,41 +60,50 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
         setIsEnhancing(true);
         setError('');
         try {
-            const session = await auth();
-            if (!session?.user?.id) {
-                throw new Error('Not authenticated');
-            }
-
-            const backendToken = await generateBackendToken(session.user.id, session.user.email || undefined);
-
-            const bullets = formData.highlights.split('\n').filter(b => b.trim());
-            const enhancedBullets = [];
+            const bullets = formData.highlights.split('\n').filter((b) => b.trim());
+            const enhancedBullets: string[] = [];
 
             for (const bullet of bullets) {
-                const res = await fetch('/api/py/ai/enhance-bullet', {
+                // Server route validates session and attaches backend JWT
+                const res = await fetch('/api/ai/enhance-bullet', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${backendToken}`,
                     },
                     body: JSON.stringify({
                         bullet,
-                        job_description: targetJD || undefined
+                        job_description: targetJD || undefined,
                     }),
                 });
-                const data = await res.json();
-                if (res.ok) {
+
+                await assertAuthenticatedResponse(res);
+
+                const data = (await res.json()) as {
+                    enhanced_bullet?: string;
+                    error?: string;
+                };
+
+                if (res.ok && data.enhanced_bullet) {
                     enhancedBullets.push(data.enhanced_bullet);
                 } else {
+                    // Keep original bullet on partial failure; surface soft error once
+                    logger.warn('[ExperienceForm] Bullet enhance failed', {
+                        status: res.status,
+                        error: data.error,
+                    });
                     enhancedBullets.push(bullet);
                 }
             }
 
             setFormData({
                 ...formData,
-                highlights: enhancedBullets.join('\n')
+                highlights: enhancedBullets.join('\n'),
             });
         } catch (err) {
+            if (isAuthenticationError(err) || err instanceof AuthenticationError) {
+                handleAuthFailure(err);
+                return;
+            }
             logger.error('Failed to enhance bullets', { err });
             setError('AI enhancement failed. Please try again.');
         } finally {
@@ -89,13 +113,12 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
 
     logger.debug('[ExperienceForm] Initialized', {
         isEdit: !!experience?.id,
-        experienceId: experience?.id
+        experienceId: experience?.id,
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validation
         if (!formData.company.trim() || !formData.title.trim() || !formData.startDate) {
             setError('Please fill in all required fields');
             logger.warn('[ExperienceForm] Validation failed - missing required fields');
@@ -111,12 +134,19 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
                 ...formData,
                 startDate: formData.startDate,
                 endDate: formData.current ? undefined : formData.endDate,
-                highlights: formData.highlights.split('\n').filter(h => h.trim()),
-                keywords: formData.keywords.split(',').map(k => k.trim()).filter(Boolean),
+                highlights: formData.highlights.split('\n').filter((h) => h.trim()),
+                keywords: formData.keywords
+                    .split(',')
+                    .map((k) => k.trim())
+                    .filter(Boolean),
             });
             logger.endOperation('ExperienceForm:submit');
         } catch (err) {
             logger.failOperation('ExperienceForm:submit', err);
+            if (isAuthenticationError(err)) {
+                handleAuthFailure(err);
+                return;
+            }
             setError('Failed to save experience. Please try again.');
         } finally {
             setLoading(false);
@@ -192,7 +222,9 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
                     onChange={(e) => setFormData({ ...formData, current: e.target.checked })}
                     className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                 />
-                <label htmlFor="current" className="text-sm text-gray-700">I currently work here</label>
+                <label htmlFor="current" className="text-sm text-gray-700">
+                    I currently work here
+                </label>
             </div>
 
             <div>
@@ -222,8 +254,18 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
                             </>
                         ) : (
                             <>
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                <svg
+                                    className="w-3.5 h-3.5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                                    />
                                 </svg>
                                 AI Enhance
                             </>
@@ -237,7 +279,9 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
                     placeholder="Enter each achievement on a new line"
                 />
-                <p className="mt-1 text-xs text-gray-500">One achievement per line. Start with action verbs.</p>
+                <p className="mt-1 text-xs text-gray-500">
+                    One achievement per line. Start with action verbs.
+                </p>
             </div>
 
             <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
@@ -265,7 +309,9 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
             </div>
 
             {error && (
-                <p className="text-sm text-red-600">{error}</p>
+                <p className="text-sm text-red-600" role="alert">
+                    {error}
+                </p>
             )}
 
             <div className="flex gap-3 pt-4">
