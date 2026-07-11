@@ -5,6 +5,7 @@ Provides structured logging with request correlation IDs for debugging
 
 import logging
 import json
+import re
 import sys
 import uuid
 import time
@@ -72,11 +73,33 @@ def is_sensitive_key(key: str, sensitive_keys: Optional[set] = None) -> bool:
     return False
 
 
+def _safe_log_key(key: str) -> str:
+    """
+    Normalize a user-influenced key for safe structured logging.
+
+    Strips control characters and non-printable content to prevent log injection
+    via crafted header names (CodeQL: log-injection).
+    """
+    # Collapse to a conservative identifier alphabet only
+    cleaned = re.sub(r"[^A-Za-z0-9_.\-]", "_", str(key))
+    cleaned = cleaned[:64] if cleaned else "unknown"
+    return cleaned or "unknown"
+
+
+def _safe_log_value(value: Any, *, max_len: int = 100) -> str:
+    """Coerce values to a single-line, length-capped string for logs."""
+    str_value = str(value).replace("\r", " ").replace("\n", " ").replace("\x00", "")
+    if len(str_value) > max_len:
+        return str_value[:max_len] + "..."
+    return str_value
+
+
 def sanitize_headers(headers: Any) -> Optional[Dict[str, str]]:
     """
     Sanitize HTTP headers for safe logging.
 
     Never logs Authorization, Cookie, or other credential-bearing headers.
+    Header names from the request are normalized before use as log keys.
     """
     if not headers:
         return None
@@ -88,14 +111,11 @@ def sanitize_headers(headers: Any) -> Optional[Dict[str, str]]:
 
     sanitized: Dict[str, str] = {}
     for key, value in items:
-        if is_sensitive_key(str(key)):
-            sanitized[str(key)] = "***"
+        safe_key = _safe_log_key(str(key))
+        if is_sensitive_key(str(key)) or is_sensitive_key(safe_key):
+            sanitized[safe_key] = "***"
         else:
-            str_value = str(value)
-            if len(str_value) > 100:
-                sanitized[str(key)] = str_value[:100] + "..."
-            else:
-                sanitized[str(key)] = str_value
+            sanitized[safe_key] = _safe_log_value(value)
     return sanitized if sanitized else None
 
 
@@ -377,18 +397,14 @@ def sanitize_query_params(query_params: Any) -> Optional[Dict[str, str]]:
     if not query_params:
         return None
     
-    sanitized = {}
+    sanitized: Dict[str, str] = {}
     for key, value in dict(query_params).items():
+        safe_key = _safe_log_key(str(key))
         # Mask sensitive keys (token, authorization, password, cookie, etc.)
-        if is_sensitive_key(key):
-            sanitized[key] = "***"
+        if is_sensitive_key(str(key), None) or is_sensitive_key(safe_key, None):
+            sanitized[safe_key] = "***"
         else:
-            # For non-sensitive keys, still limit length
-            str_value = str(value)
-            if len(str_value) > 100:
-                sanitized[key] = str_value[:100] + "..."
-            else:
-                sanitized[key] = str_value
+            sanitized[safe_key] = _safe_log_value(value)
     
     return sanitized if sanitized else None
 
@@ -398,6 +414,7 @@ def sanitize_dict(data: Dict[str, Any], sensitive_keys: Optional[set] = None) ->
     Sanitize a dictionary by masking sensitive values.
     
     Covers request bodies with authToken, password, cookie, authorization, etc.
+    Keys are normalized to block log-injection via crafted field names.
     
     Args:
         data: Dictionary to sanitize
@@ -406,18 +423,23 @@ def sanitize_dict(data: Dict[str, Any], sensitive_keys: Optional[set] = None) ->
     Returns:
         Sanitized dictionary
     """
-    sanitized = {}
+    sanitized: Dict[str, Any] = {}
     for key, value in data.items():
-        if is_sensitive_key(key, sensitive_keys):
-            sanitized[key] = "***"
+        safe_key = _safe_log_key(str(key))
+        if is_sensitive_key(str(key), sensitive_keys) or is_sensitive_key(safe_key, sensitive_keys):
+            sanitized[safe_key] = "***"
         elif isinstance(value, dict):
-            sanitized[key] = sanitize_dict(value, sensitive_keys)
+            sanitized[safe_key] = sanitize_dict(value, sensitive_keys)
         elif isinstance(value, list):
-            sanitized[key] = [
+            sanitized[safe_key] = [
                 sanitize_dict(item, sensitive_keys) if isinstance(item, dict) else item
                 for item in value
             ]
         else:
-            sanitized[key] = value
+            # Scalar values: keep type when safe, coerce strings to single-line
+            if isinstance(value, str):
+                sanitized[safe_key] = _safe_log_value(value, max_len=500)
+            else:
+                sanitized[safe_key] = value
     
     return sanitized

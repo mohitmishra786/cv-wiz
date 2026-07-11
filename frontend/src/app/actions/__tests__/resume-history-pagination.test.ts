@@ -27,11 +27,8 @@ vi.mock('@/lib/logger', () => ({
 
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import {
-  getResumeVersions,
-  HISTORY_PAGE_SIZE,
-  HISTORY_MAX_PAGE_SIZE,
-} from '../resume-history'
+import { getResumeVersions } from '../resume-history'
+import { HISTORY_PAGE_SIZE, HISTORY_MAX_PAGE_SIZE } from '@/lib/constants'
 
 describe('getResumeVersions pagination', () => {
   beforeEach(() => {

@@ -5,15 +5,17 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { Prisma } from "@prisma/client"
-import { logger } from '@/lib/logger';
-
-/** Max versions retained per user to bound storage growth */
-export const MAX_RESUME_VERSIONS = 20
-/** Soft size budget for snapshot JSON (characters) before field trimming */
-export const MAX_SNAPSHOT_JSON_CHARS = 500_000
+import { logger } from '@/lib/logger'
+import {
+  HISTORY_MAX_PAGE_SIZE,
+  HISTORY_PAGE_SIZE,
+  MAX_RESUME_VERSIONS,
+  MAX_SNAPSHOT_JSON_CHARS,
+} from '@/lib/constants'
 
 /**
  * Strip DB-only fields and oversized text so snapshots stay lean.
+ * Not exported — "use server" files may only export async functions.
  */
 function compactSnapshotEntity<T extends Record<string, unknown>>(
   entity: T,
@@ -102,11 +104,7 @@ export async function createResumeSnapshot(name?: string) {
   }
 }
 
-/** Default page size for history list — keeps DOM and payload small */
-export const HISTORY_PAGE_SIZE = 10
-/** Hard cap so a crafted query cannot request unbounded rows */
-export const HISTORY_MAX_PAGE_SIZE = 50
-
+// Types are erased at compile time — safe in "use server" modules
 export type ResumeVersionListItem = {
   id: string
   name: string | null

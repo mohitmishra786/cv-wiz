@@ -6,7 +6,7 @@ Includes retry with exponential backoff for transient failures.
 """
 
 import time
-from typing import Optional, Any, Dict, TypeVar, Callable, Awaitable
+from typing import Optional, TypeVar, Callable, Awaitable
 import asyncio
 import httpx
 

@@ -375,7 +375,11 @@ class PDFGenerator:
                 try:
                     document.pages.clear()  # type: ignore[attr-defined]
                 except Exception:
-                    pass
+                    # pages may be immutable or already released on some WeasyPrint versions
+                    logger.debug(
+                        "[PDFGenerator] Document page cleanup skipped",
+                        {"reason": "pages.clear unavailable or failed"},
+                    )
             pdf_buffer.seek(0)
     
     async def generate_pdf(

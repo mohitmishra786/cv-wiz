@@ -1,9 +1,8 @@
 import {
   getResumeVersions,
   createResumeSnapshot,
-  HISTORY_PAGE_SIZE,
-  HISTORY_MAX_PAGE_SIZE,
 } from '@/app/actions/resume-history'
+import { HISTORY_MAX_PAGE_SIZE, HISTORY_PAGE_SIZE } from '@/lib/constants'
 import { HistoryList } from '@/components/resumes/HistoryList'
 
 export const metadata = {

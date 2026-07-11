@@ -109,8 +109,7 @@ const TEMPLATES = [
 ];
 
 export default function TemplatesPage() {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const { success, error: toastError } = useToast();
     const [selectedTemplate, setSelectedTemplate] = useState('experience-skills-projects');
     const [saving, setSaving] = useState(false);

@@ -8,7 +8,6 @@ Validates URL formats for configuration endpoints.
 import os
 from functools import lru_cache
 from urllib.parse import urlparse
-from typing import Optional
 from pydantic_settings import BaseSettings
 from pydantic import Field, model_validator, field_validator
 
