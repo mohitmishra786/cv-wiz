@@ -14,6 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
 from app.utils.rate_limiter import apply_rate_limiting  # noqa: E402
+from app.middleware.asgi_security import SecurityHeadersASGIMiddleware  # noqa: E402
 from app.utils.redis_cache import redis_client  # noqa: E402
 from app.utils.csrf_protection import CSRFProtectionMiddleware  # noqa: E402
 from app.utils.logger import (  # noqa: E402
@@ -123,6 +124,17 @@ async def lifespan(app: FastAPI):
         "redis_url": "configured" if settings.redis_url else "NOT SET",
         "upstash_rest_url": "configured" if settings.upstash_redis_rest_url else "not set",
     })
+
+    # Schedule audit log retention cleanup (no-op until DB wiring is complete)
+    try:
+        from app.services.audit_retention import get_audit_retention_service
+        retention = get_audit_retention_service()
+        logger.info(
+            "[STARTUP] Audit retention service ready",
+            {"retention_days": retention.retention_days},
+        )
+    except Exception as e:
+        logger.warning("[STARTUP] Audit retention init skipped", {"error": str(e)})
     
     yield
     
@@ -153,7 +165,8 @@ from app.routers import compile, cover_letter, upload, ai  # noqa: E402
 
 # Add logging middleware FIRST
 app.add_middleware(LoggingMiddleware)
-app.add_middleware(SecurityMiddleware)
+# Pure ASGI security headers (avoids BaseHTTPMiddleware overhead)
+app.add_middleware(SecurityHeadersASGIMiddleware)
 
 # Add CSRF protection middleware
 # Exempt health check and auth-related endpoints
