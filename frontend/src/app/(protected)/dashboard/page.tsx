@@ -10,7 +10,6 @@ import HelpFAQ from '@/components/ui/HelpFAQ';
 import FeedbackForm from '@/components/forms/FeedbackForm';
 import OnboardingTour from '@/components/OnboardingTour';
 import { useAnalytics } from '@/lib/hooks/useAnalytics';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SectionErrorBoundary } from '@/components/SectionErrorBoundary';
 
 const logger = createLogger({ component: 'DashboardPage' });
@@ -148,7 +147,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Overview Stats */}
-                <ErrorBoundary componentName="DashboardStats">
+                <SectionErrorBoundary sectionName="Dashboard stats">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                         <StatCard
                             title="Applications"
@@ -186,17 +185,17 @@ export default function DashboardPage() {
                             value={data.experienceCount}
                             icon={
                                 <svg className="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
                             }
                             color="bg-orange-50"
                         />
                     </div>
-                </ErrorBoundary>
+                </SectionErrorBoundary>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Activity Chart */}
-                    <ErrorBoundary componentName="DashboardActivityChart">
+                    <SectionErrorBoundary sectionName="Application activity">
                         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                             <div className="flex justify-between items-center mb-8">
                                 <div>
@@ -230,10 +229,10 @@ export default function DashboardPage() {
                                 )}
                             </div>
                         </div>
-                    </ErrorBoundary>
+                    </SectionErrorBoundary>
 
                     {/* Recent Activity List */}
-                    <ErrorBoundary componentName="DashboardRecentActivity">
+                    <SectionErrorBoundary sectionName="Recent activity">
                         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                             <h3 className="text-lg font-bold text-gray-900 mb-6">Recent Activity</h3>
 
@@ -269,21 +268,21 @@ export default function DashboardPage() {
                                 </Link>
                             </div>
                         </div>
-                    </ErrorBoundary>
+                    </SectionErrorBoundary>
                 </div>
 
                 {/* Help & Support */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <ErrorBoundary componentName="DashboardHelpFAQ">
+                    <SectionErrorBoundary sectionName="Help FAQ">
                         <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                            <SectionErrorBoundary sectionName="Help FAQ"><HelpFAQ /></SectionErrorBoundary>
+                            <HelpFAQ />
                         </div>
-                    </ErrorBoundary>
-                    <ErrorBoundary componentName="DashboardFeedback">
+                    </SectionErrorBoundary>
+                    <SectionErrorBoundary sectionName="Feedback form">
                         <div>
                             <FeedbackForm />
                         </div>
-                    </ErrorBoundary>
+                    </SectionErrorBoundary>
                 </div>
             </main>
         </div>
