@@ -168,6 +168,20 @@ def sanitize_headers(headers: Any) -> Optional[Dict[str, str]]:
     return sanitized if sanitized else None
 
 
+def _strip_log_newlines(value: str) -> str:
+    """
+    CodeQL-recognized log-injection sanitizer (py/log-injection).
+
+    See https://codeql.github.com/codeql-query-help/python/py-log-injection/
+    """
+    return (
+        (value or "")
+        .replace("\r\n", "")
+        .replace("\n", "")
+        .replace("\r", "")
+    )
+
+
 class StructuredFormatter(logging.Formatter):
     """Format logs as structured JSON for easy parsing in Vercel/Railway"""
     
@@ -176,37 +190,38 @@ class StructuredFormatter(logging.Formatter):
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "level": record.levelname,
             "logger": record.name,
-            "message": record.getMessage(),
+            # Defense-in-depth: strip CR/LF again at emit time
+            "message": _strip_log_newlines(record.getMessage()),
             "module": record.module,
             "function": record.funcName,
             "line": record.lineno,
         }
         
-        # Add context variables
+        # Add context variables (sanitized — may be user-influenced IDs)
         request_id = request_id_var.get()
         user_id = user_id_var.get()
         session_id = session_id_var.get()
         
         if request_id:
-            log_data["request_id"] = request_id
+            log_data["request_id"] = _strip_log_newlines(str(request_id))
         if user_id:
-            log_data["user_id"] = user_id
+            log_data["user_id"] = _strip_log_newlines(str(user_id))
         if session_id:
-            log_data["session_id"] = session_id
+            log_data["session_id"] = _strip_log_newlines(str(session_id))
             
         # Add extra fields
         if hasattr(record, 'data') and record.data:
             log_data["data"] = record.data
             
-        # Add exception info
+        # Add exception info (never leak multi-line exception text unfiltered)
         if record.exc_info:
             log_data["exception"] = {
                 "type": record.exc_info[0].__name__ if record.exc_info[0] else None,
-                "message": str(record.exc_info[1]) if record.exc_info[1] else None,
-                "traceback": self.formatException(record.exc_info) if record.exc_info[2] else None,
+                "message": _strip_log_newlines(str(record.exc_info[1])) if record.exc_info[1] else None,
             }
             
-        return json.dumps(log_data, default=str)
+        # Final CR/LF strip on the serialized line (CodeQL-recognized sanitizer)
+        return _strip_log_newlines(json.dumps(log_data, default=str))
 
 
 class CVWizLogger:
@@ -231,27 +246,29 @@ class CVWizLogger:
         """
         Internal log method with data support.
 
-        CodeQL py/log-injection: strip CR/LF from message strings (recognized
-        sanitizer) and sanitize structured data before writing.
+        CodeQL py/log-injection: strip CR/LF from the final message string
+        (recognized sanitizer). Structured ``data`` is sanitized then folded
+        into the message so no unsanitized extra fields reach the sink.
         See https://codeql.github.com/codeql-query-help/python/py-log-injection/
         """
-        safe_message = (
-            (message or "")
-            .replace("\r\n", "")
-            .replace("\n", "")
-            .replace("\r", "")
-        )
-        if data is None:
-            safe_data = None
-        else:
-            normalized_data: Dict[str, Any]
+        safe_message = _strip_log_newlines(message or "")
+
+        if data is not None:
             if isinstance(data, dict):
-                normalized_data = data
+                normalized_data: Dict[str, Any] = data
             else:
                 normalized_data = {"value": data}
             safe_data = sanitize_dict(normalized_data)
-        extra = {"data": safe_data} if safe_data is not None else {}
-        self.logger.log(level, safe_message, extra=extra, **kwargs)
+            # Fold structured fields into the message after CR/LF strip so
+            # CodeQL sees a fully sanitized string at the logging sink.
+            payload = _strip_log_newlines(json.dumps(safe_data, default=str, separators=(",", ":")))
+            safe_message = _strip_log_newlines(f"{safe_message} {payload}")
+
+        # Only allow non-user logging flags through (never arbitrary kwargs)
+        log_kwargs: Dict[str, Any] = {}
+        if kwargs.get("exc_info"):
+            log_kwargs["exc_info"] = kwargs["exc_info"]
+        self.logger.log(level, safe_message, **log_kwargs)
     
     def debug(self, message: str, data: Optional[Dict[str, Any]] = None):
         self._log(logging.DEBUG, message, data)
