@@ -17,6 +17,7 @@ import {
     isAuthenticationError,
     redirectToLogin,
 } from '@/lib/auth-errors';
+import { sanitizeExperienceData, sanitizeText, sanitizeRichText } from '@/lib/sanitization';
 
 const logger = createLogger({ component: 'ExperienceForm' });
 
@@ -63,6 +64,10 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
             const bullets = formData.highlights.split('\n').filter((b) => b.trim());
             const enhancedBullets: string[] = [];
 
+            const sanitizedJD = targetJD.trim()
+                ? sanitizeRichText(targetJD)
+                : undefined;
+
             for (const bullet of bullets) {
                 // Server route validates session and attaches backend JWT
                 const res = await fetch('/api/ai/enhance-bullet', {
@@ -71,8 +76,8 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        bullet,
-                        job_description: targetJD || undefined,
+                        bullet: sanitizeText(bullet),
+                        job_description: sanitizedJD || undefined,
                     }),
                 });
 
@@ -130,15 +135,25 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
         setError('');
 
         try {
-            await onSubmit({
+            const sanitized = sanitizeExperienceData({
                 ...formData,
-                startDate: formData.startDate,
-                endDate: formData.current ? undefined : formData.endDate,
                 highlights: formData.highlights.split('\n').filter((h) => h.trim()),
                 keywords: formData.keywords
                     .split(',')
                     .map((k) => k.trim())
                     .filter(Boolean),
+            });
+
+            await onSubmit({
+                company: sanitized.company,
+                title: sanitized.title,
+                location: sanitized.location,
+                description: sanitized.description,
+                highlights: sanitized.highlights,
+                keywords: sanitized.keywords,
+                startDate: formData.startDate,
+                endDate: formData.current ? undefined : formData.endDate || undefined,
+                current: sanitized.current,
             });
             logger.endOperation('ExperienceForm:submit');
         } catch (err) {

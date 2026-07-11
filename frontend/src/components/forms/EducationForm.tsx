@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import type { Education } from '@/types';
 import { createLogger } from '@/lib/logger';
+import { sanitizeEducationData } from '@/lib/sanitization';
 
 const logger = createLogger({ component: 'EducationForm' });
 
@@ -92,14 +93,24 @@ export default function EducationForm({ education, onSubmit, onCancel }: Educati
         setLoading(true);
 
         try {
-            const data: Partial<Education> = {
+            const sanitized = sanitizeEducationData({
                 institution: formData.institution.trim(),
                 degree: formData.degree,
                 field: formData.field.trim(),
-                startDate: formData.startDate,
-                endDate: formData.endDate || undefined,
                 gpa: formData.gpa ? parseFloat(formData.gpa) : undefined,
                 honors: formData.honors.split('\n').filter(h => h.trim()),
+                startDate: formData.startDate,
+                endDate: formData.endDate || undefined,
+            });
+
+            const data: Partial<Education> = {
+                institution: sanitized.institution,
+                degree: sanitized.degree,
+                field: sanitized.field,
+                startDate: formData.startDate,
+                endDate: formData.endDate || undefined,
+                gpa: formData.gpa ? sanitized.gpa : undefined,
+                honors: sanitized.honors,
             };
 
             await onSubmit(data);

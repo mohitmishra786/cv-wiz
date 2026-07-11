@@ -1,24 +1,39 @@
 /**
  * Input Sanitization Utilities
- * Provides XSS protection and input sanitization for user-generated content
+ * Provides XSS protection and input sanitization for user-generated content.
+ * Uses isomorphic-dompurify for consistent client/server HTML sanitization.
  */
+
+import DOMPurify from 'isomorphic-dompurify';
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
-/**
- * Escape HTML special characters to prevent XSS
- * Simple synchronous HTML escaping for server-side use
- */
-function escapeHtml(unsafe: string): string {
-    return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+/** Tags allowed in rich-text fields (descriptions, cover letters, etc.) */
+const RICH_TEXT_ALLOWED_TAGS = [
+    'b',
+    'i',
+    'em',
+    'strong',
+    'u',
+    'p',
+    'br',
+    'ul',
+    'ol',
+    'li',
+    'a',
+    'span',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'blockquote',
+    'code',
+    'pre',
+];
+
+const RICH_TEXT_ALLOWED_ATTR = ['href', 'target', 'rel', 'class'];
 
 // ============================================================================
 // Sanitization Functions
@@ -30,16 +45,24 @@ function escapeHtml(unsafe: string): string {
  */
 export function sanitizeText(input: unknown): string {
     if (typeof input !== 'string' || !input) return '';
-    return escapeHtml(input).trim().replace(/\s+/g, ' ');
+    const cleaned = DOMPurify.sanitize(input, {
+        ALLOWED_TAGS: [],
+        ALLOWED_ATTR: [],
+    });
+    return cleaned.trim().replace(/\s+/g, ' ');
 }
 
 /**
- * Sanitize rich text input - escapes HTML but preserves structure
+ * Sanitize rich text input - allows safe formatting tags, strips scripts/events
  * Use for: descriptions, summaries, content that may have formatting
  */
 export function sanitizeRichText(input: unknown): string {
     if (typeof input !== 'string' || !input) return '';
-    return escapeHtml(input).trim();
+    return DOMPurify.sanitize(input, {
+        ALLOWED_TAGS: RICH_TEXT_ALLOWED_TAGS,
+        ALLOWED_ATTR: RICH_TEXT_ALLOWED_ATTR,
+        ALLOW_DATA_ATTR: false,
+    }).trim();
 }
 
 /**
@@ -48,19 +71,19 @@ export function sanitizeRichText(input: unknown): string {
  */
 export function sanitizeUrl(input: unknown): string | null {
     if (typeof input !== 'string' || !input) return null;
-    
+
     const sanitized = input.trim();
-    
+
     // Check for dangerous protocols
     const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:'];
     const lowerUrl = sanitized.toLowerCase();
-    
+
     for (const protocol of dangerousProtocols) {
         if (lowerUrl.startsWith(protocol)) {
             return null;
         }
     }
-    
+
     // Validate URL format if it looks like a URL
     if (sanitized && !sanitized.match(/^(https?:\/\/|mailto:|tel:)/i)) {
         // If no protocol, assume https://
@@ -68,7 +91,7 @@ export function sanitizeUrl(input: unknown): string | null {
             return `https://${sanitized}`;
         }
     }
-    
+
     return sanitized || null;
 }
 
@@ -77,29 +100,31 @@ export function sanitizeUrl(input: unknown): string | null {
  */
 export function sanitizeEmail(input: unknown): string {
     if (typeof input !== 'string' || !input) return '';
-    
-    // Remove any HTML and trim
-    const sanitized = escapeHtml(input).trim().toLowerCase();
-    
+
+    // Strip any HTML then trim/lowercase
+    const sanitized = sanitizeText(input).toLowerCase();
+
     // Basic email validation regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
+
     if (!emailRegex.test(sanitized)) {
         return '';
     }
-    
+
     return sanitized;
 }
 
 /**
  * Sanitize array of strings
  */
-export function sanitizeStringArray(inputs: (string | null | undefined)[] | null | undefined): string[] {
+export function sanitizeStringArray(
+    inputs: (string | null | undefined)[] | null | undefined
+): string[] {
     if (!inputs || !Array.isArray(inputs)) return [];
-    
+
     return inputs
-        .map(item => sanitizeText(item))
-        .filter(item => item.length > 0);
+        .map((item) => sanitizeText(item))
+        .filter((item) => item.length > 0);
 }
 
 /**
@@ -116,11 +141,11 @@ export function sanitizeNumber(
         if (isNaN(input) || !isFinite(input)) return defaultValue;
         return Math.max(min, Math.min(max, input));
     }
-    
+
     const num = typeof input === 'string' ? parseFloat(input) : NaN;
-    
+
     if (isNaN(num) || !isFinite(num)) return defaultValue;
-    
+
     return Math.max(min, Math.min(max, num));
 }
 
@@ -160,7 +185,9 @@ export interface SanitizedExperienceData {
 /**
  * Sanitize experience data object
  */
-export function sanitizeExperienceData(data: Record<string, unknown>): SanitizedExperienceData {
+export function sanitizeExperienceData(
+    data: Record<string, unknown>
+): SanitizedExperienceData {
     return {
         company: sanitizeText(data.company as string),
         title: sanitizeText(data.title as string),
@@ -190,7 +217,9 @@ export interface SanitizedProjectData {
 /**
  * Sanitize project data object
  */
-export function sanitizeProjectData(data: Record<string, unknown>): SanitizedProjectData {
+export function sanitizeProjectData(
+    data: Record<string, unknown>
+): SanitizedProjectData {
     return {
         name: sanitizeText(data.name as string),
         description: sanitizeRichText(data.description as string),
@@ -218,7 +247,9 @@ export interface SanitizedEducationData {
 /**
  * Sanitize education data object
  */
-export function sanitizeEducationData(data: Record<string, unknown>): SanitizedEducationData {
+export function sanitizeEducationData(
+    data: Record<string, unknown>
+): SanitizedEducationData {
     return {
         institution: sanitizeText(data.institution as string),
         degree: sanitizeText(data.degree as string),
@@ -264,7 +295,9 @@ export interface SanitizedCoverLetterData {
 /**
  * Sanitize cover letter data object
  */
-export function sanitizeCoverLetterData(data: Record<string, unknown>): SanitizedCoverLetterData {
+export function sanitizeCoverLetterData(
+    data: Record<string, unknown>
+): SanitizedCoverLetterData {
     return {
         content: sanitizeRichText(data.content as string),
         jobTitle: sanitizeText(data.jobTitle as string),
@@ -283,7 +316,9 @@ export interface SanitizedProfileData {
 /**
  * Sanitize user profile data
  */
-export function sanitizeProfileData(data: Record<string, unknown>): SanitizedProfileData {
+export function sanitizeProfileData(
+    data: Record<string, unknown>
+): SanitizedProfileData {
     return {
         name: sanitizeText(data.name as string),
         image: sanitizeUrl(data.image as string),
@@ -302,7 +337,9 @@ export interface SanitizedFeedbackData {
 /**
  * Sanitize feedback data
  */
-export function sanitizeFeedbackData(data: Record<string, unknown>): SanitizedFeedbackData {
+export function sanitizeFeedbackData(
+    data: Record<string, unknown>
+): SanitizedFeedbackData {
     return {
         rating: sanitizeNumber(data.rating, 1, 5, 3),
         comment: sanitizeRichText(data.comment as string),
@@ -320,24 +357,26 @@ export function sanitizeFeedbackData(data: Record<string, unknown>): SanitizedFe
  */
 export function sanitizeRequestBody<T extends Record<string, unknown>>(body: T): T {
     const sanitized = { ...body };
-    
+
     for (const key of Object.keys(sanitized)) {
         const value = sanitized[key];
-        
+
         if (typeof value === 'string') {
             // For most fields, use plain text sanitization
             (sanitized as Record<string, unknown>)[key] = sanitizeText(value);
         } else if (Array.isArray(value)) {
             // Sanitize arrays of strings
-            (sanitized as Record<string, unknown>)[key] = value.map(item =>
+            (sanitized as Record<string, unknown>)[key] = value.map((item) =>
                 typeof item === 'string' ? sanitizeText(item) : item
             );
         } else if (typeof value === 'object' && value !== null) {
             // Recursively sanitize nested objects
-            (sanitized as Record<string, unknown>)[key] = sanitizeRequestBody(value as Record<string, unknown>);
+            (sanitized as Record<string, unknown>)[key] = sanitizeRequestBody(
+                value as Record<string, unknown>
+            );
         }
     }
-    
+
     return sanitized;
 }
 

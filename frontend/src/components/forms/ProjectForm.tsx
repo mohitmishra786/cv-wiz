@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import type { Project } from '@/types';
 import { createLogger } from '@/lib/logger';
-import { sanitizeUrl } from '@/lib/sanitization';
+import { sanitizeUrl, sanitizeProjectData } from '@/lib/sanitization';
 
 const logger = createLogger({ component: 'ProjectForm' });
 
@@ -73,16 +73,24 @@ export default function ProjectForm({ project, onSubmit, onCancel }: ProjectForm
         setLoading(true);
 
         try {
-            // Sanitize URL to prevent javascript: protocol injection
-            const sanitizedUrl = formData.url ? sanitizeUrl(formData.url) : undefined;
-            
-            const data: Partial<Project> = {
-                ...formData,
+            const sanitized = sanitizeProjectData({
+                name: formData.name,
+                description: formData.description,
+                url: formData.url,
                 technologies: formData.technologies.split(',').map(t => t.trim()).filter(Boolean),
                 highlights: formData.highlights.split('\n').filter(h => h.trim()),
                 startDate: formData.startDate || undefined,
                 endDate: formData.endDate || undefined,
-                url: sanitizedUrl,
+            });
+
+            const data: Partial<Project> = {
+                name: sanitized.name,
+                description: sanitized.description,
+                technologies: sanitized.technologies,
+                highlights: sanitized.highlights,
+                startDate: (sanitized.startDate as string) || undefined,
+                endDate: (sanitized.endDate as string) || undefined,
+                url: sanitized.url,
             };
 
             await onSubmit(data);

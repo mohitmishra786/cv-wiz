@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createLogger } from '@/lib/logger';
 import { withRetry } from '@/lib/retry';
+import { sanitizeText, sanitizeRichText, sanitizeCoverLetterData } from '@/lib/sanitization';
 
 const logger = createLogger({ component: 'CoverLetterSection' });
 
@@ -97,13 +98,19 @@ export default function CoverLetterSection() {
         setError('');
 
         try {
+            const sanitized = sanitizeCoverLetterData({
+                content: content.trim(),
+                jobTitle: jobTitle.trim(),
+                companyName: companyName.trim(),
+            });
+
             const response = await fetch('/api/profile/cover-letter', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    content: content.trim(),
-                    jobTitle: jobTitle.trim() || undefined,
-                    companyName: companyName.trim() || undefined,
+                    content: sanitized.content,
+                    jobTitle: sanitized.jobTitle || undefined,
+                    companyName: sanitized.companyName || undefined,
                 }),
             });
 
@@ -251,10 +258,10 @@ export default function CoverLetterSection() {
                                     const data = await response.json();
 
                                     if (data.success && data.data?.content) {
-                                        setContent(data.data.content);
+                                        setContent(sanitizeRichText(data.data.content));
                                         logger.info('[CoverLetterSection] File content extracted', { wordCount: data.data.word_count });
                                     } else if (data.error) {
-                                        setError(data.error);
+                                        setError(sanitizeText(data.error));
                                     }
                                 } catch (err) {
                                     logger.error('[CoverLetterSection] File upload failed', { error: err });

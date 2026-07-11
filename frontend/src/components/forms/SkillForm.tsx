@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import type { Skill } from '@/types';
 import { createLogger } from '@/lib/logger';
+import { sanitizeSkillData } from '@/lib/sanitization';
 
 const logger = createLogger({ component: 'SkillForm' });
 
@@ -81,11 +82,18 @@ export default function SkillForm({ skill, onSubmit, onCancel }: SkillFormProps)
         setLoading(true);
 
         try {
-            const data: Partial<Skill> = {
+            const sanitized = sanitizeSkillData({
                 name: formData.name.trim(),
                 category: formData.category,
                 proficiency: formData.proficiency || undefined,
                 yearsExp: formData.yearsExp ? Number(formData.yearsExp) : undefined,
+            });
+
+            const data: Partial<Skill> = {
+                name: sanitized.name,
+                category: sanitized.category,
+                proficiency: sanitized.proficiency || undefined,
+                yearsExp: formData.yearsExp ? sanitized.yearsExp : undefined,
             };
 
             await onSubmit(data);
