@@ -7,8 +7,9 @@
  * Supports keyboard activation and accessible status announcements
  */
 
-import { useState, useRef, useId, ChangeEvent, KeyboardEvent } from 'react';
+import { useState, useRef, useId, useEffect, ChangeEvent, KeyboardEvent } from 'react';
 import { createLogger } from '@/lib/logger';
+import { sanitizeText } from '@/lib/sanitization';
 
 const logger = createLogger({ component: 'ResumeUpload' });
 
@@ -67,9 +68,21 @@ export default function ResumeUpload({ onDataExtracted, type = 'resume' }: Resum
     const [success, setSuccess] = useState(false);
     const [extractedSummary, setExtractedSummary] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const abortRef = useRef<AbortController | null>(null);
+    const selectDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const dropzoneId = useId();
     const statusId = useId();
     const errorId = useId();
+
+    // Cancel in-flight upload on unmount
+    useEffect(() => {
+        return () => {
+            abortRef.current?.abort();
+            if (selectDebounceRef.current) {
+                clearTimeout(selectDebounceRef.current);
+            }
+        };
+    }, []);
 
     const openFilePicker = () => {
         if (!isProcessing) {
@@ -79,6 +92,11 @@ export default function ResumeUpload({ onDataExtracted, type = 'resume' }: Resum
 
     const handleFile = async (file: File) => {
         if (!file) return;
+
+        // Cancel any previous in-flight upload
+        abortRef.current?.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
 
         logger.startOperation('ResumeUpload:handleFile');
         logger.info('[ResumeUpload] Processing file', {
@@ -104,7 +122,7 @@ export default function ResumeUpload({ onDataExtracted, type = 'resume' }: Resum
         const extension = '.' + file.name.split('.').pop()?.toLowerCase();
 
         if (!validTypes.includes(file.type) && !validExtensions.includes(extension)) {
-            const errorMsg = `Invalid file type "${extension}". Please upload a PDF, DOCX, TXT, or MD file.`;
+            const errorMsg = `Invalid file type "${sanitizeText(extension)}". Please upload a PDF, DOCX, TXT, or MD file.`;
             logger.warn('[ResumeUpload] Invalid file type', { type: file.type, extension });
             setError(errorMsg);
             return;
@@ -119,7 +137,8 @@ export default function ResumeUpload({ onDataExtracted, type = 'resume' }: Resum
             return;
         }
 
-        setFileName(file.name);
+        // Display sanitized file name only
+        setFileName(sanitizeText(file.name));
         setIsProcessing(true);
 
         try {
@@ -132,6 +151,7 @@ export default function ResumeUpload({ onDataExtracted, type = 'resume' }: Resum
             const response = await fetch('/api/profile/upload', {
                 method: 'POST',
                 body: formData,
+                signal: controller.signal,
             });
 
             const data = await response.json();
@@ -202,6 +222,11 @@ export default function ResumeUpload({ onDataExtracted, type = 'resume' }: Resum
             });
             logger.failOperation('ResumeUpload:handleFile', err);
 
+            // Ignore abort errors from cancelled uploads
+            if (err instanceof Error && err.name === 'AbortError') {
+                logger.info('[ResumeUpload] Upload cancelled');
+                return;
+            }
             setError(`Failed to process file: ${errorMessage}`);
             if (errorStack) {
                 setErrorDetails(errorStack);
@@ -229,9 +254,16 @@ export default function ResumeUpload({ onDataExtracted, type = 'resume' }: Resum
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) handleFile(file);
         // Allow re-selecting the same file
         e.target.value = '';
+        if (!file) return;
+        // Debounce rapid successive file selections
+        if (selectDebounceRef.current) {
+            clearTimeout(selectDebounceRef.current);
+        }
+        selectDebounceRef.current = setTimeout(() => {
+            void handleFile(file);
+        }, 150);
     };
 
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -297,6 +329,16 @@ export default function ResumeUpload({ onDataExtracted, type = 'resume' }: Resum
                         <div className="w-12 h-12 mx-auto border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" aria-hidden="true"></div>
                         <p className="text-gray-700 font-medium">Processing {fileName}...</p>
                         <p className="text-sm text-gray-600">Extracting text and analyzing content</p>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                cancelUpload();
+                            }}
+                            className="text-sm text-red-600 hover:text-red-700 font-medium focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
+                        >
+                            Cancel upload
+                        </button>
                     </div>
                 ) : success ? (
                     <div className="space-y-3" id={statusId} role="status" aria-live="polite">
