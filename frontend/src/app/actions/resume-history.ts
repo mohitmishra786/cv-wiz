@@ -52,14 +52,83 @@ export async function createResumeSnapshot(name?: string) {
   }
 }
 
-export async function getResumeVersions() {
-  const session = await auth()
-  if (!session?.user?.id) return []
+/** Default page size for history list — keeps DOM and payload small */
+export const HISTORY_PAGE_SIZE = 10
+/** Hard cap so a crafted query cannot request unbounded rows */
+export const HISTORY_MAX_PAGE_SIZE = 50
 
-  return prisma.resumeVersion.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: 'desc' },
-  })
+export type ResumeVersionListItem = {
+  id: string
+  name: string | null
+  snapshot: Prisma.JsonValue
+  createdAt: Date
+}
+
+export type PaginatedResumeVersions = {
+  versions: ResumeVersionListItem[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
+/**
+ * Fetch a single page of resume versions for the current user.
+ * Server-side pagination prevents loading unbounded history into the DOM.
+ */
+export async function getResumeVersions(
+  page: number = 1,
+  limit: number = HISTORY_PAGE_SIZE
+): Promise<PaginatedResumeVersions> {
+  const session = await auth()
+  const safeLimit = Math.min(Math.max(1, limit || HISTORY_PAGE_SIZE), HISTORY_MAX_PAGE_SIZE)
+  const safePage = Math.max(1, page || 1)
+
+  if (!session?.user?.id) {
+    return {
+      versions: [],
+      total: 0,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPrevPage: false,
+    }
+  }
+
+  const userId = session.user.id
+  const skip = (safePage - 1) * safeLimit
+
+  const [total, versions] = await Promise.all([
+    prisma.resumeVersion.count({ where: { userId } }),
+    prisma.resumeVersion.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: safeLimit,
+      // Only fields needed for the list UI (still includes snapshot for stats)
+      select: {
+        id: true,
+        name: true,
+        snapshot: true,
+        createdAt: true,
+      },
+    }),
+  ])
+
+  const totalPages = total === 0 ? 0 : Math.ceil(total / safeLimit)
+
+  return {
+    versions,
+    total,
+    page: safePage,
+    limit: safeLimit,
+    totalPages,
+    hasNextPage: safePage < totalPages,
+    hasPrevPage: safePage > 1,
+  }
 }
 
 export async function restoreResumeVersion(versionId: string) {
