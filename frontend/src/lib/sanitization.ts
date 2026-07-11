@@ -1,137 +1,58 @@
 /**
  * Input Sanitization Utilities
- * Provides XSS protection and input sanitization for user-generated content.
+ * XSS protection for user-generated content.
  *
- * Pure JavaScript implementation — no jsdom / isomorphic-dompurify.
- * (jsdom breaks Next.js page-data collection with missing default-stylesheet.css)
+ * Uses the `sanitize-html` package (no jsdom) so Next.js page-data collection
+ * and CodeQL incomplete-sanitization checks both succeed.
  */
+
+import sanitizeHtml from 'sanitize-html';
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
-/** Tags allowed in rich-text fields (descriptions, cover letters, etc.) */
-const RICH_TEXT_ALLOWED_TAGS = new Set([
-    'b',
-    'i',
-    'em',
-    'strong',
-    'u',
-    'p',
-    'br',
-    'ul',
-    'ol',
-    'li',
-    'a',
-    'span',
-    'h1',
-    'h2',
-    'h3',
-    'h4',
-    'blockquote',
-    'code',
-    'pre',
-]);
+const PLAIN_TEXT_OPTIONS: sanitizeHtml.IOptions = {
+    allowedTags: [],
+    allowedAttributes: {},
+    disallowedTagsMode: 'discard',
+};
 
-const VOID_TAGS = new Set(['br']);
-
-// ============================================================================
-// Pure HTML helpers (no DOM)
-// ============================================================================
-
-function decodeBasicEntities(input: string): string {
-    return input
-        .replace(/&nbsp;/gi, ' ')
-        .replace(/&amp;/gi, '&')
-        .replace(/&lt;/gi, '<')
-        .replace(/&gt;/gi, '>')
-        .replace(/&quot;/gi, '"')
-        .replace(/&#0*39;/g, "'")
-        .replace(/&#x27;/gi, "'");
-}
-
-/**
- * Strip all HTML tags and dangerous content. Pure string processing.
- */
-function stripAllTags(html: string): string {
-    let s = html;
-    // Remove comments, scripts, styles entirely (including content)
-    s = s.replace(/<!--[\s\S]*?-->/g, '');
-    s = s.replace(/<script\b[\s\S]*?<\/script>/gi, '');
-    s = s.replace(/<style\b[\s\S]*?<\/style>/gi, '');
-    s = s.replace(/<iframe\b[\s\S]*?<\/iframe>/gi, '');
-    s = s.replace(/<object\b[\s\S]*?<\/object>/gi, '');
-    s = s.replace(/<embed\b[^>]*>/gi, '');
-    s = s.replace(/<svg\b[\s\S]*?<\/svg>/gi, '');
-    // Remove remaining tags
-    s = s.replace(/<\/?[^>]+>/g, '');
-    return decodeBasicEntities(s);
-}
-
-function isSafeHref(href: string): boolean {
-    const trimmed = href.trim();
-    const lower = trimmed.toLowerCase();
-    if (
-        lower.startsWith('javascript:') ||
-        lower.startsWith('data:') ||
-        lower.startsWith('vbscript:') ||
-        lower.startsWith('file:')
-    ) {
-        return false;
-    }
-    return /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(trimmed) || trimmed.startsWith('/');
-}
-
-/**
- * Allow only safe tags; strip event handlers and dangerous attributes.
- */
-function sanitizeRichHtml(html: string): string {
-    let s = html;
-    s = s.replace(/<!--[\s\S]*?-->/g, '');
-    s = s.replace(/<script\b[\s\S]*?<\/script>/gi, '');
-    s = s.replace(/<style\b[\s\S]*?<\/style>/gi, '');
-    s = s.replace(/<iframe\b[\s\S]*?<\/iframe>/gi, '');
-    s = s.replace(/<object\b[\s\S]*?<\/object>/gi, '');
-    s = s.replace(/<embed\b[^>]*>/gi, '');
-    s = s.replace(/<svg\b[\s\S]*?<\/svg>/gi, '');
-
-    // Process tags
-    s = s.replace(/<\/?([a-zA-Z0-9]+)(\s[^>]*)?>/g, (match, rawTag: string, attrs?: string) => {
-        const isClosing = match.startsWith('</');
-        const tag = rawTag.toLowerCase();
-
-        if (!RICH_TEXT_ALLOWED_TAGS.has(tag)) {
-            return '';
-        }
-
-        if (isClosing) {
-            if (VOID_TAGS.has(tag)) return '';
-            return `</${tag}>`;
-        }
-
-        if (VOID_TAGS.has(tag)) {
-            return `<${tag}>`;
-        }
-
-        // Only anchors may keep attributes (safe href only)
-        if (tag === 'a' && attrs) {
-            const hrefMatch = attrs.match(/\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
-            const href = hrefMatch
-                ? (hrefMatch[1] ?? hrefMatch[2] ?? hrefMatch[3] ?? '').trim()
-                : '';
-            if (href && isSafeHref(href)) {
-                // Force safe rel/target
-                return `<a href="${href.replace(/"/g, '&quot;')}" rel="noopener noreferrer">`;
-            }
-            return '<a>';
-        }
-
-        // All other allowed tags: no attributes (drops onclick, style, etc.)
-        return `<${tag}>`;
-    });
-
-    return s.trim();
-}
+const RICH_TEXT_OPTIONS: sanitizeHtml.IOptions = {
+    allowedTags: [
+        'b',
+        'i',
+        'em',
+        'strong',
+        'u',
+        'p',
+        'br',
+        'ul',
+        'ol',
+        'li',
+        'a',
+        'span',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'blockquote',
+        'code',
+        'pre',
+    ],
+    allowedAttributes: {
+        a: ['href', 'name', 'target', 'rel'],
+        // no event handlers / style
+    },
+    allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+    allowProtocolRelative: false,
+    transformTags: {
+        a: sanitizeHtml.simpleTransform('a', {
+            rel: 'noopener noreferrer',
+        }),
+    },
+    disallowedTagsMode: 'discard',
+};
 
 // ============================================================================
 // Sanitization Functions
@@ -143,7 +64,7 @@ function sanitizeRichHtml(html: string): string {
  */
 export function sanitizeText(input: unknown): string {
     if (typeof input !== 'string' || !input) return '';
-    const cleaned = stripAllTags(input);
+    const cleaned = sanitizeHtml(input, PLAIN_TEXT_OPTIONS);
     return cleaned.trim().replace(/\s+/g, ' ');
 }
 
@@ -153,7 +74,7 @@ export function sanitizeText(input: unknown): string {
  */
 export function sanitizeRichText(input: unknown): string {
     if (typeof input !== 'string' || !input) return '';
-    return sanitizeRichHtml(input).trim();
+    return sanitizeHtml(input, RICH_TEXT_OPTIONS).trim();
 }
 
 /**
@@ -258,9 +179,6 @@ export function sanitizeBoolean(input: unknown, defaultValue: boolean = false): 
 // Object Sanitization
 // ============================================================================
 
-/**
- * Sanitized experience data interface
- */
 export interface SanitizedExperienceData {
     company: string;
     title: string;
@@ -273,9 +191,6 @@ export interface SanitizedExperienceData {
     current: boolean;
 }
 
-/**
- * Sanitize experience data object
- */
 export function sanitizeExperienceData(
     data: Record<string, unknown>
 ): SanitizedExperienceData {
@@ -292,9 +207,6 @@ export function sanitizeExperienceData(
     };
 }
 
-/**
- * Sanitized project data interface
- */
 export interface SanitizedProjectData {
     name: string;
     description: string;
@@ -305,9 +217,6 @@ export interface SanitizedProjectData {
     endDate: unknown;
 }
 
-/**
- * Sanitize project data object
- */
 export function sanitizeProjectData(
     data: Record<string, unknown>
 ): SanitizedProjectData {
@@ -322,9 +231,6 @@ export function sanitizeProjectData(
     };
 }
 
-/**
- * Sanitized education data interface
- */
 export interface SanitizedEducationData {
     institution: string;
     degree: string;
@@ -335,9 +241,6 @@ export interface SanitizedEducationData {
     endDate: unknown;
 }
 
-/**
- * Sanitize education data object
- */
 export function sanitizeEducationData(
     data: Record<string, unknown>
 ): SanitizedEducationData {
@@ -352,9 +255,6 @@ export function sanitizeEducationData(
     };
 }
 
-/**
- * Sanitized skill data interface
- */
 export interface SanitizedSkillData {
     name: string;
     category: string;
@@ -362,9 +262,6 @@ export interface SanitizedSkillData {
     yearsExp: number;
 }
 
-/**
- * Sanitize skill data object
- */
 export function sanitizeSkillData(data: Record<string, unknown>): SanitizedSkillData {
     return {
         name: sanitizeText(data.name as string),
@@ -374,18 +271,12 @@ export function sanitizeSkillData(data: Record<string, unknown>): SanitizedSkill
     };
 }
 
-/**
- * Cover letter data interface
- */
 export interface SanitizedCoverLetterData {
     content: string;
     jobTitle: string;
     companyName: string;
 }
 
-/**
- * Sanitize cover letter data object
- */
 export function sanitizeCoverLetterData(
     data: Record<string, unknown>
 ): SanitizedCoverLetterData {
@@ -396,17 +287,11 @@ export function sanitizeCoverLetterData(
     };
 }
 
-/**
- * Sanitized user profile data interface
- */
 export interface SanitizedProfileData {
     name: string;
     image: string | null;
 }
 
-/**
- * Sanitize user profile data
- */
 export function sanitizeProfileData(
     data: Record<string, unknown>
 ): SanitizedProfileData {
@@ -416,18 +301,12 @@ export function sanitizeProfileData(
     };
 }
 
-/**
- * Sanitized feedback data interface
- */
 export interface SanitizedFeedbackData {
     rating: number;
     comment: string;
     category: string;
 }
 
-/**
- * Sanitize feedback data
- */
 export function sanitizeFeedbackData(
     data: Record<string, unknown>
 ): SanitizedFeedbackData {
@@ -438,13 +317,8 @@ export function sanitizeFeedbackData(
     };
 }
 
-// ============================================================================
-// Middleware Helper
-// ============================================================================
-
 /**
  * Create a sanitized version of request body
- * This is a generic sanitizer that strips HTML from all string fields
  */
 export function sanitizeRequestBody<T extends Record<string, unknown>>(body: T): T {
     const sanitized = { ...body };
@@ -453,15 +327,12 @@ export function sanitizeRequestBody<T extends Record<string, unknown>>(body: T):
         const value = sanitized[key];
 
         if (typeof value === 'string') {
-            // For most fields, use plain text sanitization
             (sanitized as Record<string, unknown>)[key] = sanitizeText(value);
         } else if (Array.isArray(value)) {
-            // Sanitize arrays of strings
             (sanitized as Record<string, unknown>)[key] = value.map((item) =>
                 typeof item === 'string' ? sanitizeText(item) : item
             );
         } else if (typeof value === 'object' && value !== null) {
-            // Recursively sanitize nested objects
             (sanitized as Record<string, unknown>)[key] = sanitizeRequestBody(
                 value as Record<string, unknown>
             );
@@ -471,13 +342,8 @@ export function sanitizeRequestBody<T extends Record<string, unknown>>(body: T):
     return sanitized;
 }
 
-// ============================================================================
-// Security Headers Helper
-// ============================================================================
-
 /**
  * Get Content Security Policy headers
- * These headers help prevent XSS attacks
  */
 export function getSecurityHeaders(): Record<string, string> {
     return {

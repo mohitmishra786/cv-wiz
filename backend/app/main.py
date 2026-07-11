@@ -65,17 +65,25 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # Set request context for logging
         set_request_context(request_id=request_id)
 
-        # Log request start — sanitized query only; never headers/body with secrets
+        # Log request metadata only — never raw user-controlled header/query values
+        # (CodeQL log-injection: path/method/UA from the client must not be interpolated)
         sanitized_query = sanitize_query_params(request.query_params)
-        logger.info(f"[REQUEST] {request.method} {request.url.path}", {
-            "method": request.method,
-            "path": request.url.path,
+        # CodeQL-recognized sanitization for log injection: strip CR/LF
+        raw_path = request.url.path or ""
+        safe_path = (
+            raw_path.replace("\r\n", "").replace("\n", "").replace("\r", "")
+        )[:200]
+        method = request.method if request.method in {
+            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"
+        } else "OTHER"
+        logger.info("[REQUEST]", {
+            "method": method,
+            "path": safe_path,
             "query": sanitized_query,
             "client_ip": request.client.host if request.client else None,
-            # User-Agent only (truncated); do NOT log Authorization, Cookie, or body
-            "user_agent": (request.headers.get("user-agent") or "")[:100],
             "has_authorization": "authorization" in request.headers,
             "has_cookie": "cookie" in request.headers,
+            "has_user_agent": bool(request.headers.get("user-agent")),
         })
 
         start_time = time.time()
@@ -87,10 +95,10 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             # Add request ID to response headers
             response.headers["x-request-id"] = request_id
 
-            # Log response (path/status/timing only — no auth material)
+            # Log response with already-sanitized method/path (no raw user input)
             log_api_request(
-                request.method,
-                request.url.path,
+                method,
+                safe_path,
                 response.status_code,
                 duration_ms,
             )
@@ -100,12 +108,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
             # Never include request headers/body in error logs
-            logger.error(f"[REQUEST ERROR] {request.method} {request.url.path}", {
-                "method": request.method,
-                "path": request.url.path,
+            logger.error("[REQUEST ERROR]", {
+                "method": method,
+                "path": safe_path,
                 "duration_ms": round(duration_ms, 2),
                 "error_type": type(e).__name__,
-                "error_message": str(e),
+                # Exception type only — message may contain request data
             }, exc_info=True)
             raise
         finally:

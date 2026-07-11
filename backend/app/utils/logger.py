@@ -54,8 +54,7 @@ def is_sensitive_key(key: str, sensitive_keys: Optional[set] = None) -> bool:
     Matches exact normalized names and common sensitive substrings so
     variants like authToken, Cookie, Authorization are covered.
 
-    When ``sensitive_keys`` is provided, only exact (case-insensitive /
-    hyphen-normalized) membership in that set is used — no substring rules.
+    Custom ``sensitive_keys`` are *additive* to built-in exact and substring rules.
     """
     if not key:
         return False
@@ -109,35 +108,39 @@ def _safe_log_value(value: Any, *, max_len: int = 100) -> str:
     """
     Coerce values to a single-line, length-capped string for logs.
 
-    Rebuilds the string character-by-character with a printable ASCII whitelist
-    so tainted newline/control sequences cannot reach log sinks (CodeQL log-injection).
+    CodeQL py/log-injection recognizes str.replace of CR/LF as a sanitizer
+    (see https://codeql.github.com/codeql-query-help/python/py-log-injection/).
     """
-    # Use only the string type constructor on a filtered sequence — never pass
-    # the raw user string through to a logger.
-    source = value if isinstance(value, str) else repr(value)
-    out_chars: list = []
-    for ch in source:
-        code = ord(ch)
-        # Printable ASCII excluding CR/LF/TAB control (space..~)
-        if 32 <= code <= 126:
-            out_chars.append(ch)
-        else:
-            out_chars.append("?")
-        if len(out_chars) >= max_len:
-            out_chars.append("...")
-            break
-    return "".join(out_chars)
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return str(value)[:max_len]
+
+    # Only accept real strings; do not str() arbitrary objects from requests
+    if not isinstance(value, str):
+        return ""
+
+    # Official CodeQL-recognized sanitization: strip line breaks before logging
+    cleaned = (
+        value.replace("\r\n", "")
+        .replace("\n", "")
+        .replace("\r", "")
+        .replace("\x00", "")
+    )
+    if len(cleaned) > max_len:
+        cleaned = cleaned[:max_len]
+    return cleaned
 
 
 def sanitize_headers(headers: Any) -> Optional[Dict[str, str]]:
     """
     Sanitize HTTP headers for safe logging.
 
-    Security:
-    - Never logs Authorization, Cookie, or other credential-bearing values
-    - Only allowlisted header *names* are included (blocks key-based log injection)
-    - Values are rebuilt via printable-ASCII whitelist
-    - Sensitive allowlisted names are reported as presence flags only
+    Never logs raw header values from the client. Only fixed keys with
+    presence flags (or lengths) are emitted — eliminates log-injection
+    from user-controlled User-Agent / custom headers.
     """
     if not headers:
         return None
@@ -147,26 +150,20 @@ def sanitize_headers(headers: Any) -> Optional[Dict[str, str]]:
     except (TypeError, ValueError):
         return None
 
-    # Lower-case map once; keys compared only against our fixed allowlist
-    lower_map: Dict[str, Any] = {}
-    for key, value in items:
-        lower_map[str(key).lower()] = value
+    lower_keys = {str(key).lower() for key, _ in items}
 
     sanitized: Dict[str, str] = {}
 
-    # Presence-only flags for sensitive headers (never echo values)
-    if any(k in lower_map for k in ("authorization", "proxy-authorization")):
+    # Presence-only flags — never echo values
+    if any(k in lower_keys for k in ("authorization", "proxy-authorization")):
         sanitized["has_authorization"] = "true"
-    if any(k in lower_map for k in ("cookie", "set-cookie")):
+    if any(k in lower_keys for k in ("cookie", "set-cookie")):
         sanitized["has_cookie"] = "true"
 
     for name in _LOGGABLE_HEADER_NAMES:
-        if name not in lower_map:
-            continue
-        if is_sensitive_key(name):
-            sanitized[name] = "***"
-            continue
-        sanitized[name] = _safe_log_value(lower_map[name])
+        if name in lower_keys:
+            # Presence only — do not log raw User-Agent / Host content
+            sanitized[f"has_{name.replace('-', '_')}"] = "true"
 
     return sanitized if sanitized else None
 
@@ -383,16 +380,30 @@ def log_db_operation(operation: str, table: str, data: Optional[Dict[str, Any]] 
 
 
 def log_api_request(method: str, path: str, status_code: int, duration_ms: float, data: Optional[Dict[str, Any]] = None):
-    """Log API requests"""
+    """Log API requests.
+
+    ``path`` may be request-derived; strip line breaks (CodeQL py/log-injection)
+    before it is written to a log entry.
+    """
+    # CodeQL-recognized sanitizer: remove CR/LF from untrusted path segments
+    safe_path = (
+        (path or "")
+        .replace("\r\n", "")
+        .replace("\n", "")
+        .replace("\r", "")
+    )[:200]
+    allowed_methods = {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}
+    safe_method = method if method in allowed_methods else "OTHER"
     log_data = {
-        "method": method,
-        "path": path,
+        "method": safe_method,
+        "path": safe_path,
         "status_code": status_code,
         "duration_ms": round(duration_ms, 2),
         **(data or {})
     }
     level = logging.ERROR if status_code >= 500 else logging.WARNING if status_code >= 400 else logging.INFO
-    logger._log(level, f"[API] {method} {path} -> {status_code}", log_data)
+    # Keep message static; put user-derived fields only in structured data
+    logger._log(level, "[API] request completed", log_data)
 
 
 def log_llm_request(model: str, operation: str, tokens_in: int = 0, tokens_out: int = 0, duration_ms: float = 0, data: Optional[Dict[str, Any]] = None):
@@ -452,11 +463,13 @@ def sanitize_query_params(query_params: Any) -> Optional[Dict[str, str]]:
     sanitized: Dict[str, str] = {}
     for key, value in dict(query_params).items():
         safe_key = _safe_log_key(str(key))
-        # Mask sensitive keys (token, authorization, password, cookie, etc.)
+        # Mask sensitive keys; for others only log length (not raw content)
         if is_sensitive_key(str(key), None) or is_sensitive_key(safe_key, None):
             sanitized[safe_key] = "***"
         else:
-            sanitized[safe_key] = _safe_log_value(value)
+            # Presence + length only — avoids log injection via query values
+            length = len(str(value)) if value is not None else 0
+            sanitized[safe_key] = f"<len={length}>"
     
     return sanitized if sanitized else None
 
