@@ -62,11 +62,16 @@ def is_sensitive_key(key: str, sensitive_keys: Optional[set] = None) -> bool:
     key_lower = key.lower()
     key_norm = key_lower.replace("-", "_")
 
-    if sensitive_keys is not None:
-        return key_lower in sensitive_keys or key_norm in sensitive_keys
-
+    # Built-in exact matches always apply
     if key_lower in DEFAULT_SENSITIVE_KEYS or key_norm in DEFAULT_SENSITIVE_KEYS:
         return True
+
+    # Optional custom keys are additive (exact match only for the custom set)
+    if sensitive_keys is not None:
+        if key_lower in sensitive_keys or key_norm in sensitive_keys:
+            return True
+
+    # Built-in substring rules still apply (password/token/cookie variants)
     for sub in _SENSITIVE_KEY_SUBSTRINGS:
         if sub in key_norm or sub in key_lower:
             return True

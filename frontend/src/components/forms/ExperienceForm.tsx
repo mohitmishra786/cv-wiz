@@ -61,7 +61,7 @@ export default function ExperienceForm({ experience, onSubmit, onCancel }: Exper
             message: err instanceof Error ? err.message : String(err),
         });
         setError('Your session has expired. Redirecting to login…');
-        redirectToLogin('/profile');
+        redirectToLogin();
     };
 
     const handleAIEnhance = async () => {

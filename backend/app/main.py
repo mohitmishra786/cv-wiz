@@ -149,12 +149,18 @@ async def lifespan(app: FastAPI):
 
 
 
+# Disable interactive API docs in production (CSP-safe; reduces attack surface)
+_is_prod = (get_settings().environment or "").lower() in ("production", "prod")
+
 app = FastAPI(
     title="CV-Wiz API",
     description="Career Resume Compiler - Generate tailored resumes and cover letters",
     version="1.0.0",
     lifespan=lifespan,
     root_path="/api/py",  # For Vercel deployment with Next.js rewrites
+    docs_url=None if _is_prod else "/docs",
+    redoc_url=None if _is_prod else "/redoc",
+    openapi_url=None if _is_prod else "/openapi.json",
 )
 
 # Initialize rate limiting BEFORE importing routers

@@ -79,10 +79,12 @@ export function ApplicationList({ applications }: { applications: Application[] 
   const pageSize = DEFAULT_PAGE_SIZE
 
   const totalPages = Math.max(1, Math.ceil(applications.length / pageSize))
+  // Clamp when list shrinks (e.g. after delete) so we never show an empty page
+  const currentPage = Math.min(page, totalPages)
   const pageItems = useMemo(() => {
-    const start = (page - 1) * pageSize
+    const start = (currentPage - 1) * pageSize
     return applications.slice(start, start + pageSize)
-  }, [applications, page, pageSize])
+  }, [applications, currentPage, pageSize])
 
   if (applications.length === 0) {
     return (
@@ -118,19 +120,19 @@ export function ApplicationList({ applications }: { applications: Application[] 
         >
           <button
             type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1}
+            onClick={() => setPage((p) => Math.max(1, Math.min(p, totalPages) - 1))}
             className="px-3 py-1.5 text-sm border rounded disabled:opacity-40"
           >
             Previous
           </button>
           <span className="text-sm text-gray-600">
-            Page {page} of {totalPages}
+            Page {currentPage} of {totalPages}
           </span>
           <button
             type="button"
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, Math.min(p, totalPages) + 1))}
             className="px-3 py-1.5 text-sm border rounded disabled:opacity-40"
           >
             Next

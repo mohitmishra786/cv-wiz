@@ -36,9 +36,13 @@ function compactSnapshotEntity<T extends Record<string, unknown>>(
   return out
 }
 
-export async function createResumeSnapshot(name?: string) {
+export type SnapshotResult =
+  | { success: true }
+  | { success: false; error: string }
+
+export async function createResumeSnapshot(name?: string): Promise<SnapshotResult> {
   const session = await auth()
-  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" }
 
   try {
     // Fetch complete profile
@@ -53,7 +57,7 @@ export async function createResumeSnapshot(name?: string) {
       },
     })
 
-    if (!user) return { error: "User not found" }
+    if (!user) return { success: false, error: "User not found" }
 
     // Create compact snapshot payload (omit userId/timestamps to cut storage)
     const snapshot = {
@@ -179,15 +183,19 @@ export async function getResumeVersions(
   }
 }
 
-export async function restoreResumeVersion(versionId: string) {
+export type RestoreResult =
+  | { success: true }
+  | { success: false; error: string }
+
+export async function restoreResumeVersion(versionId: string): Promise<RestoreResult> {
   const session = await auth()
-  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" }
 
   const version = await prisma.resumeVersion.findUnique({
     where: { id: versionId, userId: session.user.id },
   })
 
-  if (!version || !version.snapshot) return { error: "Version not found" }
+  if (!version || !version.snapshot) return { success: false, error: "Version not found" }
 
   const snapshot = version.snapshot as any
   const userId = session.user.id
@@ -286,6 +294,6 @@ export async function restoreResumeVersion(versionId: string) {
     return { success: true }
   } catch (error) {
     logger.error('[ResumeHistory] Restore failed', { error })
-    return { error: "Failed to restore version" }
+    return { success: false, error: "Failed to restore version" }
   }
 }

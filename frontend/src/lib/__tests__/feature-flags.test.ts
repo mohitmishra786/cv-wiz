@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { parseFeatureFlags, isFeatureEnabled, requireFeature } from '../feature-flags';
 
 describe('parseFeatureFlags', () => {
@@ -28,12 +28,16 @@ describe('isFeatureEnabled', () => {
 });
 
 describe('requireFeature', () => {
+    afterEach(() => {
+        vi.unstubAllEnvs();
+    });
+
     it('returns 403 when disabled', () => {
-        // Override by checking experimental with empty env (not in defaults)
+        vi.stubEnv('FEATURE_FLAGS', '');
         const result = requireFeature('experimental-dashboard');
-        // When FEATURE_FLAGS unset, experimental is off
-        if (!process.env.FEATURE_FLAGS) {
-            expect(result.ok).toBe(false);
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.status).toBe(403);
         }
     });
 });

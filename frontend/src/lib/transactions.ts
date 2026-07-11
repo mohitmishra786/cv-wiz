@@ -194,6 +194,11 @@ export async function createSkillsBatch(
         yearsExp?: number;
     }>
 ) {
+    // Avoid opening a transaction for empty batch imports
+    if (skills.length === 0) {
+        return { created: [], duplicates: [] as string[] };
+    }
+
     return withTransaction(async (tx) => {
         // Get existing skills for this user (one query)
         const existingSkills = await tx.skill.findMany({

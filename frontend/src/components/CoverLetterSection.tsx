@@ -142,9 +142,17 @@ export default function CoverLetterSection() {
             if (response.ok) {
                 setCoverLetters(prev => prev.filter(cl => cl.id !== id));
                 logger.endOperation('CoverLetterSection:delete');
+                return;
             }
+
+            logger.warn('[CoverLetterSection] Delete failed', {
+                id,
+                status: response.status,
+            });
+            setFetchError('Failed to delete cover letter. Please try again.');
         } catch (err) {
             logger.failOperation('CoverLetterSection:delete', err);
+            setFetchError('Failed to delete cover letter. Please try again.');
         }
     };
 

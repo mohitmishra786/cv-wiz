@@ -65,11 +65,37 @@ export async function GET(request: NextRequest) {
 
         const { searchParams } = new URL(request.url);
 
+        // Parse shared query parameters
+        const userId = searchParams.get('userId') || undefined;
+        const entityType = searchParams.get('entityType') as EntityType | undefined;
+        const entityId = searchParams.get('entityId') || undefined;
+        const actionsParam = searchParams.get('actions');
+        const actions = actionsParam ? (actionsParam.split(',') as AuditAction[]) : undefined;
+        // Clamp limit to [1, 100] — negative values must not bypass the default
+        const limit = Math.min(
+            Math.max(parseInt(searchParams.get('limit') || '50', 10) || 50, 1),
+            100
+        );
+        const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0);
+        const startDate = searchParams.get('startDate');
+        const endDate = searchParams.get('endDate');
+
+        // Validate dates if provided (shared by stats and list paths)
+        if (startDate && Number.isNaN(Date.parse(startDate))) {
+            return NextResponse.json(
+                { error: 'Invalid startDate', requestId },
+                { status: 400 }
+            );
+        }
+        if (endDate && Number.isNaN(Date.parse(endDate))) {
+            return NextResponse.json(
+                { error: 'Invalid endDate', requestId },
+                { status: 400 }
+            );
+        }
+
         // Check if stats requested
         if (searchParams.get('stats') === 'true') {
-            const startDate = searchParams.get('startDate');
-            const endDate = searchParams.get('endDate');
-
             logger.info('Fetching audit statistics', {
                 requestId,
                 adminId: session.user.id,
@@ -82,31 +108,6 @@ export async function GET(request: NextRequest) {
 
             logger.endOperation('audit:get');
             return NextResponse.json({ stats, requestId });
-        }
-
-        // Parse query parameters
-        const userId = searchParams.get('userId') || undefined;
-        const entityType = searchParams.get('entityType') as EntityType | undefined;
-        const entityId = searchParams.get('entityId') || undefined;
-        const actionsParam = searchParams.get('actions');
-        const actions = actionsParam ? (actionsParam.split(',') as AuditAction[]) : undefined;
-        const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10) || 50, 100);
-        const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0);
-        const startDate = searchParams.get('startDate');
-        const endDate = searchParams.get('endDate');
-
-        // Validate dates if provided
-        if (startDate && Number.isNaN(Date.parse(startDate))) {
-            return NextResponse.json(
-                { error: 'Invalid startDate', requestId },
-                { status: 400 }
-            );
-        }
-        if (endDate && Number.isNaN(Date.parse(endDate))) {
-            return NextResponse.json(
-                { error: 'Invalid endDate', requestId },
-                { status: 400 }
-            );
         }
 
         logger.info('Fetching audit logs', {

@@ -15,6 +15,35 @@ Receive = Callable[[], Awaitable[Message]]
 Send = Callable[[Message], Awaitable[None]]
 ASGIApp = Callable[[Scope, Receive, Send], Awaitable[None]]
 
+# Strict CSP for application routes
+_STRICT_CSP = b"default-src 'self'; frame-ancestors 'none';"
+# Looser CSP for OpenAPI docs UIs (Swagger/ReDoc need CDN assets + inline init)
+_DOCS_CSP = (
+    b"default-src 'self'; "
+    b"script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    b"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    b"img-src 'self' data: https://fastapi.tiangolo.com; "
+    b"frame-ancestors 'none';"
+)
+
+
+def _path_from_scope(scope: Scope) -> str:
+    raw = scope.get("path") or ""
+    return raw if isinstance(raw, str) else ""
+
+
+def _is_docs_path(path: str) -> bool:
+    # Match FastAPI docs endpoints with or without root_path prefix
+    return (
+        path.endswith("/docs")
+        or path.endswith("/redoc")
+        or path.endswith("/openapi.json")
+        or "/docs" == path
+        or "/redoc" == path
+        or path.endswith("/docs/")
+        or path.endswith("/redoc/")
+    )
+
 
 class SecurityHeadersASGIMiddleware:
     """Add security headers to all HTTP responses via pure ASGI."""
@@ -27,6 +56,9 @@ class SecurityHeadersASGIMiddleware:
             await self.app(scope, receive, send)
             return
 
+        path = _path_from_scope(scope)
+        csp = _DOCS_CSP if _is_docs_path(path) else _STRICT_CSP
+
         async def send_with_headers(message: Message) -> None:
             if message["type"] == "http.response.start":
                 headers = list(message.get("headers") or [])
@@ -38,10 +70,7 @@ class SecurityHeadersASGIMiddleware:
                         b"strict-transport-security",
                         b"max-age=31536000; includeSubDomains",
                     ),
-                    (
-                        b"content-security-policy",
-                        b"default-src 'self'; frame-ancestors 'none';",
-                    ),
+                    (b"content-security-policy", csp),
                 ]
                 # Avoid duplicates
                 existing = {h[0].lower() for h in headers}

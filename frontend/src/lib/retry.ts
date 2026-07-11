@@ -55,6 +55,10 @@ export async function withRetry<T>(
         onRetry,
     } = options;
 
+    if (maxAttempts < 1) {
+        throw new Error('withRetry: maxAttempts must be at least 1');
+    }
+
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -78,5 +82,7 @@ export async function withRetry<T>(
         }
     }
 
-    throw lastError;
+    throw lastError instanceof Error
+        ? lastError
+        : new Error(String(lastError ?? 'withRetry: unknown failure'));
 }

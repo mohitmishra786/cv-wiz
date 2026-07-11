@@ -243,7 +243,8 @@ export default function ProfilePage() {
     const handleGitHubImport = useCallback(async (projects: Partial<Project>[]) => {
         logger.startOperation('ProfilePage:importGitHub');
         try {
-            const results = await Promise.all(
+            // allSettled keeps successful imports when individual POSTs fail
+            const settled = await Promise.allSettled(
                 projects.map(async (project) => {
                     const response = await fetch('/api/profile/projects', {
                         method: 'POST',
@@ -251,14 +252,19 @@ export default function ProfilePage() {
                         body: JSON.stringify(project),
                     });
                     if (!response.ok) {
-                        throw new Error('Failed to import project');
+                        throw new Error(`Failed to import project (${response.status})`);
                     }
                     const body = await response.json().catch(() => ({}));
                     return (body?.data ?? body) as Project | undefined;
                 })
             );
 
-            const imported = results.filter((p): p is Project => !!p && typeof p === 'object' && !!p.id);
+            const imported = settled
+                .filter((r): r is PromiseFulfilledResult<Project | undefined> => r.status === 'fulfilled')
+                .map((r) => r.value)
+                .filter((p): p is Project => !!p && typeof p === 'object' && !!p.id);
+
+            const failedCount = settled.filter((r) => r.status === 'rejected').length;
 
             if (imported.length > 0) {
                 setProfile((prev) => {
@@ -272,13 +278,22 @@ export default function ProfilePage() {
                     };
                 });
             } else {
-                // Response shape unexpected — re-sync
+                // Nothing imported successfully — re-sync from server
                 await fetchProfile();
             }
 
-            logger.info('[ProfilePage] GitHub projects imported', { count: imported.length });
+            logger.info('[ProfilePage] GitHub projects imported', {
+                count: imported.length,
+                failed: failedCount,
+            });
             logger.endOperation('ProfilePage:importGitHub');
-            success(`${projects.length} projects imported successfully`);
+            if (failedCount === 0) {
+                success(`${imported.length} projects imported successfully`);
+            } else if (imported.length > 0) {
+                success(`${imported.length} imported; ${failedCount} failed`);
+            } else {
+                toastError('Failed to import projects');
+            }
         } catch (error) {
             logger.failOperation('ProfilePage:importGitHub', error);
             toastError('Failed to import some projects');

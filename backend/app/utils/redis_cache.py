@@ -273,8 +273,16 @@ async def set_cached(key: str, value: Any, ttl: Optional[int] = None) -> bool:
             _, prefix, user_id, _ = parts
             index_key = _index_set_key(user_id, prefix)
             await client.sadd(index_key, key)
-            # Index set lives slightly longer than entries so cleanup can still find them
-            await client.expire(index_key, effective_ttl + 60)
+            # Index set lives slightly longer than entries so cleanup can still find them.
+            # Never *shorten* an existing TTL — only extend when needed.
+            desired_ttl = int(effective_ttl) + 60
+            try:
+                current_ttl = await client.ttl(index_key)
+            except Exception:
+                current_ttl = -1
+            # ttl: -2 missing, -1 no expiry, >0 seconds remaining
+            if current_ttl is None or current_ttl < 0 or current_ttl < desired_ttl:
+                await client.expire(index_key, desired_ttl)
 
         redis_client.record_success()
         logger.debug("Cache set successfully", {"key": key[:50]})
