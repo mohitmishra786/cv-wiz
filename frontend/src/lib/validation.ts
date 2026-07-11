@@ -4,6 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import { isStrongPassword } from '@/lib/input-validation';
 
 // ============================================================================
 // Types
@@ -106,10 +107,7 @@ export function inRange(value: number, min: number, max: number): boolean {
 }
 
 // Re-export password policy from server-safe module so UI and API stay aligned
-export {
-    MIN_PASSWORD_LENGTH,
-    isStrongPassword,
-} from '@/lib/input-validation';
+export { isStrongPassword, MIN_PASSWORD_LENGTH } from '@/lib/input-validation';
 
 // ============================================================================
 // React Hook for Form Validation

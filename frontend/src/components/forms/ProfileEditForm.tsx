@@ -65,7 +65,7 @@ export default function ProfileEditForm({ currentName, currentImage, onSubmit, o
         try {
             await onSubmit({
                 name: formData.name.trim(),
-                image: formData.image.trim() || undefined,
+                image: (formData.image ?? '').trim() || undefined,
             });
             logger.endOperation('ProfileEditForm:submit');
         } catch (error) {

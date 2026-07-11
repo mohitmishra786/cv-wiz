@@ -204,10 +204,15 @@ export function buildPublicProfile(
         return null;
     }
 
-    const {
-        isPublic: _isPublic,
-        ...visiblePrefs
-    } = prefs;
+    const visiblePrefs: Omit<PublicPreferences, 'isPublic'> = {
+        showExperiences: prefs.showExperiences,
+        showExperienceDetails: prefs.showExperienceDetails,
+        showProjects: prefs.showProjects,
+        showEducations: prefs.showEducations,
+        showSkills: prefs.showSkills,
+        showPublications: prefs.showPublications,
+        showContact: prefs.showContact,
+    };
 
     const payload: PublicProfilePayload = {
         name: sanitizeText(user.name) || 'Anonymous',
