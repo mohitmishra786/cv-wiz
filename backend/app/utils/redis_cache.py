@@ -173,8 +173,8 @@ class RedisClient:
 redis_client = RedisClient()
 
 
-# Namespace prefix for all CV-Wiz cache keys (prevents collisions with other apps)
-CACHE_NAMESPACE = "cvwiz"
+# Namespace prefix for all MatchQuill cache keys (prevents collisions with other apps)
+CACHE_NAMESPACE = "matchquill"
 # Secondary index sets track keys per user/prefix so invalidation avoids SCAN
 KEY_INDEX_PREFIX = f"{CACHE_NAMESPACE}:idx"
 
@@ -182,7 +182,7 @@ KEY_INDEX_PREFIX = f"{CACHE_NAMESPACE}:idx"
 def generate_cache_key(user_id: str, job_description: str, prefix: str = "resume") -> str:
     """
     Generate a namespaced cache key based on user ID and job description hash.
-    Format: cvwiz:{prefix}:{user_id}:{jd_hash}
+    Format: matchquill:{prefix}:{user_id}:{jd_hash}
     """
     # Hash the job description to create a consistent key
     jd_hash = hashlib.sha256(job_description.encode()).hexdigest()[:16]
@@ -335,11 +335,11 @@ async def invalidate_cache(pattern: str) -> int:
     """
     Invalidate cache entries matching a pattern.
 
-    Prefer set-based invalidation when pattern is cvwiz:{prefix}:{user_id}:*
+    Prefer set-based invalidation when pattern is matchquill:{prefix}:{user_id}:*
     Falls back to SCAN only for arbitrary patterns (legacy).
     
     Args:
-        pattern: Redis key pattern (e.g., "cvwiz:resume:user123:*")
+        pattern: Redis key pattern (e.g., "matchquill:resume:user123:*")
     
     Returns:
         Number of keys deleted
@@ -348,7 +348,7 @@ async def invalidate_cache(pattern: str) -> int:
         logger.debug("Cache unavailable, skipping invalidate", {"pattern": pattern})
         return 0
 
-    # Fast path: cvwiz:{prefix}:{user}:*  → set-based invalidation
+    # Fast path: matchquill:{prefix}:{user}:*  → set-based invalidation
     parts = pattern.rstrip("*").rstrip(":").split(":")
     if (
         len(parts) >= 3

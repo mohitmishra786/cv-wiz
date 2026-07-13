@@ -1,5 +1,5 @@
 /**
- * CV-Wiz Popup Script
+ * MatchQuill Popup Script
  * Handles popup UI interactions and communication with background
  */
 
@@ -309,14 +309,14 @@ function showNotification(message, type = 'success') {
  * Initialize popup
  */
 async function init() {
-    console.log('[CV-Wiz Popup] Initializing...');
+    console.log('[MatchQuill Popup] Initializing...');
 
     // Load configuration first
     try {
         await getConfig();
-        console.log('[CV-Wiz Popup] Config loaded:', currentConfig.environment);
+        console.log('[MatchQuill Popup] Config loaded:', currentConfig.environment);
     } catch (error) {
-        console.error('[CV-Wiz Popup] Failed to load config:', error);
+        console.error('[MatchQuill Popup] Failed to load config:', error);
     }
 
     // Set up event listeners
@@ -363,7 +363,7 @@ async function init() {
             showSection('no-job');
         }
     } catch (error) {
-        console.error('[CV-Wiz Popup] Init error:', error);
+        console.error('[MatchQuill Popup] Init error:', error);
         showSection('login-prompt');
     }
 }

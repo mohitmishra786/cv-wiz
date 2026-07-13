@@ -1,7 +1,7 @@
-# CV-Wiz Codebase Knowledge Document
+# MatchQuill Codebase Knowledge Document
 
 > **Last Updated**: 2026-01-31  
-> **Repository**: `/Users/chessman/Desktop/Projects/Github/cv-wiz`  
+> **Repository**: `/Users/chessman/Desktop/Projects/Github/cv-wiz` (directory name pending rename — see Human Actions Required)  
 > **Purpose**: Complete knowledge base for implementing features, fixing bugs, and refactoring safely
 
 ---
@@ -21,9 +21,9 @@
 
 ## 1. High-Level Overview
 
-### 1.1 What is CV-Wiz?
+### 1.1 What is MatchQuill?
 
-CV-Wiz is a **career resume compiler** that uses AI to generate tailored resumes and cover letters for specific job applications. Unlike generic resume builders, it:
+MatchQuill is a **career resume compiler** that uses AI to generate tailored resumes and cover letters for specific job applications. Unlike generic resume builders, it:
 
 - **Extracts job descriptions** from job boards (LinkedIn, Indeed, etc.) via Chrome Extension
 - **Scores profile relevance** using TF-IDF-like algorithms to select the best experiences, projects, and skills
@@ -441,7 +441,7 @@ CV-Wiz is a **career resume compiler** that uses AI to generate tailored resumes
 ### 4.1 Project Structure
 
 ```
-cv-wiz/
+cv-wiz/  (directory name pending rename — see Human Actions Required)
 ├── backend/                    # FastAPI application
 │   ├── app/
 │   │   ├── main.py            # Entry point
@@ -557,7 +557,7 @@ Redis is used for caching compiled resumes and cover letters.
 ```python
 def generate_cache_key(user_id: str, job_description: str, prefix: str = "resume") -> str:
     jd_hash = hashlib.sha256(job_description.encode()).hexdigest()[:16]
-    return f"cvwiz:{prefix}:{user_id}:{jd_hash}"
+    return f"matchquill:{prefix}:{user_id}:{jd_hash}"
 ```
 
 **TTL Values**:
@@ -935,7 +935,7 @@ See [`frontend/prisma/schema.prisma`](frontend/prisma/schema.prisma:1) for compl
 |------|------------|
 | **ATS** | Applicant Tracking System - software used by employers to parse resumes |
 | **Compilation** | Process of generating a tailored resume from profile + job description |
-| **Hallucination** | When AI invents false information (strictly forbidden in CV-Wiz) |
+| **Hallucination** | When AI invents false information (strictly forbidden in MatchQuill) |
 | **Job Description (JD)** | Text from job posting describing requirements and responsibilities |
 | **Relevance Score** | Numeric score (0-∞) indicating how well a profile item matches a JD |
 | **Template** | Predefined layout configuration for resume generation |

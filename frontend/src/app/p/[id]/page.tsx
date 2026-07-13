@@ -90,7 +90,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                             </div>
                         </div>
                         <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
-                        <p className="text-gray-500 mt-1">CV-Wiz Profile</p>
+                        <p className="text-gray-500 mt-1">MatchQuill Profile</p>
                     </div>
                 </div>
 
@@ -203,8 +203,8 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                         
                         <div className="text-center">
                             <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-indigo-600 transition-colors">
-                                <Image src="/logo.png" alt="CV-Wiz" width={20} height={20} className="rounded" />
-                                Powered by CV-Wiz
+                                <Image src="/logo.png" alt="MatchQuill" width={20} height={20} className="rounded" />
+                                Powered by MatchQuill
                             </Link>
                         </div>
                     </div>

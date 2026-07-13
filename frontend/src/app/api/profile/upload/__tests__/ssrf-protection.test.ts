@@ -45,13 +45,13 @@ describe('SSRF Protection', () => {
 
         it('should derive backend URL from VERCEL_URL when BACKEND_URL is unset', async () => {
             delete process.env.BACKEND_URL;
-            process.env.VERCEL_URL = 'cv-wiz.vercel.app';
+            process.env.VERCEL_URL = 'matchquill.vercel.app';
             process.env.VERCEL_ENV = 'production';
 
             const { getBackendUrl } = await import('@/lib/backend-url');
             const result = getBackendUrl('/upload/resume');
 
-            expect(result).toBe('https://cv-wiz.vercel.app/api/py/upload/resume');
+            expect(result).toBe('https://matchquill.vercel.app/api/py/upload/resume');
         });
 
         it('should throw error when BACKEND_URL has invalid format', async () => {

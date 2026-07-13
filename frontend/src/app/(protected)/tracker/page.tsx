@@ -3,7 +3,7 @@ import { CreateApplicationForm } from "@/components/tracker/CreateApplicationFor
 import { ApplicationList } from "@/components/tracker/ApplicationList";
 
 export const metadata = {
-  title: "Job Application Tracker | CV-Wiz",
+  title: "Job Application Tracker | MatchQuill",
   description: "Track your job applications and interviews",
 };
 

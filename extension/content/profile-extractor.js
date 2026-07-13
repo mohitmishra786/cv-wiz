@@ -1,13 +1,13 @@
 /**
- * CV-Wiz Profile Extractor
+ * MatchQuill Profile Extractor
  * Extracts user profile data from LinkedIn
  */
 
 (function () {
     'use strict';
 
-    if (window.cvWizProfileExtractorInjected) return;
-    window.cvWizProfileExtractorInjected = true;
+    if (window.matchQuillProfileExtractorInjected) return;
+    window.matchQuillProfileExtractorInjected = true;
 
     function extractText(selector, parent = document) {
         const el = parent.querySelector(selector);
@@ -34,7 +34,7 @@
             
             // NOTE: Implementing a robust scraper here is difficult without live DOM.
             // This is a placeholder for the logic.
-            console.log('[CV-Wiz] Experience extraction requires complex traversal.');
+            console.log('[MatchQuill] Experience extraction requires complex traversal.');
         }
 
         return profile;
@@ -43,7 +43,7 @@
     // Floating button on Profile Page
     function createImportButton() {
         const button = document.createElement('button');
-        button.innerText = 'Import Profile to CV-Wiz';
+        button.innerText = 'Import Profile to MatchQuill';
         button.style.cssText = `
             position: fixed;
             bottom: 80px;
@@ -62,7 +62,7 @@
         button.onclick = () => {
             const data = extractLinkedInProfile();
             // Since scraping is hard, let's just scrape the name for now as proof of concept
-            // and maybe open a manual entry form or redirect to CV-Wiz
+            // and maybe open a manual entry form or redirect to MatchQuill
             alert('Profile import started! (Basic data only in this version)');
             
             chrome.runtime.sendMessage({

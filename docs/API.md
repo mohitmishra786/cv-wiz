@@ -1,4 +1,4 @@
-# CV-Wiz API Documentation
+# MatchQuill API Documentation
 
 ## Backend (FastAPI) — base path `/api/py`
 

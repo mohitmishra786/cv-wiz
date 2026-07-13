@@ -21,7 +21,7 @@ interface TourStep extends DriveStep {
     optional?: boolean;
 }
 
-const TOUR_STORAGE_KEY = 'cv_wiz_tour_v2';
+const TOUR_STORAGE_KEY = 'matchquill_tour_v2';
 const TOUR_VERSION = '2.0';
 
 export default function OnboardingTour({ forceShow = false, onComplete }: OnboardingTourProps) {
@@ -32,7 +32,7 @@ export default function OnboardingTour({ forceShow = false, onComplete }: Onboar
             {
                 element: '#main-content h1',
                 popover: {
-                    title: 'Welcome to CV-Wiz! 👋',
+                    title: 'Welcome to MatchQuill! 👋',
                     description: 'Your AI-powered career assistant. Let\'s take a quick tour to show you around the key features.',
                     side: "bottom",
                     align: 'start'

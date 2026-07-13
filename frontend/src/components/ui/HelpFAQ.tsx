@@ -57,7 +57,7 @@ export default function HelpFAQ() {
                     <p className="text-indigo-700 text-sm">We&apos;re here to help you build the best career profile.</p>
                 </div>
                 <a 
-                    href="mailto:support@cv-wiz.com" 
+                    href="mailto:support@matchquill.com" 
                     className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
                 >
                     Contact Support

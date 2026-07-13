@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CV-Wiz | Career Resume Compiler",
+  title: "MatchQuill | Career Resume Compiler",
   description: "Generate tailored resumes and cover letters for job applications with AI assistance",
   keywords: ["resume", "cover letter", "job application", "career", "AI"],
 };

@@ -1,5 +1,5 @@
 """
-Comprehensive Logging Module for CV-Wiz Backend
+Comprehensive Logging Module for MatchQuill Backend
 Provides structured logging with request correlation IDs for debugging
 """
 
@@ -224,10 +224,10 @@ class StructuredFormatter(logging.Formatter):
         return _strip_log_newlines(json.dumps(log_data, default=str))
 
 
-class CVWizLogger:
+class MatchQuillLogger:
     """Custom logger with structured logging and context support"""
     
-    def __init__(self, name: str = "cv-wiz"):
+    def __init__(self, name: str = "matchquill"):
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.DEBUG)
         
@@ -305,7 +305,7 @@ class CVWizLogger:
 
 
 # Global logger instance
-logger = CVWizLogger("cv-wiz")
+logger = MatchQuillLogger("matchquill")
 
 
 def generate_request_id() -> str:

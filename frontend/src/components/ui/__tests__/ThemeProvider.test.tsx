@@ -79,7 +79,7 @@ describe('ThemeProvider', () => {
         await waitFor(() => {
             expect(screen.getByTestId('theme-value').textContent).toBe('dark');
         });
-        expect(localStorageMock.setItem).toHaveBeenCalledWith('cv-wiz-theme', 'dark');
+        expect(localStorageMock.setItem).toHaveBeenCalledWith('matchquill-theme', 'dark');
     });
 
     it('should toggle theme', async () => {
@@ -101,7 +101,7 @@ describe('ThemeProvider', () => {
         await waitFor(() => {
             expect(screen.getByTestId('theme-value').textContent).toBe('dark');
         });
-        expect(localStorageMock.setItem).toHaveBeenCalledWith('cv-wiz-theme', 'dark');
+        expect(localStorageMock.setItem).toHaveBeenCalledWith('matchquill-theme', 'dark');
         expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
     });
 
@@ -124,7 +124,7 @@ describe('ThemeProvider', () => {
         await waitFor(() => {
             expect(screen.getByTestId('theme-value').textContent).toBe('dark');
         });
-        expect(localStorageMock.setItem).toHaveBeenCalledWith('cv-wiz-theme', 'dark');
+        expect(localStorageMock.setItem).toHaveBeenCalledWith('matchquill-theme', 'dark');
     });
 
     it('should throw error when useTheme is used outside ThemeProvider', () => {

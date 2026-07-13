@@ -191,7 +191,7 @@ describe('GlobalErrorBoundary', () => {
         );
 
         expect(screen.getByText('Oops! Something went wrong')).toBeInTheDocument();
-        expect(screen.getByText(/We're sorry, but CV-Wiz encountered an unexpected error/)).toBeInTheDocument();
+        expect(screen.getByText(/We're sorry, but MatchQuill encountered an unexpected error/)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Reload Page/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Go Home/i })).toBeInTheDocument();
     });
@@ -220,7 +220,7 @@ describe('GlobalErrorBoundary', () => {
 
         const supportLink = screen.getByText('contact support');
         expect(supportLink).toBeInTheDocument();
-        expect(supportLink).toHaveAttribute('href', 'mailto:support@cv-wiz.com');
+        expect(supportLink).toHaveAttribute('href', 'mailto:support@matchquill.com');
     });
 
     it('has correct styling classes for dark theme', () => {

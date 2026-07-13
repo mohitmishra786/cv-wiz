@@ -1,5 +1,5 @@
 /**
- * CV-Wiz Content Script
+ * MatchQuill Content Script
  * Extracts job descriptions from various job listing pages
  */
 
@@ -165,7 +165,7 @@
                 }
             });
         } catch (e) {
-            console.error('[CV-Wiz] Telemetry failed:', e);
+            console.error('[MatchQuill] Telemetry failed:', e);
         }
     }
 
@@ -202,7 +202,7 @@
                     extractedAt: new Date().toISOString()
                 };
                 sendToBackground(data);
-                showNotification('Manual selection successful! Opening CV-Wiz...');
+                showNotification('Manual selection successful! Opening MatchQuill...');
                 sendTelemetry('manual_extraction_success', { length: text.length });
             } else if (text) {
                 showNotification('Selected text is too short. Please select the full description.', 'error');
@@ -234,7 +234,7 @@
         const description = extractText(descriptionElement);
 
         if (!description || description.length < 50) {
-            console.log('[CV-Wiz] Could not find job description');
+            console.log('[MatchQuill] Could not find job description');
             sendTelemetry('extraction_failed', { reason: 'not_found_or_short', jobBoard });
             return null;
         }
@@ -271,10 +271,10 @@
             payload: data,
         }, (response) => {
             if (chrome.runtime.lastError) {
-                console.error('[CV-Wiz] Error sending message:', chrome.runtime.lastError);
+                console.error('[MatchQuill] Error sending message:', chrome.runtime.lastError);
                 return;
             }
-            console.log('[CV-Wiz] Background acknowledged:', response);
+            console.log('[MatchQuill] Background acknowledged:', response);
         });
     }
 
@@ -283,10 +283,10 @@
      */
     function createFloatingButton() {
         // Check if button already exists
-        if (document.getElementById('cvwiz-extract-btn')) return;
+        if (document.getElementById('matchquill-extract-btn')) return;
 
         const button = document.createElement('button');
-        button.id = 'cvwiz-extract-btn';
+        button.id = 'matchquill-extract-btn';
         button.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -295,7 +295,7 @@
         <line x1="16" y1="17" x2="8" y2="17"/>
         <polyline points="10 9 9 9 8 9"/>
       </svg>
-      <span>CV-Wiz</span>
+      <span>MatchQuill</span>
     `;
 
         button.style.cssText = `
@@ -333,7 +333,7 @@
             const data = extractJobDescription();
             if (data) {
                 sendToBackground(data);
-                showNotification('Job description extracted! Opening CV-Wiz...');
+                showNotification('Job description extracted! Opening MatchQuill...');
             } else {
                 showNotification('Auto-extraction failed. Click to select text manually.', 'error');
                 enableManualSelection();
@@ -412,7 +412,7 @@
      * Initialize content script
      */
     function init() {
-        console.log('[CV-Wiz] Content script initialized');
+        console.log('[MatchQuill] Content script initialized');
         addStyles();
 
         // Wait for page to load fully
@@ -430,7 +430,7 @@
                     lastExtractedJob: data,
                     lastExtractedAt: Date.now(),
                 });
-                console.log('[CV-Wiz] Job description auto-extracted and cached');
+                console.log('[MatchQuill] Job description auto-extracted and cached');
             }
         }, 1500); // Wait for dynamic content
     }

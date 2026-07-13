@@ -162,7 +162,7 @@ class TestCacheKeyGeneration:
         key2 = generate_cache_key("user123", "job description text", "resume")
         
         assert key1 == key2
-        assert key1.startswith("cvwiz:resume:user123:")
+        assert key1.startswith("matchquill:resume:user123:")
 
     def test_generate_cache_key_different_inputs(self):
         """Test that different inputs produce different keys."""

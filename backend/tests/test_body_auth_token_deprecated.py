@@ -114,10 +114,10 @@ class TestGetAuthTokenPreference:
             authToken="body-only-token",
             jobDescription="A" * 60,
         )
-        with caplog.at_level(logging.WARNING, logger="cv-wiz"):
+        with caplog.at_level(logging.WARNING, logger="matchquill"):
             token = compile_get_auth_token(request, None)
         assert token == "body-only-token"
-        assert any("DEPRECATED" in r.getMessage() for r in caplog.records if r.name == "cv-wiz")
+        assert any("DEPRECATED" in r.getMessage() for r in caplog.records if r.name == "matchquill")
 
     def test_missing_token_raises(self):
         from fastapi import HTTPException
@@ -143,10 +143,10 @@ class TestGetAuthTokenPreference:
             authToken="body-only-token",
             jobDescription="A" * 60,
         )
-        with caplog.at_level(logging.WARNING, logger="cv-wiz"):
+        with caplog.at_level(logging.WARNING, logger="matchquill"):
             token = cl_get_auth_token(request, None)
         assert token == "body-only-token"
-        assert any("DEPRECATED" in r.getMessage() for r in caplog.records if r.name == "cv-wiz")
+        assert any("DEPRECATED" in r.getMessage() for r in caplog.records if r.name == "matchquill")
 
 
 class TestOptionalBodyAuthToken:
@@ -179,7 +179,7 @@ class TestOptionalBodyAuthToken:
         assert response.json()["success"] is True
 
     def test_compile_body_token_still_works(self, client, caplog):
-        with caplog.at_level(logging.WARNING, logger="cv-wiz"):
+        with caplog.at_level(logging.WARNING, logger="matchquill"):
             response = client.post(
                 "/api/py/compile",
                 json={"authToken": "legacy-body-token", "jobDescription": "A" * 60},
@@ -188,5 +188,5 @@ class TestOptionalBodyAuthToken:
         assert any(
             "DEPRECATED" in r.getMessage()
             for r in caplog.records
-            if r.name == "cv-wiz"
+            if r.name == "matchquill"
         )

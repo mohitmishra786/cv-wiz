@@ -1,4 +1,4 @@
-// Prisma Schema for CV-Wiz
+// Prisma Schema for MatchQuill
 // Career Resume Compiler Database
 
 generator client {
@@ -58,7 +58,7 @@ enum Role {
 }
 
 // ============================================
-// User Model (Extended for CV-Wiz)
+// User Model (Extended for MatchQuill)
 // ============================================
 
 model User {
@@ -77,7 +77,7 @@ model User {
   accounts Account[]
   sessions Session[]
 
-  // CV-Wiz Profile Relations
+  // MatchQuill Profile Relations
   experiences      Experience[]
   projects         Project[]
   educations       Education[]

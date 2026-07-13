@@ -1,4 +1,4 @@
-# CV-Wiz Scalability Documentation
+# MatchQuill Scalability Documentation
 
 ## Audit Log Retention Policy
 

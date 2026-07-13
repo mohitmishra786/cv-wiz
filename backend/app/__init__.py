@@ -1,4 +1,4 @@
 """
-CV-Wiz Backend Application
+MatchQuill Backend Application
 Career Resume Compiler API
 """

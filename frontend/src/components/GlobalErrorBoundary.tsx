@@ -99,7 +99,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
 
                         {/* Description */}
                         <p className="mb-6 text-gray-400">
-                            We&apos;re sorry, but CV-Wiz encountered an unexpected error.
+                            We&apos;re sorry, but MatchQuill encountered an unexpected error.
                             Please try refreshing the page or contact support if the problem persists.
                         </p>
 
@@ -161,7 +161,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
                         <p className="mt-6 text-xs text-gray-500">
                             If this error persists, please{' '}
                             <a
-                                href="mailto:support@cv-wiz.com"
+                                href="mailto:support@matchquill.com"
                                 className="text-emerald-400 hover:text-emerald-300 hover:underline"
                             >
                                 contact support

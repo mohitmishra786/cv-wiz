@@ -1,5 +1,5 @@
 /**
- * CV-Wiz Logging Module
+ * MatchQuill Logging Module
  * Provides structured logging with request correlation IDs for debugging
  */
 
@@ -192,14 +192,14 @@ export function createLogger(defaultContext: LogContext = {}) {
 /**
  * Default logger instance
  */
-export const logger = createLogger({ component: 'cv-wiz' });
+export const logger = createLogger({ component: 'matchquill' });
 
 /**
  * Create a request-scoped logger
  */
 export function createRequestLogger(requestId?: string, userId?: string) {
     return createLogger({
-        component: 'cv-wiz',
+        component: 'matchquill',
         requestId: requestId || generateRequestId(),
         userId,
     });

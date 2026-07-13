@@ -1,5 +1,5 @@
 /**
- * CV-Wiz Background Service Worker
+ * MatchQuill Background Service Worker
  * Handles API calls and coordinates between content scripts and popup
  */
 
@@ -15,7 +15,7 @@ let configCache = null;
  * Listen for messages from content scripts and popup
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('[CV-Wiz BG] Received message:', message.type);
+    console.log('[MatchQuill BG] Received message:', message.type);
 
     switch (message.type) {
         case 'JOB_DESCRIPTION_EXTRACTED':
@@ -103,7 +103,7 @@ function handleJobExtracted(data, sender) {
     chrome.action.setBadgeText({ text: '1', tabId: sender.tab?.id });
     chrome.action.setBadgeBackgroundColor({ color: '#10b981', tabId: sender.tab?.id });
 
-    console.log('[CV-Wiz BG] Job extracted:', data.title);
+    console.log('[MatchQuill BG] Job extracted:', data.title);
 }
 
 /**
@@ -232,7 +232,7 @@ async function getAuthStatus() {
             };
         }
     } catch (error) {
-        console.error('[CV-Wiz BG] Auth check failed:', error);
+        console.error('[MatchQuill BG] Auth check failed:', error);
     }
 
     // Token is invalid, clear it
@@ -255,21 +255,21 @@ function getStoredAuthToken() {
  * Initialize background service worker
  */
 async function init() {
-    console.log('[CV-Wiz BG] Service worker initialized');
+    console.log('[MatchQuill BG] Service worker initialized');
 
     // Pre-load config
     try {
         configCache = await getConfig();
-        console.log('[CV-Wiz BG] Config loaded:', configCache.environment);
+        console.log('[MatchQuill BG] Config loaded:', configCache.environment);
     } catch (error) {
-        console.error('[CV-Wiz BG] Failed to load config:', error);
+        console.error('[MatchQuill BG] Failed to load config:', error);
     }
 
     // Load stored auth token
     chrome.storage.local.get(['authToken'], (result) => {
         if (result.authToken) {
             authToken = result.authToken;
-            console.log('[CV-Wiz BG] Auth token loaded from storage');
+            console.log('[MatchQuill BG] Auth token loaded from storage');
         }
     });
 }

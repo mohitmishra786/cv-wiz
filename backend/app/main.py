@@ -1,6 +1,6 @@
 """
 FastAPI Main Application Entry Point
-CV-Wiz Resume Compiler API
+MatchQuill Resume Compiler API
 """
 
 import time
@@ -126,7 +126,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown events."""
     # Startup
     settings = get_settings()
-    logger.info("[STARTUP] CV-Wiz API starting", {
+    logger.info("[STARTUP] MatchQuill API starting", {
         "groq_model": settings.groq_model,
         "frontend_url": settings.effective_frontend_url,
         "database_url": "configured" if settings.database_url else "NOT SET",
@@ -154,7 +154,7 @@ async def lifespan(app: FastAPI):
     from app.services.profile_service import close_shared_http_client
     await close_shared_http_client()
     
-    logger.info("[SHUTDOWN] CV-Wiz API shutdown complete")
+    logger.info("[SHUTDOWN] MatchQuill API shutdown complete")
 
 
 
@@ -162,7 +162,7 @@ async def lifespan(app: FastAPI):
 _is_prod = (get_settings().environment or "").lower() in ("production", "prod")
 
 app = FastAPI(
-    title="CV-Wiz API",
+    title="MatchQuill API",
     description="Career Resume Compiler - Generate tailored resumes and cover letters",
     version="1.0.0",
     lifespan=lifespan,
@@ -237,7 +237,7 @@ app.include_router(ai.router, prefix=API_PREFIX, tags=["AI"])
 async def root():
     """Health check endpoint."""
     logger.debug("[HEALTH] Root endpoint called")
-    return {"status": "healthy", "service": "cv-wiz-api", "version": "1.0.0"}
+    return {"status": "healthy", "service": "matchquill-api", "version": "1.0.0"}
 
 
 @app.get(f"{API_PREFIX}/health")
