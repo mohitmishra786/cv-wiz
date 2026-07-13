@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: Props) {
   if (!resume) return { title: "Resume Not Found" };
 
   return {
-    title: `${resume.name}'s Resume | CV-Wiz`,
+    title: `${resume.name}'s Resume | MatchQuill`,
     description: `Professional resume of ${resume.name}`,
   };
 }
@@ -175,7 +175,7 @@ export default async function PublicResumePage({ params }: Props) {
         </div>
 
         <div className="bg-gray-50 p-4 text-center text-sm text-gray-500 border-t">
-          Powered by <Link href="/" className="text-blue-600 hover:underline">CV-Wiz</Link>
+          Powered by <Link href="/" className="text-blue-600 hover:underline">MatchQuill</Link>
         </div>
       </div>
     </div>

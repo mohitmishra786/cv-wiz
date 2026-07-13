@@ -1,6 +1,6 @@
 # Job Board Selectors Maintenance Guide
 
-This document describes how to maintain and update the job extraction selectors used in the CV-Wiz Chrome Extension.
+This document describes how to maintain and update the job extraction selectors used in the MatchQuill Chrome Extension.
 
 ## Location
 Selectors are defined in `extension/content/job-extractor.js` in the `JOB_SELECTORS` constant.

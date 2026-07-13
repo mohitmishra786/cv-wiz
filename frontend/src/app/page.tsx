@@ -1,5 +1,5 @@
 /**
- * CV-Wiz Home Page
+ * MatchQuill Home Page
  * Landing page with feature highlights and CTA
  */
 
@@ -129,7 +129,7 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Browse Jobs</h3>
                 <p style={{ color: 'var(--muted-foreground)' }}>
-                  Install our browser extension. When you find a job you like, CV-Wiz automatically extracts the requirements.
+                  Install our browser extension. When you find a job you like, MatchQuill automatically extracts the requirements.
                 </p>
               </div>
             </div>
@@ -219,7 +219,7 @@ export default function Home() {
               Ready to Land Your Dream Job?
             </h2>
             <p className="text-indigo-100 text-lg mb-8 max-w-xl mx-auto">
-              Join thousands of job seekers using CV-Wiz to create tailored applications in seconds.
+              Join thousands of job seekers using MatchQuill to create tailored applications in seconds.
             </p>
             <Link
               href="/register"
@@ -237,15 +237,15 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <Image
               src="/logo.png"
-              alt="CV-Wiz Logo"
+              alt="MatchQuill Logo"
               width={32}
               height={32}
               className="rounded-lg"
             />
-            <span className="font-semibold" style={{ color: 'var(--foreground)' }}>CV-Wiz</span>
+            <span className="font-semibold" style={{ color: 'var(--foreground)' }}>MatchQuill</span>
           </div>
           <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-            © 2026 CV-Wiz. Build resumes that get noticed.
+            © 2026 MatchQuill. Build resumes that get noticed.
           </p>
         </div>
       </footer>

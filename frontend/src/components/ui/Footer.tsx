@@ -30,7 +30,7 @@ const Footer: React.FC = () => {
                             className="text-lg font-bold mb-3"
                             style={{ color: 'var(--foreground)' }}
                         >
-                            CV-Wiz
+                            MatchQuill
                         </h3>
                         <p
                             className="text-sm leading-relaxed"
@@ -128,7 +128,7 @@ const Footer: React.FC = () => {
                         className="text-sm"
                         style={{ color: 'var(--muted-foreground)' }}
                     >
-                        © {current_year} CV-Wiz. All rights reserved.
+                        © {current_year} MatchQuill. All rights reserved.
                     </p>
                     <div className="flex gap-6">
                         <span

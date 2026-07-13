@@ -19,7 +19,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 function getInitialTheme(): Theme {
     if (typeof window === 'undefined') return 'light';
-    const stored = localStorage.getItem('cv-wiz-theme') as Theme;
+    const stored = localStorage.getItem('matchquill-theme') as Theme;
     // Only use stored value if it's a valid user preference (light/dark)
     if (stored === 'light' || stored === 'dark') return stored;
     // Default to light mode instead of following system preference
@@ -33,7 +33,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         // Apply theme to document
         document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('cv-wiz-theme', theme);
+        localStorage.setItem('matchquill-theme', theme);
         // Defer setMounted to avoid synchronous setState in effect
         requestAnimationFrame(() => setMounted(true));
 
@@ -41,7 +41,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         const handleChange = (e: MediaQueryListEvent) => {
             // Only update if user hasn't manually set a preference (light or dark)
-            const userPreference = localStorage.getItem('cv-wiz-theme');
+            const userPreference = localStorage.getItem('matchquill-theme');
             if (userPreference !== 'light' && userPreference !== 'dark') {
                 const newTheme: Theme = e.matches ? 'dark' : 'light';
                 setThemeState(newTheme);
@@ -55,7 +55,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const setTheme = (newTheme: Theme) => {
         setThemeState(newTheme);
-        localStorage.setItem('cv-wiz-theme', newTheme);
+        localStorage.setItem('matchquill-theme', newTheme);
         document.documentElement.setAttribute('data-theme', newTheme);
     };
 

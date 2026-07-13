@@ -22,7 +22,7 @@ const ThemeToggle: React.FC = () => {
         setMounted(true);
 
         // Check localStorage first (use same key as ThemeProvider)
-        const savedTheme = localStorage.getItem('cv-wiz-theme') as 'light' | 'dark' | null;
+        const savedTheme = localStorage.getItem('matchquill-theme') as 'light' | 'dark' | null;
 
         if (savedTheme) {
             setTheme(savedTheme);
@@ -45,7 +45,7 @@ const ThemeToggle: React.FC = () => {
         document.documentElement.setAttribute('data-theme', newTheme);
 
         // Persist to localStorage (use same key as ThemeProvider)
-        localStorage.setItem('cv-wiz-theme', newTheme);
+        localStorage.setItem('matchquill-theme', newTheme);
     };
 
     // Prevent hydration mismatch

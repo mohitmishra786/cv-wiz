@@ -38,7 +38,7 @@ export default function GlobalError({
             <head>
                 <meta charSet="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <title>Application Error - CV-Wiz</title>
+                <title>Application Error - MatchQuill</title>
                 <style>{`
                     * {
                         margin: 0;
@@ -141,7 +141,7 @@ export default function GlobalError({
                     </div>
                     <h1>Application Error</h1>
                     <p>
-                        We&apos;re sorry, but CV-Wiz encountered a critical error.
+                        We&apos;re sorry, but MatchQuill encountered a critical error.
                         Please try refreshing the page or contact support if the problem persists.
                     </p>
                     <div className="buttons">

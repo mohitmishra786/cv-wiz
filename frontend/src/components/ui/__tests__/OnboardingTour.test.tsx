@@ -184,7 +184,7 @@ describe('useOnboardingTour', () => {
         
         fireEvent.click(screen.getByText('Restart'));
 
-        expect(localStorageMock.removeItem).toHaveBeenCalledWith('cv_wiz_tour_v2');
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith('matchquill_tour_v2');
         expect(reloadMock).toHaveBeenCalled();
     });
 
@@ -210,7 +210,7 @@ describe('useOnboardingTour', () => {
         fireEvent.click(screen.getByText('Complete'));
 
         expect(localStorageMock.setItem).toHaveBeenCalledWith(
-            'cv_wiz_tour_v2',
+            'matchquill_tour_v2',
             expect.stringContaining('"completed":true')
         );
     });
@@ -240,7 +240,7 @@ describe('useOnboardingTour', () => {
 
         fireEvent.click(screen.getByText('Reset'));
 
-        expect(localStorageMock.removeItem).toHaveBeenCalledWith('cv_wiz_tour_v2');
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith('matchquill_tour_v2');
     });
 });
 
@@ -286,7 +286,7 @@ describe('RestartTourButton', () => {
 
         fireEvent.click(screen.getByText('Restart Tour'));
 
-        expect(localStorageMock.removeItem).toHaveBeenCalledWith('cv_wiz_tour_v2');
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith('matchquill_tour_v2');
         expect(reloadMock).toHaveBeenCalled();
     });
 

@@ -1,4 +1,4 @@
-# CV-Wiz Backend Dockerfile
+# MatchQuill Backend Dockerfile
 # Multi-stage build for production deployment
 
 FROM python:3.11-slim AS builder

@@ -2,7 +2,7 @@ import { getSharedLinks, createShareLink } from "@/app/actions/sharing";
 import { ShareList } from "@/components/resumes/ShareList";
 
 export const metadata = {
-  title: "Share Resume | CV-Wiz",
+  title: "Share Resume | MatchQuill",
   description: "Share your resume with the world",
 };
 

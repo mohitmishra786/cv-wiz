@@ -1,4 +1,4 @@
-# AI Agent Operational Guide (CV-Wiz)
+# AI Agent Operational Guide (MatchQuill)
 
 This repository is a monorepo containing a **FastAPI backend** and a **Next.js frontend**.
 Agents must strictly adhere to the following operational guidelines, build commands, and code style conventions.

@@ -6,7 +6,7 @@ import { HISTORY_MAX_PAGE_SIZE, HISTORY_PAGE_SIZE } from '@/lib/constants'
 import { HistoryList } from '@/components/resumes/HistoryList'
 
 export const metadata = {
-  title: 'Version History | CV-Wiz',
+  title: 'Version History | MatchQuill',
   description: 'Manage resume versions and backups',
 }
 

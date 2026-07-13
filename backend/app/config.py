@@ -1,5 +1,5 @@
 """
-Configuration module for CV-Wiz backend.
+Configuration module for MatchQuill backend.
 Loads environment variables and provides typed settings.
 Fails loudly if required environment variables are missing.
 Validates URL formats for configuration endpoints.
@@ -148,7 +148,7 @@ class Settings(BaseSettings):
         
         if missing:
             raise ValueError(
-                f"[CV-Wiz Config] Missing required environment variables: {', '.join(missing)}. "
+                f"[MatchQuill Config] Missing required environment variables: {', '.join(missing)}. "
                 "Set these in your deployment environment (e.g., Railway, Vercel)."
             )
         

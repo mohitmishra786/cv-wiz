@@ -1,6 +1,6 @@
 /**
  * TypeScript Type Definitions
- * Shared types for the CV-Wiz application
+ * Shared types for the MatchQuill application
  */
 
 // ============================================

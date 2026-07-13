@@ -1,5 +1,5 @@
 /**
- * CV-Wiz Extension Configuration
+ * MatchQuill Extension Configuration
  * Centralized configuration for API URLs and environment settings
  * Supports both development and production environments
  */
@@ -17,12 +17,12 @@ const ENV_CONFIGS = {
         FRONTEND_URL: 'http://localhost:3000',
     },
     production: {
-        API_BASE_URL: 'https://cv-wiz.vercel.app/api/py',
-        FRONTEND_URL: 'https://cv-wiz.vercel.app',
+        API_BASE_URL: 'https://matchquill.vercel.app/api/py',
+        FRONTEND_URL: 'https://matchquill.vercel.app',
     },
     staging: {
-        API_BASE_URL: 'https://staging.cv-wiz.vercel.app/api/py',
-        FRONTEND_URL: 'https://staging.cv-wiz.vercel.app',
+        API_BASE_URL: 'https://staging.matchquill.vercel.app/api/py',
+        FRONTEND_URL: 'https://staging.matchquill.vercel.app',
     },
 };
 
@@ -47,7 +47,7 @@ async function getConfig() {
             environment: environment,
         };
     } catch (error) {
-        console.error('[CV-Wiz Config] Error loading config:', error);
+        console.error('[MatchQuill Config] Error loading config:', error);
         return {
             ...DEFAULT_CONFIG,
             environment: 'development',
@@ -77,7 +77,7 @@ async function saveConfig(config) {
     }
     
     await chrome.storage.sync.set(storageData);
-    console.log('[CV-Wiz Config] Configuration saved:', storageData);
+    console.log('[MatchQuill Config] Configuration saved:', storageData);
 }
 
 /**
@@ -94,7 +94,7 @@ async function resetConfig(environment = 'development') {
         environment: environment,
     });
     
-    console.log('[CV-Wiz Config] Configuration reset to', environment);
+    console.log('[MatchQuill Config] Configuration reset to', environment);
 }
 
 /**

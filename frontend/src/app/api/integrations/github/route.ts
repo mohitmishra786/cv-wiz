@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         const res = await fetch(githubUrl.toString(), {
             headers: {
                 'Accept': 'application/vnd.github.v3+json',
-                'User-Agent': 'CV-Wiz-App'
+                'User-Agent': 'MatchQuill-App'
             }
         });
 

@@ -1,5 +1,5 @@
 /**
- * CV-Wiz Extension Options Page Script
+ * MatchQuill Extension Options Page Script
  * Handles configuration management for the extension
  */
 
@@ -10,12 +10,12 @@ const ENV_PRESETS = {
         frontendUrl: 'http://localhost:3000',
     },
     staging: {
-        apiBaseUrl: 'https://staging.cv-wiz.vercel.app/api/py',
-        frontendUrl: 'https://staging.cv-wiz.vercel.app',
+        apiBaseUrl: 'https://staging.matchquill.vercel.app/api/py',
+        frontendUrl: 'https://staging.matchquill.vercel.app',
     },
     production: {
-        apiBaseUrl: 'https://cv-wiz.vercel.app/api/py',
-        frontendUrl: 'https://cv-wiz.vercel.app',
+        apiBaseUrl: 'https://matchquill.vercel.app/api/py',
+        frontendUrl: 'https://matchquill.vercel.app',
     },
 };
 
@@ -61,7 +61,7 @@ async function loadConfig() {
         updateConfigDisplay(environment, elements.apiBaseUrl.value, elements.frontendUrl.value);
         updateInputState(environment);
     } catch (error) {
-        console.error('[CV-Wiz Options] Error loading config:', error);
+        console.error('[MatchQuill Options] Error loading config:', error);
         showNotification('Failed to load configuration', 'error');
     }
 }
@@ -215,7 +215,7 @@ async function saveConfig() {
         showValidationStatus(true, 'Configuration saved successfully!');
         showNotification('Settings saved successfully!', 'success');
     } catch (error) {
-        console.error('[CV-Wiz Options] Error saving config:', error);
+        console.error('[MatchQuill Options] Error saving config:', error);
         showValidationStatus(false, 'Failed to save configuration');
         showNotification('Failed to save settings', 'error');
     }
@@ -247,7 +247,7 @@ async function resetConfig() {
         clearValidationStatus();
         showNotification('Settings reset to defaults', 'success');
     } catch (error) {
-        console.error('[CV-Wiz Options] Error resetting config:', error);
+        console.error('[MatchQuill Options] Error resetting config:', error);
         showNotification('Failed to reset settings', 'error');
     }
 }
@@ -285,7 +285,7 @@ async function testConnection() {
             showNotification('Connection test failed', 'error');
         }
     } catch (error) {
-        console.error('[CV-Wiz Options] Connection test failed:', error);
+        console.error('[MatchQuill Options] Connection test failed:', error);
         showValidationStatus(false, 'Connection failed: Unable to reach API');
         showNotification('Connection test failed', 'error');
     } finally {
@@ -332,7 +332,7 @@ function init() {
         }
     });
 
-    console.log('[CV-Wiz Options] Options page initialized');
+    console.log('[MatchQuill Options] Options page initialized');
 }
 
 // Initialize when DOM is ready

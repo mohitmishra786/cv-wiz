@@ -1,4 +1,4 @@
-# CV-Wiz Architecture Overview
+# MatchQuill Architecture Overview
 
 ## System Architecture
 

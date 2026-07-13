@@ -81,7 +81,7 @@ const Navbar: React.FC = () => {
                                 style={{ color: 'var(--foreground)' }}
                             >
                                 <Home size={24} style={{ color: 'var(--primary)' }} />
-                                <span className="hidden sm:inline">CV-Wiz</span>
+                                <span className="hidden sm:inline">MatchQuill</span>
                             </Link>
 
                             {/* Desktop Navigation Links (only if logged in) */}
