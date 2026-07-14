@@ -76,6 +76,15 @@ const Footer: React.FC = () => {
                                     Templates
                                 </Link>
                             </li>
+                            <li>
+                                <Link
+                                    href="/pricing"
+                                    className="text-sm transition-colors hover:opacity-80"
+                                    style={{ color: 'var(--muted-foreground)' }}
+                                >
+                                    Pricing
+                                </Link>
+                            </li>
                         </ul>
                     </div>
 

@@ -96,6 +96,9 @@ const Navbar: React.FC = () => {
                                     <Link href="/templates" className={navLinkClass('/templates')}>
                                         Templates
                                     </Link>
+                                    <Link href="/pricing" className={navLinkClass('/pricing')}>
+                                        Pricing
+                                    </Link>
                                 </div>
                             )}
                         </div>
@@ -115,6 +118,9 @@ const Navbar: React.FC = () => {
                             {/* Not Logged In */}
                             {!isLoading && !session && (
                                 <div className="hidden md:flex items-center gap-2">
+                                    <Link href="/pricing" className={navLinkClass('/pricing')}>
+                                        Pricing
+                                    </Link>
                                     <Link
                                         href="/login"
                                         className="flex items-center gap-2 px-4 py-2.5 min-h-[44px] text-sm font-medium rounded-xl transition-all duration-200 hover:opacity-80"
@@ -227,6 +233,13 @@ const Navbar: React.FC = () => {
                                 >
                                     Templates
                                 </Link>
+                                <Link
+                                    href="/pricing"
+                                    className={navLinkClass('/pricing')}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    Pricing
+                                </Link>
                                 <hr style={{ borderColor: 'var(--border)' }} />
                                 <button
                                     onClick={() => {
@@ -243,6 +256,14 @@ const Navbar: React.FC = () => {
                         )}
                         {!session && !isLoading && (
                             <>
+                                <Link
+                                    href="/pricing"
+                                    className="flex items-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium rounded-xl"
+                                    style={{ color: 'var(--foreground)' }}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    Pricing
+                                </Link>
                                 <Link
                                     href="/login"
                                     className="flex items-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium rounded-xl"
