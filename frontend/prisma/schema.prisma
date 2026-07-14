@@ -58,6 +58,29 @@ enum Role {
 }
 
 // ============================================
+// Monetization (Stripe)
+// ============================================
+// NOTE: added by feat/monetization plumbing. See docs/monetization-decision.md
+// for tier rationale. PRO is the only paid tier implemented today; TEAM is
+// reserved for a future higher tier and intentionally unused so this stays
+// a minimal, reversible change.
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  TEAM
+}
+
+// Mirrors Stripe subscription lifecycle states we act on. NONE means the
+// user has never started a paid subscription (default/free state).
+enum SubscriptionStatus {
+  NONE
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+// ============================================
 // User Model (Extended for MatchQuill)
 // ============================================
 
@@ -198,6 +221,19 @@ model UserSettings {
   resumePreferences Json?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  // --- Monetization (Stripe) ---
+  // Defaults to FREE/NONE so every existing row stays on the free tier with
+  // no behavior change when this migration is applied.
+  subscriptionTier     SubscriptionTier   @default(FREE)
+  subscriptionStatus   SubscriptionStatus @default(NONE)
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+
+  @@index([subscriptionTier])
 }
 
 model CoverLetter {

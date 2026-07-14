@@ -82,10 +82,17 @@ export interface Publication {
     updatedAt?: string;
 }
 
+export type SubscriptionTier = 'FREE' | 'PRO' | 'TEAM';
+export type SubscriptionStatus = 'NONE' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+
 export interface UserSettings {
     id: string;
     selectedTemplate: TemplateType;
     resumePreferences?: Record<string, unknown> | null;
+    subscriptionTier?: SubscriptionTier;
+    subscriptionStatus?: SubscriptionStatus;
+    currentPeriodEnd?: string | null;
+    cancelAtPeriodEnd?: boolean;
 }
 
 export interface UserProfile extends User {

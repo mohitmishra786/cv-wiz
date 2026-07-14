@@ -18,6 +18,8 @@ export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
+    const [portalLoading, setPortalLoading] = useState(false);
+    const [billingError, setBillingError] = useState('');
 
     useEffect(() => {
         fetch('/api/profile/settings')
@@ -46,6 +48,22 @@ export default function SettingsPage() {
             setMessage('Failed to save settings');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleManageBilling = async () => {
+        setPortalLoading(true);
+        setBillingError('');
+        try {
+            const res = await fetch('/api/billing/portal', { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok || !data.url) {
+                throw new Error(data.error || 'Failed to open billing portal');
+            }
+            window.location.href = data.url;
+        } catch (err) {
+            setBillingError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+            setPortalLoading(false);
         }
     };
 
@@ -99,6 +117,51 @@ export default function SettingsPage() {
                             <p className="text-gray-900">{session?.user?.name || 'Not set'}</p>
                         </div>
                     </div>
+                </section>
+
+                {/* Billing Section */}
+                <section className="bg-white rounded-2xl shadow-sm p-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Billing</h2>
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div>
+                            <p className="font-medium text-gray-900">
+                                Current plan:{' '}
+                                <span className="font-semibold">
+                                    {settings?.subscriptionTier === 'PRO' ? 'Pro' : 'Free'}
+                                </span>
+                            </p>
+                            {settings?.subscriptionTier === 'PRO' && settings?.currentPeriodEnd && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {settings.cancelAtPeriodEnd
+                                        ? `Cancels on ${new Date(settings.currentPeriodEnd).toLocaleDateString()}`
+                                        : `Renews on ${new Date(settings.currentPeriodEnd).toLocaleDateString()}`}
+                                </p>
+                            )}
+                            {(!settings?.subscriptionTier || settings.subscriptionTier === 'FREE') && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Upgrade for unlimited tailored resumes and semantic job matching.
+                                </p>
+                            )}
+                        </div>
+
+                        {settings?.subscriptionTier === 'PRO' ? (
+                            <button
+                                onClick={handleManageBilling}
+                                disabled={portalLoading}
+                                className="px-4 py-2 border-2 border-gray-200 text-gray-700 font-semibold rounded-lg hover:border-gray-300 transition-all disabled:opacity-50"
+                            >
+                                {portalLoading ? 'Opening…' : 'Manage subscription / Cancel'}
+                            </button>
+                        ) : (
+                            <Link
+                                href="/pricing"
+                                className="px-4 py-2 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-all"
+                            >
+                                Upgrade to Pro
+                            </Link>
+                        )}
+                    </div>
+                    {billingError && <p className="mt-3 text-sm text-red-600">{billingError}</p>}
                 </section>
 
                 {/* Language Section */}

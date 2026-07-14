@@ -96,6 +96,12 @@ export const rateLimits = {
         maxRequests: 100,
         keyPrefix: 'api',
     },
+
+    billing: {
+        windowMs: 15 * 60 * 1000,
+        maxRequests: 10,
+        keyPrefix: 'billing',
+    },
 };
 
 export function cleanupRateLimitStore(): void {
