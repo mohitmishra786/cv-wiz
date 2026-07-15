@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
 
     return (
         <footer
-            className="w-full mt-auto py-8 px-4"
+            className="w-full mt-auto pt-16 pb-8 px-4"
             style={{
                 background: 'var(--glass-bg)',
                 backdropFilter: 'blur(var(--glass-blur))',
@@ -23,20 +23,28 @@ const Footer: React.FC = () => {
             }}
         >
             <div className="max-w-6xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
                     {/* Brand */}
                     <div>
-                        <h3
-                            className="text-lg font-bold mb-3"
-                            style={{ color: 'var(--foreground)' }}
+                        <Link
+                            href="/"
+                            className="inline-flex items-center gap-2 text-lg font-bold mb-3"
+                            style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}
                         >
+                            <span
+                                className="flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold"
+                                style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                            >
+                                M
+                            </span>
                             MatchQuill
-                        </h3>
+                        </Link>
                         <p
-                            className="text-sm leading-relaxed"
+                            className="text-sm leading-relaxed max-w-xs"
                             style={{ color: 'var(--muted-foreground)' }}
                         >
-                            Generate tailored resumes and cover letters with AI assistance.
+                            The career compiler — local job-description extraction, profile-constrained
+                            resume tailoring, and cover letters that only use your real experience.
                         </p>
                     </div>
 

@@ -9,11 +9,34 @@ import { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
+import { Home } from 'lucide-react';
+
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+/**
+ * Matches the reveal pattern used on the homepage: opacity never gates
+ * visibility (stays 1 in both states), only translateY animates. That way
+ * the card is still fully visible if the animation never runs.
+ */
+function revealVariants(delay = 0, reduceMotion = false): Variants {
+    if (reduceMotion) {
+        return {
+            hidden: { opacity: 1, y: 0 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+        };
+    }
+    return {
+        hidden: { opacity: 1, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE, delay } },
+    };
+}
 
 function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get('callbackUrl') || '/profile';
+    const reduceMotion = Boolean(useReducedMotion());
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -49,36 +72,47 @@ function LoginForm() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
+        <div className="relative flex items-center justify-center px-4 pt-20 pb-28 sm:py-28">
+            <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={revealVariants(0, reduceMotion)}
+                className="w-full max-w-md"
+            >
                 {/* Logo & Title */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4">
-                        <svg
-                            className="w-8 h-8 text-white"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                        >
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                            <line x1="16" y1="13" x2="8" y2="13" />
-                            <line x1="16" y1="17" x2="8" y2="17" />
-                        </svg>
-                    </div>
-                    <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
-                    <p className="text-gray-600 mt-2">Sign in to your MatchQuill account</p>
+                    <Link
+                        href="/"
+                        aria-label="MatchQuill home"
+                        className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-5 transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/40 focus:ring-offset-2 focus:ring-offset-[var(--background)]"
+                        style={{ background: 'var(--primary)' }}
+                    >
+                        <Home size={24} strokeWidth={2} aria-hidden="true" style={{ color: 'var(--primary-foreground)' }} />
+                    </Link>
+                    <h1
+                        className="text-3xl font-bold tracking-[-0.02em]"
+                        style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}
+                    >
+                        Welcome back
+                    </h1>
+                    <p className="mt-2" style={{ color: 'var(--muted-foreground)' }}>
+                        Sign in to your MatchQuill account
+                    </p>
                 </div>
 
                 {/* Login Card */}
-                <div className="bg-white rounded-2xl shadow-xl p-8">
+                <div
+                    className="rounded-[2rem] p-8"
+                    style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)' }}
+                >
                     {/* Google Login */}
                     <button
+                        type="button"
                         onClick={handleGoogleLogin}
-                        className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                        className="w-full flex items-center justify-center gap-3 px-4 py-3.5 min-h-[44px] rounded-full font-semibold transition-all active:scale-[0.98] hover:bg-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/40 focus:ring-offset-2 focus:ring-offset-[var(--card)]"
+                        style={{ border: '1px solid var(--border)', color: 'var(--foreground)', background: 'var(--card)' }}
                     >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                             <path
                                 fill="#4285F4"
                                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -100,24 +134,30 @@ function LoginForm() {
                     </button>
 
                     <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-200" />
+                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div className="w-full" style={{ borderTop: '1px solid var(--border)' }} />
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="px-4 bg-white text-gray-500">or continue with email</span>
+                            <span className="px-4" style={{ background: 'var(--card)', color: 'var(--muted-foreground)' }}>
+                                or continue with email
+                            </span>
                         </div>
                     </div>
 
                     {/* Email Login Form */}
-                    <form onSubmit={handleEmailLogin} className="space-y-4">
+                    <form onSubmit={handleEmailLogin} className="space-y-4" noValidate>
                         {error && (
-                            <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm">
+                            <div
+                                className="p-3 rounded-xl text-sm bg-[var(--destructive)]/10 text-[var(--destructive)] border border-[var(--destructive)]/20"
+                                role="alert"
+                                aria-live="assertive"
+                            >
                                 {error}
                             </div>
                         )}
 
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="email" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground-secondary)' }}>
                                 Email address
                             </label>
                             <input
@@ -126,13 +166,16 @@ function LoginForm() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                                autoComplete="email"
+                                aria-invalid={error ? true : undefined}
+                                className="w-full px-4 py-3 min-h-[44px] rounded-2xl outline-none transition-shadow focus:ring-2 focus:ring-[var(--ring)]/30"
+                                style={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
                                 placeholder="you@example.com"
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="password" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground-secondary)' }}>
                                 Password
                             </label>
                             <input
@@ -141,7 +184,10 @@ function LoginForm() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                                autoComplete="current-password"
+                                aria-invalid={error ? true : undefined}
+                                className="w-full px-4 py-3 min-h-[44px] rounded-2xl outline-none transition-shadow focus:ring-2 focus:ring-[var(--ring)]/30"
+                                style={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
                                 placeholder="••••••••"
                             />
                         </div>
@@ -149,34 +195,46 @@ function LoginForm() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-busy={loading}
+                            className="w-full py-3.5 px-4 min-h-[44px] rounded-full font-semibold transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/40 focus:ring-offset-2 focus:ring-offset-[var(--card)]"
+                            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
                         >
-                            {loading ? 'Signing in...' : 'Sign in'}
+                            {loading ? 'Signing in…' : 'Sign in'}
                         </button>
                     </form>
                 </div>
 
                 {/* Register Link */}
-                <p className="text-center mt-6 text-gray-600">
+                <p className="text-center mt-6" style={{ color: 'var(--muted-foreground)' }}>
                     Don&apos;t have an account?{' '}
-                    <Link href="/register" className="text-indigo-600 font-medium hover:text-indigo-500">
+                    <Link
+                        href="/register"
+                        className="font-semibold transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/40 rounded"
+                        style={{ color: 'var(--primary)' }}
+                    >
                         Sign up
                     </Link>
                 </p>
-            </div>
+            </motion.div>
         </div>
     );
 }
 
 export default function LoginPage() {
     return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
-            </div>
-        }>
+        <Suspense
+            fallback={
+                <div className="flex items-center justify-center py-32">
+                    <div
+                        className="animate-spin rounded-full h-8 w-8"
+                        style={{ borderTop: '2px solid var(--primary)', borderBottom: '2px solid var(--primary)', borderLeft: '2px solid transparent', borderRight: '2px solid transparent' }}
+                        role="status"
+                        aria-label="Loading"
+                    />
+                </div>
+            }
+        >
             <LoginForm />
         </Suspense>
     );
 }
-

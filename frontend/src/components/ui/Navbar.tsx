@@ -1,11 +1,12 @@
 "use client";
 
 /**
- * Unified Navbar Component - Apple-Inspired Design
+ * Unified Navbar Component — Liquid Glass Design
  * Features:
- * - Glassmorphism effect with subtle blur
+ * - Transparent, full-width at the top of the page
+ * - Shrinks into a centered, floating glass pill on scroll
  * - Theme-aware colors using CSS variables
- * - Smooth transitions and micro-interactions
+ * - Smooth spring-like transitions and micro-interactions
  * - 44px touch targets for mobile accessibility
  */
 
@@ -16,6 +17,8 @@ import { usePathname } from 'next/navigation';
 import ThemeToggle from './ThemeToggle';
 import { Home, User, LogOut, LogIn, Menu, X } from 'lucide-react';
 import { logger } from '@/lib/logger';
+
+const EASE = 'cubic-bezier(0.32,0.72,0,1)';
 
 const Navbar: React.FC = () => {
     const { data: session, status } = useSession();
@@ -29,11 +32,12 @@ const Navbar: React.FC = () => {
         setIsMobileMenuOpen(false);
     }, [pathname]);
 
-    // Track scroll for glass effect intensity
+    // Track scroll for the pill morph
     useEffect(() => {
         const handleScroll = () => {
-            setIsScrolled(window.scrollY > 10);
+            setIsScrolled(window.scrollY > 24);
         };
+        handleScroll();
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
@@ -46,7 +50,7 @@ const Navbar: React.FC = () => {
     const navLinkClass = (path: string) => {
         const isActive = pathname === path;
         return `
-            px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 min-h-[44px] flex items-center
+            px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-300 min-h-[44px] flex items-center
             ${isActive
                 ? 'text-[var(--primary)] bg-[var(--primary)]/10'
                 : 'text-[var(--foreground-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]'
@@ -56,144 +60,160 @@ const Navbar: React.FC = () => {
 
     return (
         <>
-            <nav
-                className={`
-                    fixed top-0 left-0 right-0 z-50 transition-all duration-300
-                    ${isScrolled
-                        ? 'shadow-[var(--shadow-md)]'
-                        : ''
-                    }
-                `}
-                style={{
-                    background: isScrolled ? 'var(--glass-bg)' : 'var(--background)',
-                    backdropFilter: isScrolled ? 'blur(var(--glass-blur))' : 'none',
-                    WebkitBackdropFilter: isScrolled ? 'blur(var(--glass-blur))' : 'none',
-                    borderBottom: `1px solid ${isScrolled ? 'var(--glass-border)' : 'var(--border)'}`,
-                }}
+            {/* Floating shell — always centered, width and chrome animate on scroll */}
+            <div
+                className="fixed inset-x-0 top-0 z-50 flex justify-center px-3 sm:px-4"
+                style={{ transition: `padding-top 500ms ${EASE}`, paddingTop: isScrolled ? '0.75rem' : '0' }}
             >
-                <div className="w-full px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        {/* Left: Logo and Home */}
-                        <div className="flex items-center gap-6">
-                            <Link
-                                href="/"
-                                className="flex items-center gap-2 text-xl font-bold transition-all duration-200 hover:opacity-80"
-                                style={{ color: 'var(--foreground)' }}
-                            >
-                                <Home size={24} style={{ color: 'var(--primary)' }} />
-                                <span className="hidden sm:inline">MatchQuill</span>
-                            </Link>
-
-                            {/* Desktop Navigation Links (only if logged in) */}
-                            {session && (
-                                <div className="hidden md:flex items-center gap-1">
-                                    <Link href="/dashboard" className={navLinkClass('/dashboard')}>
-                                        Dashboard
-                                    </Link>
-                                    <Link href="/profile" className={navLinkClass('/profile')}>
-                                        Profile
-                                    </Link>
-                                    <Link href="/templates" className={navLinkClass('/templates')}>
-                                        Templates
-                                    </Link>
-                                    <Link href="/pricing" className={navLinkClass('/pricing')}>
-                                        Pricing
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Right: Theme Toggle and Auth */}
-                        <div className="flex items-center gap-2">
-                            {/* Theme Toggle */}
-                            <ThemeToggle />
-
-                            {/* Loading State */}
-                            {isLoading && (
-                                <div
-                                    className="w-24 h-9 animate-pulse rounded-xl skeleton"
-                                />
-                            )}
-
-                            {/* Not Logged In */}
-                            {!isLoading && !session && (
-                                <div className="hidden md:flex items-center gap-2">
-                                    <Link href="/pricing" className={navLinkClass('/pricing')}>
-                                        Pricing
-                                    </Link>
-                                    <Link
-                                        href="/login"
-                                        className="flex items-center gap-2 px-4 py-2.5 min-h-[44px] text-sm font-medium rounded-xl transition-all duration-200 hover:opacity-80"
-                                        style={{ color: 'var(--foreground-secondary)' }}
+                <nav
+                    className="w-full pointer-events-auto"
+                    style={{
+                        maxWidth: isScrolled ? '880px' : '100%',
+                        borderRadius: isScrolled ? '9999px' : '0px',
+                        background: isScrolled ? 'var(--glass-bg)' : 'transparent',
+                        backdropFilter: isScrolled ? 'blur(var(--glass-blur))' : 'none',
+                        WebkitBackdropFilter: isScrolled ? 'blur(var(--glass-blur))' : 'none',
+                        border: `1px solid ${isScrolled ? 'var(--glass-border)' : 'transparent'}`,
+                        boxShadow: isScrolled ? 'var(--shadow-lg)' : 'none',
+                        transition: `all 500ms ${EASE}`,
+                    }}
+                >
+                    <div className="w-full px-4 sm:px-6">
+                        <div className="flex items-center justify-between h-16">
+                            {/* Left: Logo and Home */}
+                            <div className="flex items-center gap-6">
+                                <Link
+                                    href="/"
+                                    className="flex items-center gap-2 text-xl font-bold transition-all duration-200 hover:opacity-80"
+                                    style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}
+                                >
+                                    <span
+                                        className="flex items-center justify-center w-8 h-8 rounded-xl"
+                                        style={{ background: 'var(--primary)' }}
                                     >
-                                        <LogIn size={18} />
-                                        <span>Sign In</span>
-                                    </Link>
-                                    <Link
-                                        href="/register"
-                                        className="flex items-center gap-2 px-5 py-2.5 min-h-[44px] text-sm font-semibold rounded-xl transition-all duration-200 hover:opacity-90 gradient-primary"
-                                        style={{ color: 'var(--primary-foreground)' }}
-                                    >
-                                        Get Started
-                                    </Link>
-                                </div>
-                            )}
+                                        <Home size={16} strokeWidth={2} style={{ color: 'var(--primary-foreground)' }} />
+                                    </span>
+                                    <span className="hidden sm:inline">MatchQuill</span>
+                                </Link>
 
-                            {/* Logged In */}
-                            {!isLoading && session && (
-                                <div className="hidden md:flex items-center gap-2">
-                                    {/* User Info */}
-                                    <Link
-                                        href="/profile"
-                                        className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 min-h-[44px]"
-                                        style={{
-                                            background: pathname === '/profile' ? 'var(--muted)' : 'transparent',
-                                        }}
-                                    >
-                                        <div
-                                            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold gradient-primary"
-                                            style={{ color: 'var(--primary-foreground)' }}
+                                {/* Desktop Navigation Links (only if logged in) */}
+                                {session && (
+                                    <div className="hidden md:flex items-center gap-1">
+                                        <Link href="/dashboard" className={navLinkClass('/dashboard')}>
+                                            Dashboard
+                                        </Link>
+                                        <Link href="/profile" className={navLinkClass('/profile')}>
+                                            Profile
+                                        </Link>
+                                        <Link href="/templates" className={navLinkClass('/templates')}>
+                                            Templates
+                                        </Link>
+                                        <Link href="/pricing" className={navLinkClass('/pricing')}>
+                                            Pricing
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Right: Theme Toggle and Auth */}
+                            <div className="flex items-center gap-2">
+                                {/* Theme Toggle */}
+                                <ThemeToggle />
+
+                                {/* Loading State */}
+                                {isLoading && (
+                                    <div
+                                        className="w-24 h-9 animate-pulse rounded-full skeleton"
+                                    />
+                                )}
+
+                                {/* Not Logged In */}
+                                {!isLoading && !session && (
+                                    <div className="hidden md:flex items-center gap-2">
+                                        <Link href="/pricing" className={navLinkClass('/pricing')}>
+                                            Pricing
+                                        </Link>
+                                        <Link
+                                            href="/login"
+                                            className="flex items-center gap-2 px-4 py-2.5 min-h-[44px] text-sm font-medium rounded-full transition-all duration-200 hover:opacity-80"
+                                            style={{ color: 'var(--foreground-secondary)' }}
                                         >
-                                            {session.user?.name?.charAt(0)?.toUpperCase() || <User size={16} />}
-                                        </div>
-                                        <span
-                                            className="text-sm font-medium"
-                                            style={{ color: 'var(--foreground)' }}
+                                            <LogIn size={18} strokeWidth={1.75} />
+                                            <span>Sign In</span>
+                                        </Link>
+                                        <Link
+                                            href="/register"
+                                            className="group flex items-center gap-2 pl-5 pr-2 py-2 min-h-[44px] text-sm font-semibold rounded-full transition-all duration-300 active:scale-[0.98]"
+                                            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
                                         >
-                                            {session.user?.name || 'User'}
-                                        </span>
-                                    </Link>
+                                            Get Started
+                                            <span
+                                                className="flex items-center justify-center w-7 h-7 rounded-full transition-transform duration-300 group-hover:translate-x-0.5"
+                                                style={{ background: 'rgba(255,255,255,0.2)' }}
+                                            >
+                                                &rarr;
+                                            </span>
+                                        </Link>
+                                    </div>
+                                )}
 
-                                    {/* Sign Out */}
-                                    <button
-                                        onClick={handleSignOut}
-                                        className="flex items-center gap-2 px-4 py-2.5 min-h-[44px] text-sm font-medium rounded-xl transition-all duration-200 hover:bg-[var(--muted)]"
-                                        style={{ color: 'var(--foreground-secondary)' }}
-                                        aria-label="Sign out"
-                                    >
-                                        <LogOut size={18} />
-                                        <span className="hidden lg:inline">Sign Out</span>
-                                    </button>
-                                </div>
-                            )}
+                                {/* Logged In */}
+                                {!isLoading && session && (
+                                    <div className="hidden md:flex items-center gap-2">
+                                        {/* User Info */}
+                                        <Link
+                                            href="/profile"
+                                            className="flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-200 min-h-[44px]"
+                                            style={{
+                                                background: pathname === '/profile' ? 'var(--muted)' : 'transparent',
+                                            }}
+                                        >
+                                            <div
+                                                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
+                                                style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                                            >
+                                                {session.user?.name?.charAt(0)?.toUpperCase() || <User size={16} />}
+                                            </div>
+                                            <span
+                                                className="text-sm font-medium"
+                                                style={{ color: 'var(--foreground)' }}
+                                            >
+                                                {session.user?.name || 'User'}
+                                            </span>
+                                        </Link>
 
-                            {/* Mobile Menu Button */}
-                            <button
-                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                className="md:hidden flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200"
-                                style={{
-                                    background: isMobileMenuOpen ? 'var(--muted)' : 'transparent',
-                                    color: 'var(--foreground)',
-                                }}
-                                aria-label="Toggle menu"
-                                aria-expanded={isMobileMenuOpen}
-                            >
-                                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                            </button>
+                                        {/* Sign Out */}
+                                        <button
+                                            onClick={handleSignOut}
+                                            className="flex items-center gap-2 px-4 py-2.5 min-h-[44px] text-sm font-medium rounded-full transition-all duration-200 hover:bg-[var(--muted)]"
+                                            style={{ color: 'var(--foreground-secondary)' }}
+                                            aria-label="Sign out"
+                                        >
+                                            <LogOut size={18} strokeWidth={1.75} />
+                                            <span className="hidden lg:inline">Sign Out</span>
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Mobile Menu Button */}
+                                <button
+                                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                    className="md:hidden flex items-center justify-center w-11 h-11 rounded-full transition-all duration-200"
+                                    style={{
+                                        background: isMobileMenuOpen ? 'var(--muted)' : 'transparent',
+                                        color: 'var(--foreground)',
+                                    }}
+                                    aria-label="Toggle menu"
+                                    aria-expanded={isMobileMenuOpen}
+                                    aria-controls="navbar-mobile-menu"
+                                >
+                                    {isMobileMenuOpen ? <X size={22} strokeWidth={1.75} /> : <Menu size={22} strokeWidth={1.75} />}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </nav>
+                </nav>
+            </div>
 
             {/* Spacer for fixed navbar */}
             <div className="h-16" />
@@ -201,12 +221,14 @@ const Navbar: React.FC = () => {
             {/* Mobile Menu */}
             {isMobileMenuOpen && (
                 <div
-                    className="fixed inset-x-0 top-16 z-40 md:hidden animate-fade-in"
+                    id="navbar-mobile-menu"
+                    className="fixed inset-x-3 top-[4.5rem] z-40 md:hidden animate-fade-in rounded-3xl overflow-hidden"
                     style={{
                         background: 'var(--glass-bg)',
                         backdropFilter: 'blur(var(--glass-blur))',
                         WebkitBackdropFilter: 'blur(var(--glass-blur))',
-                        borderBottom: '1px solid var(--glass-border)',
+                        border: '1px solid var(--glass-border)',
+                        boxShadow: 'var(--shadow-lg)',
                     }}
                 >
                     <div className="px-4 py-4 space-y-2">
@@ -249,7 +271,7 @@ const Navbar: React.FC = () => {
                                     className="w-full flex items-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium rounded-xl transition-all"
                                     style={{ color: 'var(--destructive)' }}
                                 >
-                                    <LogOut size={18} />
+                                    <LogOut size={18} strokeWidth={1.75} />
                                     Sign Out
                                 </button>
                             </>
@@ -270,13 +292,13 @@ const Navbar: React.FC = () => {
                                     style={{ color: 'var(--foreground)' }}
                                     onClick={() => setIsMobileMenuOpen(false)}
                                 >
-                                    <LogIn size={18} />
+                                    <LogIn size={18} strokeWidth={1.75} />
                                     Sign In
                                 </Link>
                                 <Link
                                     href="/register"
-                                    className="flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-semibold rounded-xl gradient-primary"
-                                    style={{ color: 'var(--primary-foreground)' }}
+                                    className="flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-semibold rounded-xl"
+                                    style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
                                     onClick={() => setIsMobileMenuOpen(false)}
                                 >
                                     Get Started

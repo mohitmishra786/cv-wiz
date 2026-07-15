@@ -8,10 +8,33 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
+import { Home } from 'lucide-react';
 import { isStrongPassword, MIN_PASSWORD_LENGTH } from '@/lib/validation';
+
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+/**
+ * Matches the reveal pattern used on the homepage: opacity never gates
+ * visibility (stays 1 in both states), only translateY animates. That way
+ * the card is still fully visible if the animation never runs.
+ */
+function revealVariants(delay = 0, reduceMotion = false): Variants {
+    if (reduceMotion) {
+        return {
+            hidden: { opacity: 1, y: 0 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+        };
+    }
+    return {
+        hidden: { opacity: 1, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE, delay } },
+    };
+}
 
 export default function RegisterPage() {
     const router = useRouter();
+    const reduceMotion = Boolean(useReducedMotion());
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -61,39 +84,52 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
+        <div className="relative flex items-center justify-center px-4 pt-20 pb-28 sm:py-28">
+            <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={revealVariants(0, reduceMotion)}
+                className="w-full max-w-md"
+            >
                 {/* Logo & Title */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4">
-                        <svg
-                            className="w-8 h-8 text-white"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                        >
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                            <line x1="16" y1="13" x2="8" y2="13" />
-                            <line x1="16" y1="17" x2="8" y2="17" />
-                        </svg>
-                    </div>
-                    <h1 className="text-3xl font-bold text-gray-900">Create your account</h1>
-                    <p className="text-gray-600 mt-2">Start building your career profile</p>
+                    <Link
+                        href="/"
+                        aria-label="MatchQuill home"
+                        className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-5 transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/40 focus:ring-offset-2 focus:ring-offset-[var(--background)]"
+                        style={{ background: 'var(--primary)' }}
+                    >
+                        <Home size={24} strokeWidth={2} aria-hidden="true" style={{ color: 'var(--primary-foreground)' }} />
+                    </Link>
+                    <h1
+                        className="text-3xl font-bold tracking-[-0.02em]"
+                        style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}
+                    >
+                        Create your account
+                    </h1>
+                    <p className="mt-2" style={{ color: 'var(--muted-foreground)' }}>
+                        Start building your career profile
+                    </p>
                 </div>
 
                 {/* Register Card */}
-                <div className="bg-white rounded-2xl shadow-xl p-8">
-                    <form onSubmit={handleRegister} className="space-y-4">
+                <div
+                    className="rounded-[2rem] p-8"
+                    style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)' }}
+                >
+                    <form onSubmit={handleRegister} className="space-y-4" noValidate>
                         {error && (
-                            <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm">
+                            <div
+                                className="p-3 rounded-xl text-sm bg-[var(--destructive)]/10 text-[var(--destructive)] border border-[var(--destructive)]/20"
+                                role="alert"
+                                aria-live="assertive"
+                            >
                                 {error}
                             </div>
                         )}
 
                         <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="name" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground-secondary)' }}>
                                 Full name
                             </label>
                             <input
@@ -101,13 +137,15 @@ export default function RegisterPage() {
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                                autoComplete="name"
+                                className="w-full px-4 py-3 min-h-[44px] rounded-2xl outline-none transition-shadow focus:ring-2 focus:ring-[var(--ring)]/30"
+                                style={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
                                 placeholder="John Doe"
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="email" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground-secondary)' }}>
                                 Email address
                             </label>
                             <input
@@ -116,13 +154,16 @@ export default function RegisterPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                                autoComplete="email"
+                                aria-invalid={error ? true : undefined}
+                                className="w-full px-4 py-3 min-h-[44px] rounded-2xl outline-none transition-shadow focus:ring-2 focus:ring-[var(--ring)]/30"
+                                style={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
                                 placeholder="you@example.com"
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="password" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground-secondary)' }}>
                                 Password
                             </label>
                             <input
@@ -133,16 +174,19 @@ export default function RegisterPage() {
                                 required
                                 minLength={MIN_PASSWORD_LENGTH}
                                 autoComplete="new-password"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                                aria-invalid={error ? true : undefined}
+                                aria-describedby="password-helper"
+                                className="w-full px-4 py-3 min-h-[44px] rounded-2xl outline-none transition-shadow focus:ring-2 focus:ring-[var(--ring)]/30"
+                                style={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
                                 placeholder="••••••••"
                             />
-                            <p className="mt-1 text-xs text-gray-500">
+                            <p id="password-helper" className="mt-1.5 text-xs" style={{ color: 'var(--muted-foreground)' }}>
                                 At least {MIN_PASSWORD_LENGTH} characters with upper, lower, number, and special character
                             </p>
                         </div>
 
                         <div>
-                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground-secondary)' }}>
                                 Confirm password
                             </label>
                             <input
@@ -151,7 +195,10 @@ export default function RegisterPage() {
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                                autoComplete="new-password"
+                                aria-invalid={error ? true : undefined}
+                                className="w-full px-4 py-3 min-h-[44px] rounded-2xl outline-none transition-shadow focus:ring-2 focus:ring-[var(--ring)]/30"
+                                style={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
                                 placeholder="••••••••"
                             />
                         </div>
@@ -159,21 +206,27 @@ export default function RegisterPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                            aria-busy={loading}
+                            className="w-full py-3.5 px-4 min-h-[44px] rounded-full font-semibold transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/40 focus:ring-offset-2 focus:ring-offset-[var(--card)] mt-2"
+                            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
                         >
-                            {loading ? 'Creating account...' : 'Create account'}
+                            {loading ? 'Creating account…' : 'Create account'}
                         </button>
                     </form>
                 </div>
 
                 {/* Login Link */}
-                <p className="text-center mt-6 text-gray-600">
+                <p className="text-center mt-6" style={{ color: 'var(--muted-foreground)' }}>
                     Already have an account?{' '}
-                    <Link href="/login" className="text-indigo-600 font-medium hover:text-indigo-500">
+                    <Link
+                        href="/login"
+                        className="font-semibold transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/40 rounded"
+                        style={{ color: 'var(--primary)' }}
+                    >
                         Sign in
                     </Link>
                 </p>
-            </div>
+            </motion.div>
         </div>
     );
 }

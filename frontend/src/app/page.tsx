@@ -1,61 +1,212 @@
 /**
  * MatchQuill Home Page
- * Landing page with feature highlights and CTA
+ * Landing page: 3D hero, real product positioning, and CTAs into the app.
  */
 
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
+import { CheckCircle2, FileText, Globe, ShieldCheck, Sparkles } from 'lucide-react';
+import { useTheme } from '@/components/ThemeProvider';
+
+// The 3D ribbon is homepage-only decoration — never SSR'd, never blocks
+// first paint, and only loaded once the client has mounted.
+const ThreeCanvas = dynamic(() => import('@/components/three/ThreeCanvas'), {
+  ssr: false,
+});
+
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+/**
+ * Plain helper (not a hook) so it's safe to call from inside .map().
+ * Reduced-motion state is read once at the top of the component and
+ * threaded through.
+ *
+ * Opacity is intentionally never the gate for visibility here — content
+ * stays at opacity: 1 in both the "hidden" and "visible" states, and only
+ * a subtle translateY animates. That way, if the IntersectionObserver
+ * behind whileInView never fires (headless renderers, prerendering,
+ * backgrounded tabs, reduced-motion users), the section is still fully
+ * visible and legible instead of shipping blank.
+ */
+function revealVariants(delay = 0, reduceMotion = false): Variants {
+  if (reduceMotion) {
+    return {
+      hidden: { opacity: 1, y: 0 },
+      visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+    };
+  }
+  return {
+    hidden: { opacity: 1, y: 28 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8, ease: EASE, delay },
+    },
+  };
+}
+
+const STATS = [
+  {
+    value: '13+',
+    label: 'Job boards & ATS platforms',
+    detail: 'LinkedIn, Indeed, Greenhouse, Lever, Workday, and more — read directly in your browser.',
+  },
+  {
+    value: '4',
+    label: 'Resume templates',
+    detail: 'Professional, academic, developer, and technical layouts.',
+  },
+  {
+    value: '0',
+    label: 'Fabricated facts',
+    detail: 'Generation is constrained to your validated profile — nothing invented on your behalf.',
+  },
+];
+
+const HOW_IT_WORKS = [
+  {
+    step: '01',
+    title: 'Build your profile',
+    body: 'Add your experience, skills, projects, and education once — or upload an existing resume to start from.',
+  },
+  {
+    step: '02',
+    title: 'Browse jobs as usual',
+    body: 'Install the MatchQuill extension. When you open a listing on LinkedIn, Indeed, Greenhouse, or another supported board, it reads the posting on the page — no copy-paste.',
+  },
+  {
+    step: '03',
+    title: 'Compile & apply',
+    body: 'Generate a resume and cover letter built only from your own validated data, then download the PDF and apply.',
+  },
+];
+
+const FEATURES = [
+  {
+    icon: ShieldCheck,
+    title: 'ATS-friendly by default',
+    body: 'Clean, parseable formatting designed to pass Applicant Tracking Systems — no fancy layout tricks that get silently rejected.',
+  },
+  {
+    icon: Globe,
+    title: 'Local job extraction',
+    body: 'The browser extension parses the job posting where you already are — LinkedIn, Indeed, Greenhouse, Lever, Workday, and more.',
+  },
+  {
+    icon: CheckCircle2,
+    title: 'Zero-hallucination tailoring',
+    body: 'Every bullet is constrained to your validated profile. MatchQuill rewrites and reorders your real experience — it doesn’t invent new experience.',
+  },
+  {
+    icon: FileText,
+    title: 'Templates for the role',
+    body: 'Professional, academic, developer, and technical templates, each tuned to how a given role is actually read.',
+  },
+];
 
 export default function Home() {
   const { data: session, status } = useSession();
+  const { theme } = useTheme();
   const isAuthenticated = status === 'authenticated' && !!session?.user;
+  const isDark = theme === 'dark';
+  const reduceMotion = Boolean(useReducedMotion());
+
+  const heroReveal = revealVariants(0, reduceMotion);
+  const heroReveal2 = revealVariants(0.12, reduceMotion);
+  const heroReveal3 = revealVariants(0.24, reduceMotion);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Hero Section - Using global Navbar, no duplicate header */}
-      <section className="pt-32 pb-16 px-4 sm:pt-40 sm:pb-20">
-        <div className="max-w-4xl mx-auto text-center px-4">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6" style={{
-            background: 'var(--muted)',
-            color: 'var(--primary)'
-          }}>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--primary)' }}></span>
-              <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: 'var(--primary)' }}></span>
-            </span>
-            Powered by AI
-          </div>
+    <div className="relative min-h-screen overflow-hidden" style={{ background: 'var(--background)' }}>
+      {/* 3D hero layer — fixed, behind all content, purely decorative */}
+      <ThreeCanvas isDark={isDark} />
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight" style={{ color: 'var(--foreground)' }}>
-            Tailored Resumes for
-            <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent"> Every Job</span>
-          </h1>
+      {/* Hero */}
+      <section className="relative z-10 pt-28 pb-24 px-4 sm:pt-36 sm:pb-32">
+        {/* Soft scrim so hero copy stays legible over the ribbon regardless
+            of where its coils happen to be at any given moment. A masked
+            solid panel rather than backdrop-blur — blurring live pixels
+            behind a continuously-animating WebGL canvas would force a
+            re-composite every frame; this is a flat alpha blend instead. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 w-[min(100%,52rem)] h-[38rem] -z-[1]"
+          style={{
+            background: 'var(--background)',
+            opacity: isDark ? 0.95 : 0.98,
+            WebkitMaskImage: 'radial-gradient(68% 62% at 50% 46%, black 62%, transparent 100%)',
+            maskImage: 'radial-gradient(68% 62% at 50% 46%, black 62%, transparent 100%)',
+          }}
+        />
+        <div className="max-w-3xl mx-auto text-center px-4">
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={heroReveal}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium mb-6"
+            style={{
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--foreground-secondary)',
+              backdropFilter: 'blur(var(--glass-blur))',
+              WebkitBackdropFilter: 'blur(var(--glass-blur))',
+            }}
+          >
+            <Sparkles size={14} strokeWidth={1.75} style={{ color: 'var(--primary)' }} />
+            Local JD extraction &middot; Zero fabricated facts &middot; Your data only
+          </motion.div>
 
-          <p className="mt-6 text-xl max-w-2xl mx-auto" style={{ color: 'var(--muted-foreground)' }}>
-            Build your career profile once. Generate perfectly tailored resumes and cover letters
-            for each job application with one click.
-          </p>
+          <motion.h1
+            initial="hidden"
+            animate="visible"
+            variants={heroReveal2}
+            className="font-bold leading-[1.05] text-[clamp(2.25rem,6vw,4rem)] tracking-[-0.03em]"
+            style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)', textWrap: 'balance' }}
+          >
+            Tailored resumes for{' '}
+            <span style={{ color: 'var(--primary)' }}>every job</span>
+          </motion.h1>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 sm:mt-10">
+          <motion.p
+            initial="hidden"
+            animate="visible"
+            variants={heroReveal3}
+            className="mt-6 text-lg sm:text-xl max-w-xl mx-auto"
+            style={{ color: 'var(--foreground-secondary)', textWrap: 'pretty' }}
+          >
+            MatchQuill reads job postings where you already browse, matches them against a
+            profile you control, and compiles a resume built only from things you&rsquo;ve
+            actually done.
+          </motion.p>
+
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={heroReveal3}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10"
+          >
             {isAuthenticated ? (
               <>
                 <Link
                   href="/dashboard"
-                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all text-lg"
+                  className="group w-full sm:w-auto flex items-center justify-center gap-2 pl-8 pr-3 py-3.5 min-h-[44px] font-semibold rounded-full transition-all duration-300 active:scale-[0.98] text-lg"
+                  style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
                 >
                   Go to Dashboard
+                  <span
+                    className="flex items-center justify-center w-9 h-9 rounded-full transition-transform duration-300 group-hover:translate-x-0.5"
+                    style={{ background: 'rgba(255,255,255,0.2)' }}
+                  >
+                    &rarr;
+                  </span>
                 </Link>
                 <Link
                   href="/profile"
-                  className="w-full sm:w-auto px-8 py-4 border-2 font-semibold rounded-xl transition-all text-lg hover:opacity-80"
-                  style={{
-                    borderColor: 'var(--border)',
-                    color: 'var(--foreground)',
-                    background: 'var(--card)'
-                  }}
+                  className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] font-semibold rounded-full transition-all text-lg hover:opacity-80 border"
+                  style={{ borderColor: 'var(--border)', color: 'var(--foreground)', background: 'var(--card)' }}
                 >
                   View Profile
                 </Link>
@@ -64,191 +215,206 @@ export default function Home() {
               <>
                 <Link
                   href="/register"
-                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all text-lg"
+                  className="group w-full sm:w-auto flex items-center justify-center gap-2 pl-8 pr-3 py-3.5 min-h-[44px] font-semibold rounded-full transition-all duration-300 active:scale-[0.98] text-lg"
+                  style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
                 >
                   Create Free Account
+                  <span
+                    className="flex items-center justify-center w-9 h-9 rounded-full transition-transform duration-300 group-hover:translate-x-0.5"
+                    style={{ background: 'rgba(255,255,255,0.2)' }}
+                  >
+                    &rarr;
+                  </span>
                 </Link>
                 <Link
-                  href="#features"
-                  className="w-full sm:w-auto px-8 py-4 border-2 font-semibold rounded-xl transition-all text-lg hover:opacity-80"
-                  style={{
-                    borderColor: 'var(--border)',
-                    color: 'var(--foreground)',
-                    background: 'var(--card)'
-                  }}
+                  href="/login"
+                  className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] font-semibold rounded-full transition-all text-lg hover:opacity-80 border"
+                  style={{ borderColor: 'var(--border)', color: 'var(--foreground)', background: 'var(--card)' }}
                 >
-                  Learn More
+                  Sign In
                 </Link>
               </>
             )}
-          </div>
+          </motion.div>
+        </div>
+
+        {/* Stats row */}
+        <div className="relative z-10 max-w-5xl mx-auto mt-20 grid grid-cols-1 sm:grid-cols-3 gap-4 px-4">
+          {STATS.map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-60px' }}
+              variants={revealVariants(i * 0.08, reduceMotion)}
+              className="rounded-[1.75rem] p-1.5"
+              style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', backdropFilter: 'blur(var(--glass-blur))', WebkitBackdropFilter: 'blur(var(--glass-blur))' }}
+            >
+              <div
+                className="rounded-[calc(1.75rem-0.375rem)] p-6 h-full"
+                style={{ background: 'var(--card)', boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.08)' }}
+              >
+                <div
+                  className="text-4xl font-bold tracking-tight"
+                  style={{ color: 'var(--primary)', fontFamily: 'var(--font-mono)' }}
+                >
+                  {stat.value}
+                </div>
+                <div className="mt-2 font-semibold" style={{ color: 'var(--foreground)' }}>
+                  {stat.label}
+                </div>
+                <p className="mt-1.5 text-sm leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+                  {stat.detail}
+                </p>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-16 px-4 sm:py-20" style={{ background: 'var(--muted)' }}>
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold" style={{ color: 'var(--foreground)' }}>
-              How It Works
+      {/* How It Works */}
+      <section id="how-it-works" className="relative z-10 py-24 px-4 sm:py-32" style={{ background: 'var(--muted)' }}>
+        <div className="max-w-5xl mx-auto px-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={revealVariants(0, reduceMotion)}
+            className="text-center mb-16"
+          >
+            <h2
+              className="text-3xl md:text-4xl font-bold tracking-[-0.02em]"
+              style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)', textWrap: 'balance' }}
+            >
+              How it works
             </h2>
             <p className="mt-4 text-lg" style={{ color: 'var(--muted-foreground)' }}>
-              Three simple steps to your perfect resume
+              Three steps, start to finish.
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {/* Step 1 */}
-            <div className="relative p-6 rounded-2xl shadow-sm" style={{ background: 'var(--card)' }}>
-              <div className="absolute -top-4 -left-4 w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white font-bold">
-                1
-              </div>
-              <div className="mt-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
-                  <svg className="w-6 h-6" style={{ color: 'var(--primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+            {HOW_IT_WORKS.map((item, i) => (
+              <motion.div
+                key={item.step}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: '-60px' }}
+                variants={revealVariants(i * 0.1, reduceMotion)}
+                className="relative p-1.5 rounded-[2rem]"
+                style={{ background: 'var(--card)' }}
+              >
+                <div
+                  className="rounded-[calc(2rem-0.375rem)] p-7 h-full border"
+                  style={{ borderColor: 'var(--border)', background: 'var(--card)' }}
+                >
+                  <div
+                    className="inline-flex items-center justify-center w-11 h-11 rounded-2xl mb-5 text-sm font-bold"
+                    style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', fontFamily: 'var(--font-mono)' }}
+                  >
+                    {item.step}
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+                    {item.title}
+                  </h3>
+                  <p style={{ color: 'var(--muted-foreground)' }}>{item.body}</p>
                 </div>
-                <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Build Your Profile</h3>
-                <p style={{ color: 'var(--muted-foreground)' }}>
-                  Add your complete career history, skills, projects, and education. Or upload your existing resume!
-                </p>
-              </div>
-            </div>
-
-            {/* Step 2 */}
-            <div className="relative p-6 rounded-2xl shadow-sm" style={{ background: 'var(--card)' }}>
-              <div className="absolute -top-4 -left-4 w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center text-white font-bold">
-                2
-              </div>
-              <div className="mt-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
-                  <svg className="w-6 h-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Browse Jobs</h3>
-                <p style={{ color: 'var(--muted-foreground)' }}>
-                  Install our browser extension. When you find a job you like, MatchQuill automatically extracts the requirements.
-                </p>
-              </div>
-            </div>
-
-            {/* Step 3 */}
-            <div className="relative p-6 rounded-2xl shadow-sm" style={{ background: 'var(--card)' }}>
-              <div className="absolute -top-4 -left-4 w-10 h-10 bg-pink-500 rounded-xl flex items-center justify-center text-white font-bold">
-                3
-              </div>
-              <div className="mt-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
-                  <svg className="w-6 h-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Generate & Apply</h3>
-                <p style={{ color: 'var(--muted-foreground)' }}>
-                  One click generates a tailored resume and cover letter. Download PDFs and apply with confidence.
-                </p>
-              </div>
-            </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="py-16 px-4 sm:py-20" style={{ background: 'var(--background)' }}>
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid sm:grid-cols-2 gap-6 sm:gap-8">
-            <div className="p-8 rounded-2xl shadow-sm border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
-                <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>ATS-Friendly</h3>
-              <p style={{ color: 'var(--muted-foreground)' }}>
-                Resumes are formatted to pass Applicant Tracking Systems. No fancy formatting that gets rejected.
-              </p>
-            </div>
-
-            <div className="p-8 rounded-2xl shadow-sm border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
-                <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>AI-Powered Matching</h3>
-              <p style={{ color: 'var(--muted-foreground)' }}>
-                Our algorithm matches your experience to job requirements, highlighting your most relevant skills.
-              </p>
-            </div>
-
-            <div className="p-8 rounded-2xl shadow-sm border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
-                <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>No Hallucination</h3>
-              <p style={{ color: 'var(--muted-foreground)' }}>
-                We only use YOUR data. No AI-invented facts or exaggerations. Your authentic experience, perfectly presented.
-              </p>
-            </div>
-
-            <div className="p-8 rounded-2xl shadow-sm border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
-                <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Multiple Templates</h3>
-              <p style={{ color: 'var(--muted-foreground)' }}>
-                Choose from professional, academic, developer, and technical templates based on your target role.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 px-4 sm:py-20" style={{ background: 'var(--muted)' }}>
-        <div className="max-w-4xl mx-auto text-center px-4">
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Ready to Land Your Dream Job?
-            </h2>
-            <p className="text-indigo-100 text-lg mb-8 max-w-xl mx-auto">
-              Join thousands of job seekers using MatchQuill to create tailored applications in seconds.
-            </p>
-            <Link
-              href="/register"
-              className="inline-block px-8 py-4 bg-white text-indigo-600 font-semibold rounded-xl hover:bg-gray-50 transition-all text-lg"
+      {/* Feature grid */}
+      <section className="relative z-10 py-24 px-4 sm:py-32" style={{ background: 'var(--background)' }}>
+        <div className="max-w-5xl mx-auto px-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={revealVariants(0, reduceMotion)}
+            className="text-center mb-16"
+          >
+            <h2
+              className="text-3xl md:text-4xl font-bold tracking-[-0.02em]"
+              style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)', textWrap: 'balance' }}
             >
-              Start Free Today
-            </Link>
+              Built on your real experience
+            </h2>
+            <p className="mt-4 text-lg max-w-2xl mx-auto" style={{ color: 'var(--muted-foreground)' }}>
+              No invented job titles, no exaggerated scope — just your history, presented well.
+            </p>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 gap-6 sm:gap-8">
+            {FEATURES.map((feature, i) => {
+              const Icon = feature.icon;
+              return (
+                <motion.div
+                  key={feature.title}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: '-60px' }}
+                  variants={revealVariants(i * 0.08, reduceMotion)}
+                  className="p-1.5 rounded-[2rem]"
+                  style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+                >
+                  <div className="rounded-[calc(2rem-0.375rem)] p-8 h-full">
+                    <div
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
+                      style={{ background: 'var(--muted)' }}
+                    >
+                      <Icon size={22} strokeWidth={1.75} style={{ color: 'var(--primary)' }} />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+                      {feature.title}
+                    </h3>
+                    <p style={{ color: 'var(--muted-foreground)' }}>{feature.body}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 sm:py-12 border-t" style={{ borderColor: 'var(--border)', background: 'var(--background)' }}>
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 px-4">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/logo.png"
-              alt="MatchQuill Logo"
-              width={32}
-              height={32}
-              className="rounded-lg"
-            />
-            <span className="font-semibold" style={{ color: 'var(--foreground)' }}>MatchQuill</span>
+      {/* CTA */}
+      <section className="relative z-10 py-24 px-4 sm:py-32" style={{ background: 'var(--muted)' }}>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-80px' }}
+          variants={revealVariants(0, reduceMotion)}
+          className="max-w-3xl mx-auto text-center px-4"
+        >
+          <div
+            className="rounded-[2.5rem] p-1.5"
+            style={{ background: 'var(--primary)' }}
+          >
+            <div className="rounded-[calc(2.5rem-0.375rem)] p-12 sm:p-16" style={{ background: 'var(--primary)' }}>
+              <h2
+                className="text-3xl md:text-4xl font-bold tracking-[-0.02em]"
+                style={{ color: 'var(--primary-foreground)', fontFamily: 'var(--font-display)', textWrap: 'balance' }}
+              >
+                Send a resume that&rsquo;s actually yours
+              </h2>
+              <p
+                className="text-lg mt-4 mb-8 max-w-xl mx-auto"
+                style={{ color: 'var(--primary-foreground)', opacity: 0.85 }}
+              >
+                Build your profile once. Tailor it for every application after that.
+              </p>
+              <Link
+                href={isAuthenticated ? '/dashboard' : '/register'}
+                className="inline-flex items-center gap-2 px-8 py-3.5 min-h-[44px] font-semibold rounded-full transition-all text-lg hover:opacity-90 active:scale-[0.98]"
+                style={{ background: 'var(--card)', color: 'var(--primary)' }}
+              >
+                {isAuthenticated ? 'Go to Dashboard' : 'Start Free Today'}
+              </Link>
+            </div>
           </div>
-          <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-            © 2026 MatchQuill. Build resumes that get noticed.
-          </p>
-        </div>
-      </footer>
+        </motion.div>
+      </section>
     </div>
   );
 }
