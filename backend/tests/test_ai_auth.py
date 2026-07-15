@@ -139,8 +139,14 @@ class TestAIAuthentication:
         assert response.status_code == 400
         assert "too short" in response.json()["detail"].lower()
 
-    def test_ai_routes_reject_when_user_not_in_db(self, client, valid_token, mock_db_auth):
-        """AI routes must use verify_auth_token_with_db and reject deleted users."""
+    def test_ai_routes_accept_service_jwt_when_session_soft_check_null(
+        self, client, valid_token, mock_db_auth
+    ):
+        """
+        NextAuth /api/auth/session returns null for Bearer service JWTs.
+        After signature verification, routes must still accept the token
+        (production resume/AI proxy path) rather than 401 "user not found".
+        """
         mock_db_auth.validate_token.return_value = None
         from app.middleware.auth import clear_db_auth_cache
         clear_db_auth_cache()
@@ -151,5 +157,6 @@ class TestAIAuthentication:
             headers={"Authorization": f"Bearer {valid_token}"},
         )
 
-        assert response.status_code == 401
-        assert "not found" in response.json()["detail"].lower()
+        # Soft-check null must not reject a valid service JWT
+        assert response.status_code == 200
+        assert "enhanced_bullet" in response.json()
