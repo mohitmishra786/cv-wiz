@@ -107,6 +107,7 @@ model User {
   skills           Skill[]
   publications     Publication[]
   coverLetters     CoverLetter[]
+  documentImages   DocumentImage[]
   feedbacks        Feedback[]
   settings         UserSettings?
   auditLogs        AuditLog[] @relation("AuditLogs")
@@ -243,10 +244,32 @@ model CoverLetter {
   content     String   @db.Text
   jobTitle    String?
   companyName String?
+  /// Optional data-URL thumbnails extracted from an uploaded letter PDF
+  imageUrls   String[] @default([])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([userId])
+}
+
+/// Images extracted from resume / cover-letter uploads (profile photos, logos).
+/// Stored as data URLs (bounded size) so no object storage is required.
+model DocumentImage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// "resume" | "cover-letter"
+  source    String
+  mimeType  String
+  /// data:image/...;base64,... (capped at extraction time)
+  dataUrl   String   @db.Text
+  width     Int?
+  height    Int?
+  isProfile Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, isProfile])
 }
 
 model Feedback {

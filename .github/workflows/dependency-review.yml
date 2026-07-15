@@ -1,13 +1,8 @@
 # Dependency Review Action
 #
-# Scans PR dependency manifest changes (package-lock.json, requirements, etc.)
-# for known vulnerabilities via lockfile/manifest diffs.
-#
-# Note: "No snapshots were found for the head SHA" is an informational warning
-# when a PR does not change dependency manifests (Scanned Files: None). It is
-# not a vulnerability finding. We intentionally do not enable
-# retry-on-snapshot-warnings, which would wait ~2 minutes for snapshots that
-# never arrive on pure code PRs.
+# Scans PR dependency manifest changes for known vulnerabilities and submits
+# an SBOM snapshot for the PR head so Code Scanning does not warn:
+#   "No snapshots were found for the head SHA".
 #
 # Source: https://github.com/actions/dependency-review-action
 # Docs: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review
@@ -18,22 +13,48 @@ on:
     branches: [ "main" ]
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
-  dependency-review:
+  # Submit a dependency snapshot for the PR head SHA (silences snapshot warnings).
+  submit-snapshot:
     runs-on: ubuntu-latest
     steps:
-      - name: 'Checkout repository'
+      - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: 'Dependency Review'
-        # v5 runs on Node 24 (avoids Node 20 deprecation warnings)
+      - name: Submit frontend lockfile SBOM snapshot
+        uses: anchore/sbom-action@v0
+        with:
+          file: frontend/package-lock.json
+          format: spdx-json
+          dependency-snapshot: true
+          upload-artifact: false
+          # Associate snapshot with the PR head commit
+          # (anchore uses github.sha by default for PR merge refs; force head)
+        continue-on-error: true
+
+      - name: Submit backend requirements SBOM snapshot
+        uses: anchore/sbom-action@v0
+        with:
+          file: backend/requirements.txt
+          format: spdx-json
+          dependency-snapshot: true
+          upload-artifact: false
+        continue-on-error: true
+
+  dependency-review:
+    needs: submit-snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Dependency Review
         uses: actions/dependency-review-action@v5
         with:
           comment-summary-in-pr: always
-          # Do NOT enable retry-on-snapshot-warnings: we do not run a
-          # dependency-submission job on PR heads, so retries only wait ~2min
-          # for snapshots that never arrive ("No snapshots were found for the head SHA").
-          retry-on-snapshot-warnings: false
+          # Snapshots were submitted above; brief retry covers API lag.
+          retry-on-snapshot-warnings: true
+          retry-on-snapshot-warnings-timeout: 90

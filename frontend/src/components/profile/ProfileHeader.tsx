@@ -27,13 +27,25 @@ export function ProfileHeader({
         <div className="rounded-2xl border p-6 mb-6" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold flex-shrink-0"
-                        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
-                        aria-hidden="true"
-                    >
-                        {profile?.name?.[0] || userEmail?.[0]?.toUpperCase()}
-                    </div>
+                    {profile?.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- data-URL from PDF extraction
+                        <img
+                            src={profile.image}
+                            alt={profile?.name ? `${profile.name} profile photo` : 'Profile photo'}
+                            className="w-16 h-16 rounded-full object-cover flex-shrink-0 ring-2"
+                            style={{ borderColor: 'var(--border)' }}
+                            width={64}
+                            height={64}
+                        />
+                    ) : (
+                        <div
+                            className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold flex-shrink-0"
+                            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                            aria-hidden="true"
+                        >
+                            {profile?.name?.[0] || userEmail?.[0]?.toUpperCase()}
+                        </div>
+                    )}
                     <div>
                         <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}>
                             {profile?.name || 'Your Name'}

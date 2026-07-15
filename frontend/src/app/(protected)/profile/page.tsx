@@ -231,15 +231,22 @@ export default function ProfilePage() {
     }, [success, closeModal, fetchProfile, toastError]);
 
     const handleResumeDataExtracted = useCallback(async (data: Record<string, unknown>) => {
+        const images = data.images as unknown[] | undefined;
         logger.info('[ProfilePage] Resume data extracted', {
             hasName: !!data.name,
             experiencesCount: (data.experiences as unknown[])?.length,
             skillsCount: (data.skills as unknown[])?.length,
             educationCount: (data.education as unknown[])?.length,
             projectsCount: (data.projects as unknown[])?.length,
+            imagesCount: images?.length || 0,
+            hasProfileImage: Boolean(data.profile_image),
             extractionMethod: data.extraction_method,
         });
-        success('Resume uploaded and parsed successfully!');
+        success(
+            images?.length
+                ? `Resume uploaded — profile updated (${images.length} image${images.length === 1 ? '' : 's'} extracted).`
+                : 'Resume uploaded and parsed successfully!'
+        );
         closeModal();
         // Resume upload mutates many collections server-side; full refetch is necessary
         await fetchProfile();
