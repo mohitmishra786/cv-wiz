@@ -1,5 +1,27 @@
 import '@testing-library/jest-dom';
 
+// jsdom does not implement IntersectionObserver, which framer-motion's
+// `whileInView` reveal animations instantiate on mount. Without this stub any
+// component using scroll-reveal (e.g. the redesigned pricing/marketing pages)
+// throws "IntersectionObserver is not defined" under jsdom. The stub reports
+// targets as immediately in-view so revealed content renders in tests.
+class MockIntersectionObserver {
+  constructor(private readonly cb: IntersectionObserverCallback) {}
+  observe(target: Element): void {
+    this.cb(
+      [{ isIntersecting: true, target } as IntersectionObserverEntry],
+      this as unknown as IntersectionObserver,
+    );
+  }
+  unobserve(): void {}
+  disconnect(): void {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+}
+globalThis.IntersectionObserver =
+  MockIntersectionObserver as unknown as typeof IntersectionObserver;
+
 // Polyfill React.act for React 19 compatibility with testing-library
 // This needs to happen before any React imports
 import React from 'react';
