@@ -162,8 +162,9 @@
   --color-border: var(--border);
   --color-ring: var(--ring);
   --radius: var(--radius);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-jakarta), var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-jakarta), var(--font-geist-sans);
 }
 
 /* =========================================
@@ -354,13 +355,6 @@ select:focus {
 
 .gradient-primary {
   background: linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%);
-}
-
-.gradient-text {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 /* =========================================
