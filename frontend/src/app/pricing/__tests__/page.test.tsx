@@ -9,6 +9,7 @@ import PricingPage from '../page';
 const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),
+    useSearchParams: () => new URLSearchParams(),
 }));
 
 const mockUseSession = vi.fn();
