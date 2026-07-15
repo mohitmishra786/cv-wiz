@@ -478,7 +478,15 @@ Return ONLY JSON, no markdown or explanation."""
                     seen_xrefs.add(xref)
                     try:
                         extracted = doc.extract_image(xref)
-                    except Exception:
+                    except Exception as extract_err:
+                        # Skip corrupt/unsupported image streams; keep scanning others.
+                        logger.debug(
+                            "[ResumeParser] Skipping unreadable PDF image stream",
+                            {
+                                "xref": xref,
+                                "error_type": type(extract_err).__name__,
+                            },
+                        )
                         continue
                     if not extracted or not extracted.get("image"):
                         continue
@@ -537,14 +545,23 @@ Return ONLY JSON, no markdown or explanation."""
                                 pix = fitz.Pixmap(fitz.csRGB, pix)
                                 blob = pix.tobytes("png")
                                 ext = "png"
-                        except Exception:
-                            pass
+                        except Exception as pix_err:
+                            # Fall back to raw blob + placeholder dimensions.
+                            logger.debug(
+                                "[ResumeParser] DOCX image dimension probe failed",
+                                {"error_type": type(pix_err).__name__},
+                            )
                     rec = self._image_record(blob, ext, width, height)
                     if rec:
                         images.append(rec)
                     if len(images) >= MAX_EXTRACTED_IMAGES:
                         break
-                except Exception:
+                except Exception as rel_err:
+                    # Skip individual broken relationships; continue with others.
+                    logger.debug(
+                        "[ResumeParser] Skipping DOCX image relationship",
+                        {"error_type": type(rel_err).__name__},
+                    )
                     continue
             logger.info("[ResumeParser] DOCX image extraction complete", {
                 "images": len(images),
