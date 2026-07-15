@@ -15,8 +15,9 @@ const logger = createLogger({ component: 'CoverLetterSection' });
 interface CoverLetter {
     id: string;
     content: string;
-    jobTitle?: string;
-    companyName?: string;
+    jobTitle?: string | null;
+    companyName?: string | null;
+    imageUrls?: string[];
     createdAt: string;
     updatedAt: string;
 }
@@ -239,9 +240,11 @@ export default function CoverLetterSection() {
                         </div>
                     </div>
 
-                    {/* File Upload Option */}
+                    {/* File Upload — same pipeline as resume (parse → save → extract images) */}
                     <div className="border border-dashed border-gray-300 rounded-lg p-4">
-                        <label htmlFor="cl-file-upload" className="block text-sm font-medium text-gray-700 mb-2">Upload from file (optional)</label>
+                        <label htmlFor="cl-file-upload" className="block text-sm font-medium text-gray-700 mb-2">
+                            Upload cover letter file
+                        </label>
                         <input
                             id="cl-file-upload"
                             type="file"
@@ -252,6 +255,7 @@ export default function CoverLetterSection() {
 
                                 logger.info('[CoverLetterSection] Uploading file', { filename: file.name });
                                 setError('');
+                                setSaving(true);
 
                                 try {
                                     const formData = new FormData();
@@ -265,20 +269,50 @@ export default function CoverLetterSection() {
 
                                     const data = await response.json();
 
-                                    if (data.success && data.data?.content) {
-                                        setContent(sanitizeRichText(data.data.content));
-                                        logger.info('[CoverLetterSection] File content extracted', { wordCount: data.data.word_count });
+                                    if (data.success && data.data) {
+                                        const d = data.data as {
+                                            content?: string;
+                                            job_title?: string;
+                                            company_name?: string;
+                                            recipient_company?: string;
+                                            word_count?: number;
+                                            images?: { data_url?: string }[];
+                                            profile_image?: { data_url?: string };
+                                        };
+                                        if (d.content) {
+                                            setContent(sanitizeRichText(d.content));
+                                        }
+                                        if (d.job_title) {
+                                            setJobTitle(sanitizeText(d.job_title));
+                                        }
+                                        if (d.company_name || d.recipient_company) {
+                                            setCompanyName(
+                                                sanitizeText(d.company_name || d.recipient_company || '')
+                                            );
+                                        }
+                                        // Server already persisted cover letter + images
+                                        await fetchCoverLetters();
+                                        logger.info('[CoverLetterSection] File parsed and saved', {
+                                            wordCount: d.word_count,
+                                            images: d.images?.length || 0,
+                                            hasProfileImage: Boolean(d.profile_image),
+                                        });
                                     } else if (data.error) {
                                         setError(sanitizeText(data.error));
                                     }
                                 } catch (err) {
                                     logger.error('[CoverLetterSection] File upload failed', { error: err });
                                     setError('Failed to upload file. Please try again or paste your content manually.');
+                                } finally {
+                                    setSaving(false);
+                                    e.target.value = '';
                                 }
                             }}
                             className="text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
                         />
-                        <p className="text-xs text-gray-600 mt-1">Supports PDF, DOCX, TXT, or MD files</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                            PDF, DOCX, TXT, or MD — same AI parse path as resumes. Photos in the PDF are extracted and saved to your profile.
+                        </p>
                     </div>
 
                     <div>
@@ -357,20 +391,32 @@ I am writing to express my interest in..."
                         <div className="space-y-4">
                             {coverLetters.map((cl) => (
                                 <div key={cl.id} className="border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h3 className="font-semibold text-gray-900">
-                                                {sanitizeText(cl.jobTitle) || 'Cover Letter'}
-                                                {cl.companyName && (
-                                                    <span className="text-gray-600">
-                                                        {' '}
-                                                        @ {sanitizeText(cl.companyName)}
-                                                    </span>
-                                                )}
-                                            </h3>
-                                            <p className="text-sm text-gray-600">
-                                                Created {new Date(cl.createdAt).toLocaleDateString()}
-                                            </p>
+                                    <div className="flex justify-between items-start mb-2 gap-3">
+                                        <div className="flex items-start gap-3 min-w-0">
+                                            {cl.imageUrls && cl.imageUrls[0] && (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                    src={cl.imageUrls[0]}
+                                                    alt=""
+                                                    className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                                                    width={48}
+                                                    height={48}
+                                                />
+                                            )}
+                                            <div className="min-w-0">
+                                                <h3 className="font-semibold text-gray-900">
+                                                    {sanitizeText(cl.jobTitle) || 'Cover Letter'}
+                                                    {cl.companyName && (
+                                                        <span className="text-gray-600">
+                                                            {' '}
+                                                            @ {sanitizeText(cl.companyName)}
+                                                        </span>
+                                                    )}
+                                                </h3>
+                                                <p className="text-sm text-gray-600">
+                                                    Created {new Date(cl.createdAt).toLocaleDateString()}
+                                                </p>
+                                            </div>
                                         </div>
                                         <button
                                             type="button"
@@ -386,6 +432,21 @@ I am writing to express my interest in..."
                                     <p className="text-gray-600 text-sm line-clamp-3">
                                         {sanitizeText(cl.content)}
                                     </p>
+                                    {cl.imageUrls && cl.imageUrls.length > 1 && (
+                                        <div className="flex gap-2 mt-3 flex-wrap">
+                                            {cl.imageUrls.slice(1).map((url, idx) => (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                    key={`${cl.id}-img-${idx}`}
+                                                    src={url}
+                                                    alt=""
+                                                    className="w-10 h-10 rounded object-cover"
+                                                    width={40}
+                                                    height={40}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                             <button

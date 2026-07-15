@@ -49,6 +49,12 @@ RETRY_BASE_DELAY = 1.0  # seconds
 # Cap concurrent chunk extractions to avoid Groq rate limits while cutting wall time.
 MAX_PARALLEL_CHUNK_EXTRACTS = 3
 
+# Embedded document images (profile photos, logos in PDF/DOCX)
+MAX_EXTRACTED_IMAGES = 5
+MAX_IMAGE_BYTES = 400_000  # ~400KB raw bytes before base64
+MIN_IMAGE_DIM = 48  # skip tiny icons
+MAX_IMAGE_DIM = 2048
+
 
 # Module-level shared AsyncGroq client (lazy initialization)
 _groq_client = None
@@ -196,13 +202,16 @@ class ResumeParser:
             })
         
         try:
-            # Determine file type and extract text
+            # Determine file type and extract text + embedded images
             filename_lower = filename.lower()
-            
+            images: List[Dict[str, Any]] = []
+
             if filename_lower.endswith('.pdf'):
                 text = self._extract_text_from_pdf(file_content)
+                images = self._extract_images_from_pdf(file_content)
             elif filename_lower.endswith(('.docx', '.doc')):
                 text = self._extract_text_from_docx(file_content)
+                images = self._extract_images_from_docx(file_content)
             elif filename_lower.endswith(('.txt', '.md', '.markdown')):
                 text = self._extract_text_from_plaintext(file_content)
             else:
@@ -212,6 +221,7 @@ class ResumeParser:
             logger.info("[ResumeParser] Text extracted successfully", {
                 "text_length": len(text),
                 "filename": filename,
+                "images_found": len(images),
             })
             
             # Debug-only preview (not in production INFO logs)
@@ -221,18 +231,45 @@ class ResumeParser:
             if not text or len(text.strip()) < 50:
                 logger.warning("[ResumeParser] Insufficient text extracted", {
                     "text_length": len(text) if text else 0,
+                    "images_found": len(images),
                 })
+                # Image-only documents: still return images so UI can save profile photo
+                if images:
+                    return {
+                        "error": (
+                            "Could not extract enough text from the file. "
+                            "Embedded images were extracted if present."
+                        ),
+                        "extracted_text_preview": text[:500] if text else None,
+                        "images": images,
+                        "extraction_method": "images-only",
+                    }
                 return {
                     "error": "Could not extract enough text from the file. The file may be empty, image-only, or corrupted.",
                     "extracted_text_preview": text[:500] if text else None,
                 }
             
-            # For cover letters, use LLM to extract and structure
+            # Cover letter: structured letter fields + same image payload as resume
             if file_type == "cover-letter":
-                return await self._parse_cover_letter(text)
+                result = await self._parse_cover_letter(text)
+                result["images"] = images
+                if images:
+                    result["profile_image"] = self._pick_profile_image(images)
+                duration_ms = (time.time() - start_time) * 1000
+                logger.end_operation("resume_parse", duration_ms, {
+                    "filename": filename,
+                    "file_type": "cover-letter",
+                    "extraction_method": result.get("extraction_method", "unknown"),
+                    "word_count": result.get("word_count"),
+                    "images_found": len(images),
+                })
+                return result
             
             # Structure the extracted text using LLM
             structured_data = await self._structure_resume_text(text)
+            structured_data["images"] = images
+            if images:
+                structured_data["profile_image"] = self._pick_profile_image(images)
             
             duration_ms = (time.time() - start_time) * 1000
             logger.end_operation("resume_parse", duration_ms, {
@@ -242,6 +279,7 @@ class ResumeParser:
                 "projects_found": len(structured_data.get("projects", [])),
                 "skills_found": len(structured_data.get("skills", [])),
                 "education_found": len(structured_data.get("education", [])),
+                "images_found": len(images),
             })
             
             return structured_data
@@ -262,32 +300,45 @@ class ResumeParser:
             }
     
     async def _parse_cover_letter(self, text: str) -> Dict[str, Any]:
-        """Parse cover letter using LLM for better structuring."""
+        """Parse cover letter using LLM — same quality bar as resume extraction."""
         logger.info("[ResumeParser] Parsing cover letter with LLM")
-        
+        cleaned = text.strip()
+        basic = {
+            "content": cleaned,
+            "word_count": len(cleaned.split()),
+            "extraction_method": "basic",
+            "name": None,
+            "email": None,
+            "phone": None,
+            "job_title": None,
+            "company_name": None,
+            "recipient_name": None,
+            "key_qualifications": [],
+            "skills": [],
+            "tone": "professional",
+        }
+
         if not self.settings.groq_api_key:
-            # Fallback to basic parsing
-            return {
-                "content": text.strip(),
-                "word_count": len(text.split()),
-                "extraction_method": "basic",
-            }
-        
+            return basic
+
         try:
             client = get_groq_client()
             if not client:
                 raise ValueError("Groq client not available")
-            
+
             prompt = f"""Extract structured information from this cover letter. Return ONLY valid JSON:
 
 {{
-    "content": "The full cleaned up cover letter text",
-    "recipient_name": "Name of recipient if mentioned, or null",
-    "recipient_company": "Company name if mentioned, or null",
-    "sender_name": "Name of the sender/applicant",
+    "content": "The full cleaned cover letter body text (preserve paragraphs)",
+    "name": "Applicant full name if present, or null",
+    "email": "Applicant email if present, or null",
+    "phone": "Applicant phone if present, or null",
+    "recipient_name": "Hiring manager / recipient name if mentioned, or null",
+    "company_name": "Target company name if mentioned, or null",
     "job_title": "Position being applied for if mentioned, or null",
-    "key_qualifications": ["List of key qualifications/skills mentioned"],
-    "tone": "professional/casual/formal",
+    "key_qualifications": ["Key qualifications or achievements mentioned"],
+    "skills": ["Skills explicitly mentioned"],
+    "tone": "professional | casual | formal",
     "word_count": integer
 }}
 
@@ -299,42 +350,211 @@ Return ONLY JSON, no markdown or explanation."""
             response = await client.chat.completions.create(
                 model=LLM_MODEL,
                 messages=[
-                    {"role": "system", "content": "You are a document parser. Extract structured data and return valid JSON only."},
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a document parser. Extract structured data and "
+                            "return valid JSON only. Never invent facts not in the text."
+                        ),
+                    },
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.1,
-                max_tokens=2000,
+                max_tokens=3000,
             )
-            
-            # Safely access response content
+
             if not response.choices or not response.choices[0].message.content:
                 raise ValueError("Empty response from LLM")
             content = response.choices[0].message.content.strip()
-            
-            # Clean markdown formatting
+
             if content.startswith("```"):
                 content = re.sub(r'^```\w*\n?', '', content)
                 content = re.sub(r'\n?```$', '', content)
-            
+
             result = json.loads(content)
             result["extraction_method"] = "llm"
-            
+            # Normalize aliases used by the frontend save path
+            if result.get("sender_name") and not result.get("name"):
+                result["name"] = result["sender_name"]
+            if result.get("recipient_company") and not result.get("company_name"):
+                result["company_name"] = result["recipient_company"]
+            if not result.get("content"):
+                result["content"] = cleaned
+            if not result.get("word_count"):
+                result["word_count"] = len(str(result.get("content", "")).split())
+
             logger.info("[ResumeParser] Cover letter parsed successfully", {
                 "word_count": result.get("word_count"),
                 "has_job_title": bool(result.get("job_title")),
+                "has_company": bool(result.get("company_name")),
+                "has_name": bool(result.get("name")),
             })
-            
+
             return result
-            
+
         except Exception as e:
             logger.warning("[ResumeParser] LLM cover letter parsing failed, using basic", {
                 "error": str(e),
+                "error_type": type(e).__name__,
             })
-            return {
-                "content": text.strip(),
-                "word_count": len(text.split()),
-                "extraction_method": "basic",
-            }
+            return basic
+
+    def _pick_profile_image(self, images: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Prefer a square-ish photo (headshot) for profile image."""
+        if not images:
+            return None
+
+        def score(img: Dict[str, Any]) -> float:
+            w = int(img.get("width") or 0)
+            h = int(img.get("height") or 0)
+            if w <= 0 or h <= 0:
+                return 0.0
+            ratio = min(w, h) / max(w, h)
+            # Prefer near-square, reasonably large photos
+            size_score = min(w, h) / 400.0
+            return ratio * 2.0 + min(size_score, 2.0)
+
+        ranked = sorted(images, key=score, reverse=True)
+        best = ranked[0]
+        return {**best, "is_profile": True}
+
+    def _image_record(
+        self,
+        raw: bytes,
+        ext: str,
+        width: int,
+        height: int,
+        *,
+        page: Optional[int] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Build a base64 data-URL image record with size/dimension guards."""
+        import base64
+
+        if width < MIN_IMAGE_DIM or height < MIN_IMAGE_DIM:
+            return None
+        if width > MAX_IMAGE_DIM and height > MAX_IMAGE_DIM:
+            # Likely a full-page scan — still keep if not huge on disk
+            pass
+        if len(raw) > MAX_IMAGE_BYTES:
+            logger.debug("[ResumeParser] Skipping large image", {
+                "bytes": len(raw),
+                "width": width,
+                "height": height,
+            })
+            return None
+
+        ext_norm = (ext or "jpeg").lower().replace("jpg", "jpeg")
+        mime = f"image/{ext_norm}" if ext_norm != "jpeg" else "image/jpeg"
+        if ext_norm not in ("jpeg", "png", "gif", "webp", "bmp"):
+            mime = "image/jpeg"
+            ext_norm = "jpeg"
+
+        b64 = base64.b64encode(raw).decode("ascii")
+        return {
+            "mime_type": mime,
+            "ext": ext_norm,
+            "width": width,
+            "height": height,
+            "byte_size": len(raw),
+            "page": page,
+            "is_profile": False,
+            "data_url": f"data:{mime};base64,{b64}",
+        }
+
+    def _extract_images_from_pdf(self, file_content: bytes) -> List[Dict[str, Any]]:
+        """Extract embedded images from a PDF via PyMuPDF."""
+        if not PYMUPDF_AVAILABLE:
+            return []
+
+        images: List[Dict[str, Any]] = []
+        seen_xrefs: set = set()
+        try:
+            doc = fitz.open(stream=file_content, filetype="pdf")
+            for page_index, page in enumerate(doc):
+                for img in page.get_images(full=True):
+                    xref = img[0]
+                    if xref in seen_xrefs:
+                        continue
+                    seen_xrefs.add(xref)
+                    try:
+                        extracted = doc.extract_image(xref)
+                    except Exception:
+                        continue
+                    if not extracted or not extracted.get("image"):
+                        continue
+                    rec = self._image_record(
+                        extracted["image"],
+                        str(extracted.get("ext") or "jpeg"),
+                        int(extracted.get("width") or 0),
+                        int(extracted.get("height") or 0),
+                        page=page_index + 1,
+                    )
+                    if rec:
+                        images.append(rec)
+                    if len(images) >= MAX_EXTRACTED_IMAGES:
+                        break
+                if len(images) >= MAX_EXTRACTED_IMAGES:
+                    break
+            doc.close()
+            logger.info("[ResumeParser] PDF image extraction complete", {
+                "images": len(images),
+            })
+        except Exception as e:
+            logger.warning("[ResumeParser] PDF image extraction failed", {
+                "error_type": type(e).__name__,
+                "error": str(e),
+            })
+        return images
+
+    def _extract_images_from_docx(self, file_content: bytes) -> List[Dict[str, Any]]:
+        """Extract embedded images from a DOCX package."""
+        if not DOCX_AVAILABLE:
+            return []
+
+        images: List[Dict[str, Any]] = []
+        try:
+            from docx.opc.constants import RELATIONSHIP_TYPE as RT
+
+            doc = Document(io.BytesIO(file_content))
+            for rel in doc.part.rels.values():
+                if rel.reltype != RT.IMAGE:
+                    continue
+                try:
+                    blob = rel.target_part.blob
+                    content_type = getattr(rel.target_part, "content_type", "") or "image/jpeg"
+                    ext = content_type.split("/")[-1].replace("jpeg", "jpeg").replace("jpg", "jpeg")
+                    # Width/height unknown without decoding — use placeholders for scoring
+                    width, height = 200, 200
+                    if PYMUPDF_AVAILABLE:
+                        try:
+                            pix = fitz.Pixmap(blob)
+                            width, height = pix.width, pix.height
+                            if pix.n >= 5:  # CMYK etc.
+                                pix = fitz.Pixmap(fitz.csRGB, pix)
+                                blob = pix.tobytes("jpeg")
+                                ext = "jpeg"
+                            elif pix.alpha:
+                                pix = fitz.Pixmap(fitz.csRGB, pix)
+                                blob = pix.tobytes("png")
+                                ext = "png"
+                        except Exception:
+                            pass
+                    rec = self._image_record(blob, ext, width, height)
+                    if rec:
+                        images.append(rec)
+                    if len(images) >= MAX_EXTRACTED_IMAGES:
+                        break
+                except Exception:
+                    continue
+            logger.info("[ResumeParser] DOCX image extraction complete", {
+                "images": len(images),
+            })
+        except Exception as e:
+            logger.warning("[ResumeParser] DOCX image extraction failed", {
+                "error_type": type(e).__name__,
+                "error": str(e),
+            })
+        return images
     
     def _extract_text_from_pdf(self, file_content: bytes) -> str:
         """Extract text from a PDF file using PyMuPDF."""

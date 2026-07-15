@@ -359,21 +359,123 @@ export async function POST(request: NextRequest) {
             extractionMethod: (backendData.data as Record<string, unknown>)?.extraction_method,
         });
 
-        // === NEW: Automatically save parsed data to database ===
+        // === Automatically save parsed data to database ===
         try {
-            logger.info('[Upload] Saving parsed data to database', { requestId, userId });
+            logger.info('[Upload] Saving parsed data to database', { requestId, userId, fileType });
 
             const parsedData = backendData.data as Record<string, unknown>;
 
             // Wrap all database operations in a transaction with extended timeout
             await prisma.$transaction(async (tx) => {
-                // Update user profile name if provided
+                // --- Shared: name + profile photo from extracted images ---
+                const userUpdate: { name?: string; image?: string } = {};
                 if (parsedData.name) {
+                    userUpdate.name = String(parsedData.name);
+                }
+                // Cover letter uses sender_name / name; also accept sender_name
+                if (!userUpdate.name && parsedData.sender_name) {
+                    userUpdate.name = String(parsedData.sender_name);
+                }
+
+                const profileImage =
+                    (parsedData.profile_image as Record<string, unknown> | undefined) ||
+                    undefined;
+                const extractedImages = Array.isArray(parsedData.images)
+                    ? (parsedData.images as Record<string, unknown>[])
+                    : [];
+
+                const profileDataUrl =
+                    (profileImage?.data_url as string | undefined) ||
+                    (extractedImages.find((img) => img.is_profile)?.data_url as string | undefined) ||
+                    (extractedImages[0]?.data_url as string | undefined);
+
+                if (profileDataUrl && String(profileDataUrl).startsWith('data:image/')) {
+                    // Cap stored profile image size (~600KB data URL)
+                    if (String(profileDataUrl).length < 800_000) {
+                        userUpdate.image = String(profileDataUrl);
+                    }
+                }
+
+                if (Object.keys(userUpdate).length > 0) {
                     await tx.user.update({
                         where: { id: userId },
-                        data: { name: String(parsedData.name) },
+                        data: userUpdate,
                     });
-                    logger.debug('[Upload] Updated user name', { userId });
+                    logger.debug('[Upload] Updated user profile', {
+                        userId,
+                        updatedName: Boolean(userUpdate.name),
+                        updatedImage: Boolean(userUpdate.image),
+                    });
+                }
+
+                // Persist extracted document images (replace prior set for this source)
+                if (extractedImages.length > 0) {
+                    await tx.documentImage.deleteMany({
+                        where: { userId, source: fileType === 'cover-letter' ? 'cover-letter' : 'resume' },
+                    });
+                    const source = fileType === 'cover-letter' ? 'cover-letter' : 'resume';
+                    let savedImages = 0;
+                    for (const img of extractedImages.slice(0, 5)) {
+                        const dataUrl = img.data_url ? String(img.data_url) : '';
+                        if (!dataUrl.startsWith('data:image/') || dataUrl.length > 800_000) {
+                            continue;
+                        }
+                        await tx.documentImage.create({
+                            data: {
+                                userId,
+                                source,
+                                mimeType: img.mime_type ? String(img.mime_type) : 'image/jpeg',
+                                dataUrl,
+                                width: typeof img.width === 'number' ? img.width : null,
+                                height: typeof img.height === 'number' ? img.height : null,
+                                isProfile: Boolean(
+                                    img.is_profile ||
+                                        (profileDataUrl && dataUrl === profileDataUrl)
+                                ),
+                            },
+                        });
+                        savedImages++;
+                    }
+                    logger.debug('[Upload] Saved document images', {
+                        source,
+                        saved: savedImages,
+                    });
+                }
+
+                // --- Cover letter: same upload pipeline, different persist target ---
+                if (fileType === 'cover-letter') {
+                    const content = String(
+                        parsedData.content || parsedData.extracted_text_preview || ''
+                    ).trim();
+                    if (content) {
+                        const imageUrls = extractedImages
+                            .map((img) => String(img.data_url || ''))
+                            .filter((u) => u.startsWith('data:image/') && u.length < 800_000)
+                            .slice(0, 3);
+
+                        await tx.coverLetter.create({
+                            data: {
+                                userId,
+                                content,
+                                jobTitle: parsedData.job_title
+                                    ? String(parsedData.job_title)
+                                    : null,
+                                companyName: parsedData.company_name
+                                    ? String(parsedData.company_name)
+                                    : parsedData.recipient_company
+                                      ? String(parsedData.recipient_company)
+                                      : null,
+                                imageUrls,
+                            },
+                        });
+                        logger.info('[Upload] Saved cover letter from upload', {
+                            requestId,
+                            userId,
+                            wordCount: parsedData.word_count,
+                            imageCount: imageUrls.length,
+                        });
+                    }
+                    return; // skip resume-collection persistence for cover letters
                 }
 
                 // Save experiences with deduplication
