@@ -1,8 +1,13 @@
 # Dependency Review Action
 #
 # Scans PR dependency manifest changes (package-lock.json, requirements, etc.)
-# for known vulnerabilities. Uses lockfile/manifest diffs — no dependency
-# snapshot submission is required for this monorepo.
+# for known vulnerabilities via lockfile/manifest diffs.
+#
+# Note: "No snapshots were found for the head SHA" is an informational warning
+# when a PR does not change dependency manifests (Scanned Files: None). It is
+# not a vulnerability finding. We intentionally do not enable
+# retry-on-snapshot-warnings, which would wait ~2 minutes for snapshots that
+# never arrive on pure code PRs.
 #
 # Source: https://github.com/actions/dependency-review-action
 # Docs: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review

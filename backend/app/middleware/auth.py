@@ -107,8 +107,11 @@ def decode_service_jwt(token: str) -> dict:
         except JWTError as e:
             last_error = e
             continue
-    assert last_error is not None
-    raise last_error
+    # All candidates failed — re-raise the last decode error (never use assert:
+    # Bandit flags assert, and optimized bytecode can strip it).
+    if last_error is not None:
+        raise last_error
+    raise JWTError("JWT verification failed with all configured secrets")
 
 
 async def verify_auth_token_with_db(
