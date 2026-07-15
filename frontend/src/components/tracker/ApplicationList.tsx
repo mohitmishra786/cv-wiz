@@ -5,12 +5,12 @@ import { deleteApplication, updateApplicationStatus } from "@/app/actions/tracke
 import { sanitizeText, sanitizeUrl } from "@/lib/sanitization"
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
 
-const statusColors = {
-  applied: "bg-blue-100 text-blue-800",
-  interviewing: "bg-yellow-100 text-yellow-800",
-  offer: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
-}
+const statusStyles = {
+  applied: { background: 'color-mix(in srgb, var(--primary) 14%, transparent)', color: 'var(--primary)' },
+  interviewing: { background: 'color-mix(in srgb, var(--accent-orange) 16%, transparent)', color: 'var(--accent-orange)' },
+  offer: { background: 'color-mix(in srgb, var(--accent-green) 16%, transparent)', color: 'var(--accent-green)' },
+  rejected: { background: 'color-mix(in srgb, var(--destructive) 14%, transparent)', color: 'var(--destructive)' },
+} as const
 
 interface Application {
   id: string
@@ -29,20 +29,20 @@ const ApplicationRow = memo(function ApplicationRow({ app }: { app: Application 
   const safeUrl = app.url ? sanitizeUrl(app.url) : null
 
   return (
-    <tr className="hover:bg-gray-50">
+    <tr className="table-row-hover transition-colors">
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="font-medium text-gray-900">{company}</div>
+        <div className="font-medium" style={{ color: 'var(--foreground)' }}>{company}</div>
         {description && (
-          <div className="text-xs text-gray-500 line-clamp-1">{description}</div>
+          <div className="text-xs line-clamp-1 mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{description}</div>
         )}
         {safeUrl && (
-          <a href={safeUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">
+          <a href={safeUrl} target="_blank" rel="noreferrer" className="text-xs hover:underline" style={{ color: 'var(--primary)' }}>
             View Job
           </a>
         )}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-gray-700">{position}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+      <td className="px-6 py-4 whitespace-nowrap" style={{ color: 'var(--foreground-secondary)' }}>{position}</td>
+      <td className="px-6 py-4 whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>
         {new Date(app.appliedDate).toLocaleDateString()}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
@@ -50,9 +50,8 @@ const ApplicationRow = memo(function ApplicationRow({ app }: { app: Application 
           defaultValue={app.status}
           onChange={(e) => updateApplicationStatus(app.id, e.target.value)}
           aria-label={`Status for ${company}`}
-          className={`text-xs font-semibold px-2 py-1 rounded-full border-none cursor-pointer ${
-            statusColors[app.status as keyof typeof statusColors] || "bg-gray-100"
-          }`}
+          className="text-xs font-semibold px-2.5 py-1 rounded-full border-none cursor-pointer appearance-none"
+          style={statusStyles[app.status as keyof typeof statusStyles] || { background: 'var(--muted)', color: 'var(--muted-foreground)' }}
         >
           <option value="applied">Applied</option>
           <option value="interviewing">Interviewing</option>
@@ -64,7 +63,8 @@ const ApplicationRow = memo(function ApplicationRow({ app }: { app: Application 
         <button
           type="button"
           onClick={() => deleteApplication(app.id)}
-          className="text-red-600 hover:text-red-900"
+          className="hover:opacity-80 transition-opacity"
+          style={{ color: 'var(--destructive)' }}
           aria-label={`Delete application at ${company}`}
         >
           Delete
@@ -88,25 +88,25 @@ export function ApplicationList({ applications }: { applications: Application[] 
 
   if (applications.length === 0) {
     return (
-      <div className="text-center py-12 bg-gray-50 rounded-lg">
-        <p className="text-gray-500">No applications yet. Start tracking your journey!</p>
+      <div className="text-center py-12 rounded-2xl border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+        <p style={{ color: 'var(--muted-foreground)' }}>No applications yet. Start tracking your journey!</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+    <div className="rounded-2xl border overflow-hidden overflow-x-auto" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+      <table className="min-w-full divide-y" style={{ borderColor: 'var(--border)' }}>
+        <thead style={{ background: 'var(--muted)' }}>
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Company</th>
+            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Position</th>
+            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Date</th>
+            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Status</th>
+            <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Actions</th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="divide-y" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
           {pageItems.map((app) => (
             <ApplicationRow key={app.id} app={app} />
           ))}
@@ -116,24 +116,27 @@ export function ApplicationList({ applications }: { applications: Application[] 
       {totalPages > 1 && (
         <nav
           className="flex items-center justify-between px-4 py-3 border-t"
+          style={{ borderColor: 'var(--border)' }}
           aria-label="Applications pagination"
         >
           <button
             type="button"
             disabled={currentPage <= 1}
             onClick={() => setPage((p) => Math.max(1, Math.min(p, totalPages) - 1))}
-            className="px-3 py-1.5 text-sm border rounded disabled:opacity-40"
+            className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40 transition-colors"
+            style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
           >
             Previous
           </button>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
             Page {currentPage} of {totalPages}
           </span>
           <button
             type="button"
             disabled={currentPage >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, Math.min(p, totalPages) + 1))}
-            className="px-3 py-1.5 text-sm border rounded disabled:opacity-40"
+            className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40 transition-colors"
+            style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
           >
             Next
           </button>

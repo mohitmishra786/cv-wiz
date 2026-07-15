@@ -10,21 +10,25 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+      className="px-4 py-2.5 min-h-[44px] font-semibold rounded-xl transition-opacity hover:opacity-90 disabled:opacity-50"
+      style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
     >
       {pending ? "Adding..." : "Add Application"}
     </button>
   )
 }
 
+const inputClass = "w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none focus:ring-2"
+
 export function CreateApplicationForm() {
   const [isOpen, setIsOpen] = useState(false)
-  
+
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+        className="px-4 py-2.5 min-h-[44px] font-semibold rounded-xl transition-opacity hover:opacity-90"
+        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
       >
         + New Application
       </button>
@@ -32,28 +36,36 @@ export function CreateApplicationForm() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">Add Application</h2>
+    <div
+      className="fixed inset-0 flex items-center justify-center p-4 z-50"
+      style={{ background: 'rgba(0,0,0,0.5)' }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-application-title"
+    >
+      <div className="rounded-2xl p-6 w-full max-w-md border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+        <h2 id="create-application-title" className="text-xl font-bold mb-4" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}>
+          Add Application
+        </h2>
         <form action={async (formData) => {
             await createApplication(null, formData)
             setIsOpen(false)
         }} className="space-y-4">
-          
+
           <div>
-            <label className="block text-sm font-medium mb-1">Company</label>
-            <input name="company" required className="w-full border rounded p-2" />
+            <label htmlFor="company" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground-secondary)' }}>Company</label>
+            <input id="company" name="company" required className={inputClass} style={{ borderColor: 'var(--border)', background: 'var(--card)', color: 'var(--foreground)' }} />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Position</label>
-            <input name="position" required className="w-full border rounded p-2" />
+            <label htmlFor="position" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground-secondary)' }}>Position</label>
+            <input id="position" name="position" required className={inputClass} style={{ borderColor: 'var(--border)', background: 'var(--card)', color: 'var(--foreground)' }} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Status</label>
-              <select name="status" className="w-full border rounded p-2">
+              <label htmlFor="status" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground-secondary)' }}>Status</label>
+              <select id="status" name="status" className={inputClass} style={{ borderColor: 'var(--border)', background: 'var(--card)', color: 'var(--foreground)' }}>
                 <option value="applied">Applied</option>
                 <option value="interviewing">Interviewing</option>
                 <option value="offer">Offer</option>
@@ -61,21 +73,22 @@ export function CreateApplicationForm() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Salary (Optional)</label>
-              <input name="salary" className="w-full border rounded p-2" />
+              <label htmlFor="salary" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground-secondary)' }}>Salary (Optional)</label>
+              <input id="salary" name="salary" className={inputClass} style={{ borderColor: 'var(--border)', background: 'var(--card)', color: 'var(--foreground)' }} />
             </div>
           </div>
 
           <div>
-             <label className="block text-sm font-medium mb-1">Job URL (Optional)</label>
-             <input name="url" type="url" className="w-full border rounded p-2" />
+             <label htmlFor="url" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground-secondary)' }}>Job URL (Optional)</label>
+             <input id="url" name="url" type="url" className={inputClass} style={{ borderColor: 'var(--border)', background: 'var(--card)', color: 'var(--foreground)' }} />
           </div>
 
           <div className="flex justify-end gap-2 mt-6">
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+              className="px-4 py-2.5 min-h-[44px] rounded-xl transition-colors hover:opacity-80"
+              style={{ color: 'var(--foreground-secondary)' }}
             >
               Cancel
             </button>

@@ -23,38 +23,48 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
   const result = await getResumeVersions(page, limit)
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Version History</h1>
-          <p className="text-gray-600">Save snapshots and restore previous versions</p>
-        </div>
-        <form
-          action={async () => {
-            'use server'
-            await createResumeSnapshot()
-          }}
-        >
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+    <div className="min-h-screen" style={{ background: 'var(--background)' }}>
+      <main className="max-w-6xl mx-auto py-8 px-4">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
+          <div>
+            <h1
+              className="text-2xl sm:text-3xl font-bold tracking-tight"
+              style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}
+            >
+              Version History
+            </h1>
+            <p className="mt-1" style={{ color: 'var(--muted-foreground)' }}>
+              Save snapshots and restore previous versions
+            </p>
+          </div>
+          <form
+            action={async () => {
+              'use server'
+              await createResumeSnapshot()
+            }}
           >
-            Save Current Version
-          </button>
-        </form>
-      </div>
+            <button
+              type="submit"
+              className="px-4 py-2.5 min-h-[44px] font-semibold rounded-xl transition-opacity hover:opacity-90"
+              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            >
+              Save Current Version
+            </button>
+          </form>
+        </div>
 
-      <HistoryList
-        versions={result.versions}
-        pagination={{
-          page: result.page,
-          limit: result.limit,
-          total: result.total,
-          totalPages: result.totalPages,
-          hasNextPage: result.hasNextPage,
-          hasPrevPage: result.hasPrevPage,
-        }}
-      />
+        <HistoryList
+          versions={result.versions}
+          pagination={{
+            page: result.page,
+            limit: result.limit,
+            total: result.total,
+            totalPages: result.totalPages,
+            hasNextPage: result.hasNextPage,
+            hasPrevPage: result.hasPrevPage,
+          }}
+        />
+      </main>
     </div>
   )
 }

@@ -391,6 +391,14 @@ select:focus {
 }
 
 /* =========================================
+   TABLE ROW HOVER (token-based)
+   ========================================= */
+
+.table-row-hover:hover {
+  background: var(--muted);
+}
+
+/* =========================================
    MOBILE RESPONSIVE UTILITIES
    ========================================= */
 

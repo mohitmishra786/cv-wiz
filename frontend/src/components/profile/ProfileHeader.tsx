@@ -24,17 +24,21 @@ export function ProfileHeader({
     onEditProfile
 }: ProfileHeaderProps) {
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 mb-6">
-            <div className="flex items-start justify-between">
+        <div className="rounded-2xl border p-6 mb-6" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
+                    <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold flex-shrink-0"
+                        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                        aria-hidden="true"
+                    >
                         {profile?.name?.[0] || userEmail?.[0]?.toUpperCase()}
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}>
                             {profile?.name || 'Your Name'}
                         </h1>
-                        <p className="text-gray-600 dark:text-gray-400">{userEmail}</p>
+                        <p style={{ color: 'var(--muted-foreground)' }}>{userEmail}</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -43,7 +47,8 @@ export function ProfileHeader({
                             logger.info('[ProfileHeader] Upload Resume clicked');
                             onUploadResume();
                         }}
-                        className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-colors"
+                        className="px-4 py-2.5 min-h-[44px] text-sm font-semibold rounded-xl transition-opacity hover:opacity-90"
+                        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
                     >
                         Upload Resume
                     </button>
@@ -52,7 +57,8 @@ export function ProfileHeader({
                             logger.info('[ProfileHeader] Edit Profile clicked');
                             onEditProfile();
                         }}
-                        className="px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                        className="px-4 py-2.5 min-h-[44px] text-sm font-semibold rounded-xl transition-colors hover:opacity-80"
+                        style={{ color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)' }}
                     >
                         Edit Profile
                     </button>
@@ -60,22 +66,22 @@ export function ProfileHeader({
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t" style={{ borderColor: 'var(--border)' }}>
                 <div className="text-center">
-                    <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{profile?.experiences?.length || 0}</div>
-                    <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Experiences</div>
+                    <div className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--foreground)' }}>{profile?.experiences?.length || 0}</div>
+                    <div className="text-xs sm:text-sm" style={{ color: 'var(--muted-foreground)' }}>Experiences</div>
                 </div>
                 <div className="text-center">
-                    <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{profile?.projects?.length || 0}</div>
-                    <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Projects</div>
+                    <div className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--foreground)' }}>{profile?.projects?.length || 0}</div>
+                    <div className="text-xs sm:text-sm" style={{ color: 'var(--muted-foreground)' }}>Projects</div>
                 </div>
                 <div className="text-center">
-                    <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{profile?.skills?.length || 0}</div>
-                    <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Skills</div>
+                    <div className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--foreground)' }}>{profile?.skills?.length || 0}</div>
+                    <div className="text-xs sm:text-sm" style={{ color: 'var(--muted-foreground)' }}>Skills</div>
                 </div>
                 <div className="text-center">
-                    <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{profile?.educations?.length || 0}</div>
-                    <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Education</div>
+                    <div className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--foreground)' }}>{profile?.educations?.length || 0}</div>
+                    <div className="text-xs sm:text-sm" style={{ color: 'var(--muted-foreground)' }}>Education</div>
                 </div>
             </div>
         </div>

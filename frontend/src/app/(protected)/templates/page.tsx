@@ -180,26 +180,27 @@ export default function TemplatesPage() {
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="px-4 py-2 sm:px-5 sm:py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all disabled:opacity-50 text-sm sm:text-base"
+                        className="px-4 py-2.5 sm:px-5 min-h-[44px] font-semibold rounded-xl transition-opacity hover:opacity-90 disabled:opacity-50 text-sm sm:text-base"
+                        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
                     >
                         {saving ? 'Saving...' : 'Save Selection'}
                     </button>
                 </div>
                 <div className="text-center mb-6">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Choose Your Template</h1>
-                    <p className="text-gray-600 mt-2 text-sm sm:text-base">
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}>Choose Your Template</h1>
+                    <p className="mt-2 text-sm sm:text-base" style={{ color: 'var(--muted-foreground)' }}>
                         Select the resume layout that best highlights your strengths
                     </p>
                 </div>
 
                 {/* Filter Controls */}
-                <div className="mb-6 bg-white rounded-xl shadow-sm p-4">
+                <div className="mb-6 rounded-2xl border p-4" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
                     <div className="flex flex-col sm:flex-row gap-4 items-center">
                         <div className="flex-1 w-full">
                             <label htmlFor="template-search" className="sr-only">Search templates</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="h-5 w-5" style={{ color: 'var(--muted-foreground)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                 </div>
@@ -209,16 +210,20 @@ export default function TemplatesPage() {
                                     placeholder="Search templates..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="block w-full pl-10 pr-3 py-2.5 border rounded-xl outline-none focus:ring-2"
+                                    style={{ borderColor: 'var(--border)', background: 'var(--card)', color: 'var(--foreground)' }}
                                 />
                             </div>
                         </div>
 
                         <div className="flex gap-2">
+                            <label htmlFor="template-category" className="sr-only">Filter by category</label>
                             <select
+                                id="template-category"
                                 value={filterCategory}
                                 onChange={(e) => setFilterCategory(e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="px-3 py-2.5 border rounded-xl outline-none focus:ring-2"
+                                style={{ borderColor: 'var(--border)', background: 'var(--card)', color: 'var(--foreground)' }}
                             >
                                 <option value="All">All Categories</option>
                                 <option value="Professional">Professional</option>
@@ -244,27 +249,27 @@ export default function TemplatesPage() {
                         ))
                     ) : (
                         <div className="col-span-2 text-center py-12">
-                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-4">
-                                <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4" style={{ background: 'var(--muted)' }}>
+                                <svg className="w-6 h-6" style={{ color: 'var(--muted-foreground)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-1">No templates found</h3>
-                            <p className="text-gray-500">Try adjusting your search or filter to find what you&apos;re looking for.</p>
+                            <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--foreground)' }}>No templates found</h3>
+                            <p style={{ color: 'var(--muted-foreground)' }}>Try adjusting your search or filter to find what you&apos;re looking for.</p>
                         </div>
                     )}
                 </div>
 
                 {/* Preview Section */}
-                <div className="mt-12 bg-white rounded-2xl shadow-sm p-8 text-center">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                <div className="mt-12 rounded-2xl border p-8 text-center" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+                    <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
                         {TEMPLATES.find((t) => t.id === selectedTemplate)?.name} Template Selected
                     </h2>
-                    <p className="text-gray-600 mb-6">
+                    <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>
                         This template will be used when generating resumes from the browser extension
                     </p>
-                    <div className="inline-flex items-center gap-2 text-sm text-gray-500">
-                        <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="inline-flex items-center gap-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        <svg className="w-5 h-5" style={{ color: 'var(--accent-green)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                         Install the MatchQuill browser extension to generate tailored resumes
