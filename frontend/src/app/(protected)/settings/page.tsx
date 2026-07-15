@@ -69,29 +69,30 @@ export default function SettingsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+            <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2" style={{ borderColor: 'var(--primary)' }}></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen" style={{ background: 'var(--background)' }}>
             {/* Header */}
-            <header className="bg-white border-b border-gray-200">
+            <header className="border-b sticky top-0 z-10" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
                 <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Link href="/profile" className="text-gray-400 hover:text-gray-600">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <Link href="/profile" className="rounded-lg p-1 transition-colors hover:opacity-70" style={{ color: 'var(--muted-foreground)' }} aria-label="Back to profile">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                             </svg>
                         </Link>
-                        <span className="text-xl font-bold text-gray-900">Settings</span>
+                        <span className="text-xl font-bold" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}>Settings</span>
                     </div>
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="px-5 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all disabled:opacity-50"
+                        className="px-5 py-2.5 min-h-[44px] font-semibold rounded-xl transition-opacity hover:opacity-90 disabled:opacity-50"
+                        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
                     >
                         {saving ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -101,44 +102,50 @@ export default function SettingsPage() {
             {/* Main Content */}
             <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
                 {message && (
-                    <div className="p-4 bg-green-50 text-green-600 rounded-xl">{message}</div>
+                    <div
+                        className="p-4 rounded-xl text-sm font-medium"
+                        style={{ background: 'color-mix(in srgb, var(--accent-green) 12%, transparent)', color: 'var(--accent-green)' }}
+                        role="status"
+                    >
+                        {message}
+                    </div>
                 )}
 
                 {/* Account Section */}
-                <section className="bg-white rounded-2xl shadow-sm p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Account</h2>
+                <section className="rounded-2xl border p-6" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+                    <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--foreground)' }}>Account</h2>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
-                            <p className="text-gray-900">{session?.user?.email}</p>
+                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--muted-foreground)' }}>Email</label>
+                            <p style={{ color: 'var(--foreground)' }}>{session?.user?.email}</p>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-500 mb-1">Name</label>
-                            <p className="text-gray-900">{session?.user?.name || 'Not set'}</p>
+                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--muted-foreground)' }}>Name</label>
+                            <p style={{ color: 'var(--foreground)' }}>{session?.user?.name || 'Not set'}</p>
                         </div>
                     </div>
                 </section>
 
                 {/* Billing Section */}
-                <section className="bg-white rounded-2xl shadow-sm p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Billing</h2>
+                <section className="rounded-2xl border p-6" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+                    <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--foreground)' }}>Billing</h2>
                     <div className="flex items-center justify-between flex-wrap gap-4">
                         <div>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium" style={{ color: 'var(--foreground)' }}>
                                 Current plan:{' '}
                                 <span className="font-semibold">
                                     {settings?.subscriptionTier === 'PRO' ? 'Pro' : 'Free'}
                                 </span>
                             </p>
                             {settings?.subscriptionTier === 'PRO' && settings?.currentPeriodEnd && (
-                                <p className="text-sm text-gray-500 mt-1">
+                                <p className="text-sm mt-1" style={{ color: 'var(--muted-foreground)' }}>
                                     {settings.cancelAtPeriodEnd
                                         ? `Cancels on ${new Date(settings.currentPeriodEnd).toLocaleDateString()}`
                                         : `Renews on ${new Date(settings.currentPeriodEnd).toLocaleDateString()}`}
                                 </p>
                             )}
                             {(!settings?.subscriptionTier || settings.subscriptionTier === 'FREE') && (
-                                <p className="text-sm text-gray-500 mt-1">
+                                <p className="text-sm mt-1" style={{ color: 'var(--muted-foreground)' }}>
                                     Upgrade for unlimited tailored resumes and semantic job matching.
                                 </p>
                             )}
@@ -148,48 +155,54 @@ export default function SettingsPage() {
                             <button
                                 onClick={handleManageBilling}
                                 disabled={portalLoading}
-                                className="px-4 py-2 border-2 border-gray-200 text-gray-700 font-semibold rounded-lg hover:border-gray-300 transition-all disabled:opacity-50"
+                                className="px-4 py-2.5 min-h-[44px] border-2 font-semibold rounded-xl transition-colors disabled:opacity-50 hover:opacity-80"
+                                style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
                             >
                                 {portalLoading ? 'Opening…' : 'Manage subscription / Cancel'}
                             </button>
                         ) : (
                             <Link
                                 href="/pricing"
-                                className="px-4 py-2 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-all"
+                                className="px-4 py-2.5 min-h-[44px] inline-flex items-center font-semibold rounded-xl transition-opacity hover:opacity-90"
+                                style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
                             >
                                 Upgrade to Pro
                             </Link>
                         )}
                     </div>
-                    {billingError && <p className="mt-3 text-sm text-red-600">{billingError}</p>}
+                    {billingError && <p className="mt-3 text-sm" style={{ color: 'var(--destructive)' }}>{billingError}</p>}
                 </section>
 
                 {/* Language Section */}
-                <section className="bg-white rounded-2xl shadow-sm p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Language</h2>
+                <section className="rounded-2xl border p-6" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+                    <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--foreground)' }}>Language</h2>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground-secondary)' }}>
                                 App Language
                             </label>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2" role="group" aria-label="App language">
                                 <button
                                     onClick={() => setLanguage('en')}
-                                    className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                                        language === 'en' 
-                                            ? 'border-indigo-600 bg-indigo-50 text-indigo-600' 
-                                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                                    }`}
+                                    aria-pressed={language === 'en'}
+                                    className="px-4 py-2.5 min-h-[44px] rounded-xl border-2 font-medium transition-colors"
+                                    style={
+                                        language === 'en'
+                                            ? { borderColor: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', color: 'var(--primary)' }
+                                            : { borderColor: 'var(--border)', color: 'var(--foreground-secondary)' }
+                                    }
                                 >
                                     English
                                 </button>
                                 <button
                                     onClick={() => setLanguage('es')}
-                                    className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                                        language === 'es' 
-                                            ? 'border-indigo-600 bg-indigo-50 text-indigo-600' 
-                                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                                    }`}
+                                    aria-pressed={language === 'es'}
+                                    className="px-4 py-2.5 min-h-[44px] rounded-xl border-2 font-medium transition-colors"
+                                    style={
+                                        language === 'es'
+                                            ? { borderColor: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', color: 'var(--primary)' }
+                                            : { borderColor: 'var(--border)', color: 'var(--foreground-secondary)' }
+                                    }
                                 >
                                     Español
                                 </button>
@@ -199,17 +212,19 @@ export default function SettingsPage() {
                 </section>
 
                 {/* Resume Preferences */}
-                <section className="bg-white rounded-2xl shadow-sm p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Resume Preferences</h2>
+                <section className="rounded-2xl border p-6" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+                    <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--foreground)' }}>Resume Preferences</h2>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="default-template" className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground-secondary)' }}>
                                 Default Template
                             </label>
                             <select
+                                id="default-template"
                                 value={settings?.selectedTemplate || 'experience-skills-projects'}
                                 onChange={(e) => setSettings(prev => prev ? { ...prev, selectedTemplate: e.target.value as UserSettings['selectedTemplate'] } : prev)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                                className="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2"
+                                style={{ borderColor: 'var(--border)', background: 'var(--card)', color: 'var(--foreground)' }}
                             >
                                 <option value="experience-skills-projects">Professional - Experience First</option>
                                 <option value="education-research-skills">Academic - Education First</option>
@@ -221,17 +236,21 @@ export default function SettingsPage() {
                 </section>
 
                 {/* Danger Zone */}
-                <section className="bg-white rounded-2xl shadow-sm p-6 border-2 border-red-100">
-                    <h2 className="text-lg font-semibold text-red-600 mb-4">Danger Zone</h2>
+                <section
+                    className="rounded-2xl border-2 p-6"
+                    style={{ background: 'var(--card)', borderColor: 'color-mix(in srgb, var(--destructive) 30%, var(--border))' }}
+                >
+                    <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--destructive)' }}>Danger Zone</h2>
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between flex-wrap gap-4">
                             <div>
-                                <p className="font-medium text-gray-900">Sign out</p>
-                                <p className="text-sm text-gray-500">Sign out of your account on this device</p>
+                                <p className="font-medium" style={{ color: 'var(--foreground)' }}>Sign out</p>
+                                <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Sign out of your account on this device</p>
                             </div>
                             <button
                                 onClick={() => signOut({ callbackUrl: '/' })}
-                                className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                                className="px-4 py-2.5 min-h-[44px] border rounded-xl transition-colors hover:opacity-80"
+                                style={{ borderColor: 'color-mix(in srgb, var(--destructive) 40%, var(--border))', color: 'var(--destructive)' }}
                             >
                                 Sign Out
                             </button>

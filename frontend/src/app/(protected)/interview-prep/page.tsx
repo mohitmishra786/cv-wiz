@@ -92,49 +92,52 @@ Skills: ${data.skills?.map((s: Skill) => s.name).join(', ')}
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
-            <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="min-h-screen pb-20" style={{ background: 'var(--background)' }}>
+            <header className="border-b sticky top-0 z-10" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
                 <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Image src="/logo.png" alt="MatchQuill" width={32} height={32} className="rounded-lg" />
-                        <h1 className="text-xl font-bold text-gray-900">AI Interview Prep</h1>
+                        <h1 className="text-xl font-bold" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-display)' }}>AI Interview Prep</h1>
                     </div>
                 </div>
             </header>
 
             <main className="max-w-4xl mx-auto px-4 py-8">
-                <div className="bg-white rounded-2xl shadow-sm p-6 mb-8 border border-indigo-100">
-                    <h2 className="text-lg font-bold text-gray-900 mb-2">Prepare for your next interview</h2>
-                    <p className="text-gray-600 mb-6 text-sm">
+                <div className="rounded-2xl border p-6 mb-8" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+                    <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--foreground)' }}>Prepare for your next interview</h2>
+                    <p className="mb-6 text-sm" style={{ color: 'var(--muted-foreground)' }}>
                         Our AI analyzes your profile and the job description to generate the most likely interview questions you&apos;ll face.
                     </p>
 
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label htmlFor="job-description" className="block text-sm font-semibold mb-2" style={{ color: 'var(--foreground-secondary)' }}>
                                 Job Description (Optional)
                             </label>
                             <textarea
+                                id="job-description"
                                 value={jobDescription}
                                 onChange={(e) => setJobDescription(e.target.value)}
                                 rows={4}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm"
+                                className="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 resize-none text-sm"
+                                style={{ borderColor: 'var(--border)', background: 'var(--card)', color: 'var(--foreground)' }}
                                 placeholder="Paste the job description here for better results..."
                             />
                         </div>
                         <button
                             onClick={generateQuestions}
                             disabled={loading || !candidateInfo}
-                            className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-bold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                            className="w-full py-3.5 min-h-[44px] font-semibold rounded-xl transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
                         >
                             {loading ? (
                                 <>
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--primary-foreground)', borderTopColor: 'transparent' }} />
                                     Analyzing Profile & Generating...
                                 </>
                             ) : (
                                 <>
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
                                     Generate Interview Prep
@@ -146,29 +149,42 @@ Skills: ${data.skills?.map((s: Skill) => s.name).join(', ')}
 
                 {questions.length > 0 && (
                     <div className="space-y-6">
-                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                            <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-lg text-sm">5</span>
+                        <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
+                            <span
+                                className="px-3 py-1 rounded-lg text-sm font-semibold"
+                                style={{ background: 'color-mix(in srgb, var(--primary) 12%, transparent)', color: 'var(--primary)' }}
+                            >
+                                {questions.length}
+                            </span>
                             Customized Questions
                         </h2>
                         {questions.map((q, i) => (
-                            <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div key={i} className="rounded-2xl border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
                                 <div className="p-6">
-                                    <h3 className="font-bold text-gray-900 text-lg mb-4">Q: {q.question}</h3>
+                                    <h3 className="font-bold text-lg mb-4" style={{ color: 'var(--foreground)' }}>Q: {q.question}</h3>
 
                                     <div className="space-y-4">
                                         <div>
-                                            <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-2">Suggested Answer Strategy</h4>
-                                            <p className="text-gray-700 text-sm leading-relaxed bg-gray-50 p-4 rounded-xl italic">
+                                            <h4 className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--primary)' }}>Suggested Answer Strategy</h4>
+                                            <p className="text-sm leading-relaxed p-4 rounded-xl italic" style={{ color: 'var(--foreground-secondary)', background: 'var(--muted)' }}>
                                                 &ldquo;{q.suggested_answer}&rdquo;
                                             </p>
                                         </div>
 
                                         <div>
-                                            <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-2">Key Points to Emphasize</h4>
+                                            <h4 className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--accent-green)' }}>Key Points to Emphasize</h4>
                                             <ul className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                                 {q.key_points.map((point, j) => (
-                                                    <li key={j} className="flex items-start gap-2 text-xs font-medium text-gray-600 bg-emerald-50 p-2 rounded-lg border border-emerald-100">
-                                                        <svg className="w-4 h-4 text-emerald-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <li
+                                                        key={j}
+                                                        className="flex items-start gap-2 text-xs font-medium p-2 rounded-lg border"
+                                                        style={{
+                                                            color: 'var(--foreground-secondary)',
+                                                            background: 'color-mix(in srgb, var(--accent-green) 8%, transparent)',
+                                                            borderColor: 'color-mix(in srgb, var(--accent-green) 25%, transparent)',
+                                                        }}
+                                                    >
+                                                        <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--accent-green)' }} aria-hidden="true">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                                         </svg>
                                                         {point}

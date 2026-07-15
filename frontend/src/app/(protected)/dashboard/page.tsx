@@ -196,11 +196,11 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Activity Chart */}
                     <SectionErrorBoundary sectionName="Application activity">
-                        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="lg:col-span-2 p-6 rounded-2xl border shadow-sm" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
                             <div className="flex justify-between items-center mb-8">
                                 <div>
-                                    <h3 className="text-lg font-bold text-gray-900">Application Activity</h3>
-                                    <p className="text-sm text-gray-600">Resumes generated over last 7 days</p>
+                                    <h3 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Application Activity</h3>
+                                    <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Resumes generated over last 7 days</p>
                                 </div>
                             </div>
 
@@ -233,37 +233,37 @@ export default function DashboardPage() {
 
                     {/* Recent Activity List */}
                     <SectionErrorBoundary sectionName="Recent activity">
-                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                            <h3 className="text-lg font-bold text-gray-900 mb-6">Recent Activity</h3>
+                        <div className="p-6 rounded-2xl border shadow-sm" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+                            <h3 className="text-lg font-bold mb-6" style={{ color: 'var(--foreground)' }}>Recent Activity</h3>
 
                             {data.recentActivity.length > 0 ? (
                                 <div className="space-y-6">
                                     {data.recentActivity.map((activity) => (
                                         <div key={activity.id} className="flex gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                                                <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'color-mix(in srgb, var(--primary) 12%, transparent)' }}>
+                                                <svg className="w-5 h-5" style={{ color: 'var(--primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                 </svg>
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold text-gray-900 truncate">{activity.title}</p>
-                                                <p className="text-xs text-gray-600 truncate">{activity.company}</p>
+                                                <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{activity.title}</p>
+                                                <p className="text-xs truncate" style={{ color: 'var(--muted-foreground)' }}>{activity.company}</p>
                                             </div>
-                                            <div className="text-xs text-gray-600 whitespace-nowrap">
+                                            <div className="text-xs whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>
                                                 {new Date(activity.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-8 text-gray-600">
+                                <div className="text-center py-8" style={{ color: 'var(--muted-foreground)' }}>
                                     <p>No recent activity.</p>
                                     <p className="text-sm">Generate your first resume to see it here!</p>
                                 </div>
                             )}
 
-                            <div className="mt-8 pt-6 border-t border-gray-100">
-                                <Link href="/profile" className="block w-full py-2.5 text-center text-sm font-semibold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors">
+                            <div className="mt-8 pt-6 border-t" style={{ borderColor: 'var(--border)' }}>
+                                <Link href="/profile" className="block w-full py-2.5 text-center text-sm font-semibold rounded-xl transition-colors hover:opacity-80" style={{ color: 'var(--primary)' }}>
                                     View Full History
                                 </Link>
                             </div>
@@ -274,7 +274,7 @@ export default function DashboardPage() {
                 {/* Help & Support */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <SectionErrorBoundary sectionName="Help FAQ">
-                        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                        <div className="p-8 rounded-3xl border shadow-sm" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
                             <HelpFAQ />
                         </div>
                     </SectionErrorBoundary>
@@ -291,19 +291,19 @@ export default function DashboardPage() {
 
 function StatCard({ title, value, icon, color, trend }: { title: string, value: number, icon: React.ReactNode, color: string, trend?: string }) {
     return (
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm transition-transform hover:scale-[1.02]">
+        <div className="p-6 rounded-2xl border shadow-sm transition-transform hover:scale-[1.02]" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="flex justify-between items-start mb-4">
                 <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center`}>
                     {icon}
                 </div>
                 {trend && (
-                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ color: 'var(--success, #16a34a)', background: 'color-mix(in srgb, var(--success, #16a34a) 12%, transparent)' }}>
                         {trend}
                     </span>
                 )}
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
-            <div className="text-sm text-gray-500 font-medium">{title}</div>
+            <div className="text-3xl font-bold mb-1" style={{ color: 'var(--foreground)' }}>{value}</div>
+            <div className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>{title}</div>
         </div>
     );
 }

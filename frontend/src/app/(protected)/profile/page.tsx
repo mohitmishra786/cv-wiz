@@ -353,7 +353,7 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen" style={{ background: 'var(--background)' }}>
             <main className="max-w-6xl mx-auto px-4 py-8">
                 <ProfileHeader
                     profile={profile}
@@ -368,7 +368,7 @@ export default function ProfilePage() {
                     onTabChange={setActiveTab}
                 />
 
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm mt-6">
+                <div className="rounded-2xl border mt-6" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
                     <div className="p-6">
                         {renderTabContent}
                     </div>

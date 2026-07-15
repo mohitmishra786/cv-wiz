@@ -62,15 +62,15 @@ export function HistoryList({
 
   if (pagination.total === 0 || versions.length === 0) {
     return (
-      <div className="text-center py-12 bg-gray-50 rounded-lg">
-        <p className="text-gray-500">No versions saved yet.</p>
+      <div className="text-center py-12 rounded-2xl border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+        <p style={{ color: 'var(--muted-foreground)' }}>No versions saved yet.</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between text-sm text-gray-500">
+      <div className="flex items-center justify-between text-sm" style={{ color: 'var(--muted-foreground)' }}>
         <p>
           Showing {(pagination.page - 1) * pagination.limit + 1}–
           {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
@@ -79,7 +79,7 @@ export function HistoryList({
       </div>
 
       {error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm" style={{ color: 'var(--destructive)' }} role="alert">
           {error}
         </p>
       )}
@@ -95,12 +95,13 @@ export function HistoryList({
           return (
             <li
               key={v.id}
-              className="bg-white p-6 rounded-lg shadow border flex justify-between items-center"
+              className="p-6 rounded-2xl border flex flex-col sm:flex-row justify-between sm:items-center gap-4"
+              style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
             >
               <div>
-                <h3 className="font-semibold text-lg">{v.name || 'Untitled Version'}</h3>
-                <p className="text-sm text-gray-500">Saved on {createdLabel}</p>
-                <div className="text-xs text-gray-400 mt-1">
+                <h3 className="font-semibold text-lg" style={{ color: 'var(--foreground)' }}>{v.name || 'Untitled Version'}</h3>
+                <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Saved on {createdLabel}</p>
+                <div className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
                   Stats: {expCount} Exp, {projCount} Proj, {skillCount} Skills
                 </div>
               </div>
@@ -108,7 +109,8 @@ export function HistoryList({
                 type="button"
                 onClick={() => handleRestore(v.id)}
                 disabled={loadingId === v.id}
-                className="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded disabled:opacity-50"
+                className="px-3 py-1.5 rounded-lg transition-colors hover:opacity-80 disabled:opacity-50 self-start sm:self-auto"
+                style={{ color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)' }}
               >
                 {loadingId === v.id ? 'Restoring...' : 'Restore'}
               </button>
@@ -120,36 +122,39 @@ export function HistoryList({
       {pagination.totalPages > 1 && (
         <nav
           className="flex items-center justify-between pt-4 border-t"
+          style={{ borderColor: 'var(--border)' }}
           aria-label="History pagination"
         >
           {pagination.hasPrevPage ? (
             <Link
               href={buildHistoryPageHref(basePath, pagination.page - 1, pagination.limit)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 text-sm font-medium border rounded-lg transition-colors hover:opacity-80"
+              style={{ color: 'var(--foreground-secondary)', borderColor: 'var(--border)', background: 'var(--card)' }}
               rel="prev"
             >
               Previous
             </Link>
           ) : (
-            <span className="px-4 py-2 text-sm text-gray-300 border rounded-lg cursor-not-allowed">
+            <span className="px-4 py-2 text-sm border rounded-lg cursor-not-allowed" style={{ color: 'var(--muted-foreground)', borderColor: 'var(--border)', opacity: 0.5 }}>
               Previous
             </span>
           )}
 
-          <span className="text-sm text-gray-600">
+          <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
             Page {pagination.page} of {pagination.totalPages}
           </span>
 
           {pagination.hasNextPage ? (
             <Link
               href={buildHistoryPageHref(basePath, pagination.page + 1, pagination.limit)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 text-sm font-medium border rounded-lg transition-colors hover:opacity-80"
+              style={{ color: 'var(--foreground-secondary)', borderColor: 'var(--border)', background: 'var(--card)' }}
               rel="next"
             >
               Next
             </Link>
           ) : (
-            <span className="px-4 py-2 text-sm text-gray-300 border rounded-lg cursor-not-allowed">
+            <span className="px-4 py-2 text-sm border rounded-lg cursor-not-allowed" style={{ color: 'var(--muted-foreground)', borderColor: 'var(--border)', opacity: 0.5 }}>
               Next
             </span>
           )}
