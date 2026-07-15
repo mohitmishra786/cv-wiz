@@ -32,7 +32,7 @@ const GitHubImportModal = dynamic(() => import('@/components/GitHubImportModal')
 
 const logger = createLogger({ component: 'ProfilePage' });
 
-type ModalType = 'profile' | 'experience' | 'project' | 'skill' | 'education' | 'upload' | null;
+type ModalType = 'profile' | 'experience' | 'project' | 'skill' | 'education' | 'upload' | 'upload-cover-letter' | null;
 
 type ProfileCollectionKey = 'experiences' | 'projects' | 'skills' | 'educations';
 
@@ -252,6 +252,23 @@ export default function ProfilePage() {
         await fetchProfile();
     }, [success, closeModal, fetchProfile]);
 
+    const handleCoverLetterDataExtracted = useCallback(async (data: Record<string, unknown>) => {
+        logger.info('[ProfilePage] Cover letter data extracted', {
+            hasContent: Boolean(data.content),
+            hasEmail: Boolean(data.email),
+            hasPhone: Boolean(data.phone),
+            hasWebsite: Boolean(data.website),
+            jobTitle: data.job_title,
+            company: data.company_name,
+            imagesCount: (data.images as unknown[])?.length || 0,
+            extractionMethod: data.extraction_method,
+        });
+        success('Cover letter uploaded and saved with contact details.');
+        closeModal();
+        setActiveTab('cover-letters');
+        await fetchProfile();
+    }, [success, closeModal, fetchProfile]);
+
     const handleGitHubImport = useCallback(async (projects: Partial<Project>[]) => {
         logger.startOperation('ProfilePage:importGitHub');
         try {
@@ -371,6 +388,7 @@ export default function ProfilePage() {
                     profile={profile}
                     userEmail={session?.user?.email}
                     onUploadResume={() => openModal('upload')}
+                    onUploadCoverLetter={() => openModal('upload-cover-letter')}
                     onEditProfile={() => openModal('profile')}
                 />
 
@@ -432,9 +450,19 @@ export default function ProfilePage() {
             <Modal isOpen={modalType === 'upload'} onClose={closeModal} title="Upload Resume" size="lg">
                 <div className="space-y-4">
                     <p className="text-gray-600">
-                        Upload your existing resume to automatically extract your experience, education, and skills.
+                        Upload your existing resume to automatically extract your experience, education, skills, and profile photo.
                     </p>
-                    <ResumeUpload onDataExtracted={handleResumeDataExtracted} />
+                    <ResumeUpload type="resume" onDataExtracted={handleResumeDataExtracted} />
+                </div>
+            </Modal>
+
+            <Modal isOpen={modalType === 'upload-cover-letter'} onClose={closeModal} title="Upload Cover Letter" size="lg">
+                <div className="space-y-4">
+                    <p className="text-gray-600">
+                        Upload a cover letter PDF/DOCX. We extract the letter body, contact details (email, phone, website),
+                        job/company info, and any photo — then save them to your profile.
+                    </p>
+                    <ResumeUpload type="cover-letter" onDataExtracted={handleCoverLetterDataExtracted} />
                 </div>
             </Modal>
 

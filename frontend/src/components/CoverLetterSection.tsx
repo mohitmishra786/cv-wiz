@@ -17,6 +17,14 @@ interface CoverLetter {
     content: string;
     jobTitle?: string | null;
     companyName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    website?: string | null;
+    location?: string | null;
+    linkedin?: string | null;
+    github?: string | null;
+    recipientName?: string | null;
+    applicantName?: string | null;
     imageUrls?: string[];
     createdAt: string;
     updatedAt: string;
@@ -429,7 +437,68 @@ I am writing to express my interest in..."
                                             </svg>
                                         </button>
                                     </div>
-                                    <p className="text-gray-600 text-sm line-clamp-3">
+                                    {(cl.email || cl.phone || cl.website || cl.location || cl.linkedin || cl.github) && (
+                                        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mb-3 text-sm">
+                                            {cl.applicantName && (
+                                                <>
+                                                    <dt className="text-gray-500">Name</dt>
+                                                    <dd className="text-gray-800">{sanitizeText(cl.applicantName)}</dd>
+                                                </>
+                                            )}
+                                            {cl.email && (
+                                                <>
+                                                    <dt className="text-gray-500">Email</dt>
+                                                    <dd className="text-gray-800 break-all">{sanitizeText(cl.email)}</dd>
+                                                </>
+                                            )}
+                                            {cl.phone && (
+                                                <>
+                                                    <dt className="text-gray-500">Phone</dt>
+                                                    <dd className="text-gray-800">{sanitizeText(cl.phone)}</dd>
+                                                </>
+                                            )}
+                                            {cl.website && (
+                                                <>
+                                                    <dt className="text-gray-500">Website</dt>
+                                                    <dd className="text-gray-800 break-all">
+                                                        <a
+                                                            href={cl.website.startsWith('http') ? cl.website : `https://${cl.website}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-indigo-600 hover:underline"
+                                                        >
+                                                            {sanitizeText(cl.website)}
+                                                        </a>
+                                                    </dd>
+                                                </>
+                                            )}
+                                            {cl.location && (
+                                                <>
+                                                    <dt className="text-gray-500">Location</dt>
+                                                    <dd className="text-gray-800">{sanitizeText(cl.location)}</dd>
+                                                </>
+                                            )}
+                                            {cl.linkedin && (
+                                                <>
+                                                    <dt className="text-gray-500">LinkedIn</dt>
+                                                    <dd className="text-gray-800 break-all">{sanitizeText(cl.linkedin)}</dd>
+                                                </>
+                                            )}
+                                            {cl.github && (
+                                                <>
+                                                    <dt className="text-gray-500">GitHub</dt>
+                                                    <dd className="text-gray-800 break-all">{sanitizeText(cl.github)}</dd>
+                                                </>
+                                            )}
+                                            {cl.recipientName && (
+                                                <>
+                                                    <dt className="text-gray-500">To</dt>
+                                                    <dd className="text-gray-800">{sanitizeText(cl.recipientName)}</dd>
+                                                </>
+                                            )}
+                                        </dl>
+                                    )}
+                                    <p className="text-gray-600 text-sm line-clamp-4 whitespace-pre-line">
                                         {sanitizeText(cl.content)}
                                     </p>
                                     {cl.imageUrls && cl.imageUrls.length > 1 && (

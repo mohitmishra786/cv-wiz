@@ -31,6 +31,7 @@ describe('ProfileHeader', () => {
                 profile={mockProfile}
                 userEmail="john@example.com"
                 onUploadResume={vi.fn()}
+                onUploadCoverLetter={vi.fn()}
                 onEditProfile={vi.fn()}
             />
         );
@@ -39,19 +40,38 @@ describe('ProfileHeader', () => {
         expect(screen.getByText('john@example.com')).toBeInTheDocument();
     });
 
-    it('calls onUploadResume when upload button clicked', () => {
+    it('calls onUploadResume from upload dropdown', () => {
         const onUploadResume = vi.fn();
         render(
             <ProfileHeader
                 profile={mockProfile}
                 userEmail="john@example.com"
                 onUploadResume={onUploadResume}
+                onUploadCoverLetter={vi.fn()}
                 onEditProfile={vi.fn()}
             />
         );
 
-        fireEvent.click(screen.getByText('Upload Resume'));
+        fireEvent.click(screen.getByRole('button', { name: /upload/i }));
+        fireEvent.click(screen.getByRole('menuitem', { name: /upload resume/i }));
         expect(onUploadResume).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls onUploadCoverLetter from upload dropdown', () => {
+        const onUploadCoverLetter = vi.fn();
+        render(
+            <ProfileHeader
+                profile={mockProfile}
+                userEmail="john@example.com"
+                onUploadResume={vi.fn()}
+                onUploadCoverLetter={onUploadCoverLetter}
+                onEditProfile={vi.fn()}
+            />
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: /upload/i }));
+        fireEvent.click(screen.getByRole('menuitem', { name: /upload cover letter/i }));
+        expect(onUploadCoverLetter).toHaveBeenCalledTimes(1);
     });
 
     it('calls onEditProfile when edit button clicked', () => {
@@ -61,6 +81,7 @@ describe('ProfileHeader', () => {
                 profile={mockProfile}
                 userEmail="john@example.com"
                 onUploadResume={vi.fn()}
+                onUploadCoverLetter={vi.fn()}
                 onEditProfile={onEditProfile}
             />
         );

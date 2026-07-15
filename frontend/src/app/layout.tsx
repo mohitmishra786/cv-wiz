@@ -31,9 +31,22 @@ export const metadata: Metadata = {
   title: "MatchQuill | Career Resume Compiler",
   description: "Generate tailored resumes and cover letters for job applications with AI assistance",
   keywords: ["resume", "cover letter", "job application", "career", "AI"],
+  applicationName: "MatchQuill",
+  // Absolute base for icons/OG in production search/tab previews
+  metadataBase: new URL(
+    process.env.NEXTAUTH_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "https://matchquill.vercel.app"
+  ),
   icons: {
-    icon: [{ url: "/logo-mark.svg", type: "image/svg+xml" }],
+    // Prefer app/icon.svg + app/favicon.ico (generated MatchQuill mark).
+    // Explicit public paths help crawlers / browser tabs that ignore the file convention.
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/logo-mark.svg", type: "image/svg+xml" },
+    ],
     apple: [{ url: "/logo-mark.svg", type: "image/svg+xml" }],
+    shortcut: ["/favicon.ico"],
   },
 };
 

@@ -453,18 +453,30 @@ export async function POST(request: NextRequest) {
                             .filter((u) => u.startsWith('data:image/') && u.length < 800_000)
                             .slice(0, 3);
 
+                        const strOrNull = (v: unknown): string | null => {
+                            if (v === null || v === undefined) return null;
+                            const s = String(v).trim();
+                            return s.length > 0 ? s : null;
+                        };
+
                         await tx.coverLetter.create({
                             data: {
                                 userId,
                                 content,
-                                jobTitle: parsedData.job_title
-                                    ? String(parsedData.job_title)
-                                    : null,
-                                companyName: parsedData.company_name
-                                    ? String(parsedData.company_name)
-                                    : parsedData.recipient_company
-                                      ? String(parsedData.recipient_company)
-                                      : null,
+                                jobTitle: strOrNull(parsedData.job_title),
+                                companyName:
+                                    strOrNull(parsedData.company_name) ||
+                                    strOrNull(parsedData.recipient_company),
+                                email: strOrNull(parsedData.email),
+                                phone: strOrNull(parsedData.phone),
+                                website: strOrNull(parsedData.website),
+                                location: strOrNull(parsedData.location),
+                                linkedin: strOrNull(parsedData.linkedin),
+                                github: strOrNull(parsedData.github),
+                                recipientName: strOrNull(parsedData.recipient_name),
+                                applicantName:
+                                    strOrNull(parsedData.name) ||
+                                    strOrNull(parsedData.sender_name),
                                 imageUrls,
                             },
                         });
@@ -473,6 +485,9 @@ export async function POST(request: NextRequest) {
                             userId,
                             wordCount: parsedData.word_count,
                             imageCount: imageUrls.length,
+                            hasEmail: Boolean(parsedData.email),
+                            hasPhone: Boolean(parsedData.phone),
+                            hasWebsite: Boolean(parsedData.website),
                         });
                     }
                     return; // skip resume-collection persistence for cover letters
