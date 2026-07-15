@@ -266,7 +266,13 @@ class ResumeParser:
                 return result
             
             # Structure the extracted text using LLM
-            structured_data = await self._structure_resume_text(text)
+            cleaned_text = self._clean_pdf_text(text)
+            structured_data = await self._structure_resume_text(cleaned_text)
+            # Overlay deterministic contact fields (email/phone/website/etc.)
+            contact = self._extract_contact_fields(cleaned_text)
+            for key, value in contact.items():
+                if value and not structured_data.get(key):
+                    structured_data[key] = value
             structured_data["images"] = images
             if images:
                 structured_data["profile_image"] = self._pick_profile_image(images)
@@ -280,6 +286,8 @@ class ResumeParser:
                 "skills_found": len(structured_data.get("skills", [])),
                 "education_found": len(structured_data.get("education", [])),
                 "images_found": len(images),
+                "has_email": bool(structured_data.get("email")),
+                "has_phone": bool(structured_data.get("phone")),
             })
             
             return structured_data
@@ -299,17 +307,147 @@ class ResumeParser:
                 "traceback": error_traceback if self.settings.environment == "development" else None,
             }
     
+    def _clean_pdf_text(self, text: str) -> str:
+        """Strip PDF font-icon private-use glyphs and normalize whitespace."""
+        if not text:
+            return ""
+        # Private Use Area / common PDF icon font garbage (FontAwesome, etc.)
+        cleaned = re.sub(r"[\ue000-\uf8ff\uf000-\uf0ff]", " ", text)
+        cleaned = cleaned.replace("\u00a0", " ")
+        cleaned = re.sub(r"[ \t]+", " ", cleaned)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+        # Decode common HTML entities that leak from PDF extractors
+        cleaned = (
+            cleaned.replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", '"')
+        )
+        return cleaned.strip()
+
+    def _extract_contact_fields(self, text: str) -> Dict[str, Optional[str]]:
+        """
+        Deterministic contact extraction (no LLM). Prefer these over LLM guesses
+        so email/phone/website are always filled when present in the document.
+        """
+        email_match = re.search(
+            r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}",
+            text,
+        )
+        phone = None
+        for phone_pat in (
+            r"\(\+\d{1,3}\)\s*[\d\s\-.]{8,20}",
+            r"\+\d{1,3}[\s\-][\d\s\-.]{8,18}",
+            r"(?:\(?\d{2,4}\)?[\s\-.]?)?\d{3,4}[\s\-.]?\d{3,4}[\s\-.]?\d{3,4}",
+        ):
+            phone_match = re.search(phone_pat, text)
+            if phone_match:
+                candidate = phone_match.group(0).strip()
+                digits = re.sub(r"\D", "", candidate)
+                if 8 <= len(digits) <= 15:
+                    phone = candidate
+                    break
+        # Prefer explicit http(s) URLs that look like personal sites / profiles
+        website = None
+        for m in re.finditer(r"https?://[^\s|<>\"']+", text, flags=re.I):
+            url = m.group(0).rstrip(".,);]")
+            if any(
+                bad in url.lower()
+                for bad in ("linkedin.com", "github.com", "twitter.com", "x.com", "kaggle.com")
+            ):
+                continue
+            website = url
+            break
+        if not website:
+            bare = re.search(
+                r"(?<![@\w])((?:www\.)?[a-z0-9][\w\-]*\.(?:com|dev|io|me|org|net|in)(?:/[^\s|]*)?)",
+                text,
+                flags=re.I,
+            )
+            if bare:
+                website = bare.group(1)
+                if not website.startswith("http"):
+                    website = "https://" + website
+
+        linkedin = None
+        gh = None
+        li = re.search(r"(?:https?://)?(?:www\.)?linkedin\.com/in/[A-Za-z0-9_\-/%]+", text, re.I)
+        if li:
+            linkedin = li.group(0)
+            if not linkedin.startswith("http"):
+                linkedin = "https://" + linkedin
+        gh_m = re.search(r"(?:https?://)?(?:www\.)?github\.com/[A-Za-z0-9_\-]+", text, re.I)
+        if gh_m:
+            gh = gh_m.group(0)
+            if not gh.startswith("http"):
+                gh = "https://" + gh
+
+        # Location: line with City, Country-ish pattern near top
+        location = None
+        for line in text.splitlines()[:12]:
+            line = line.strip()
+            if re.search(r"[A-Za-z].+,\s*[A-Za-z]{2,}", line) and "@" not in line and "http" not in line.lower():
+                if len(line) < 80 and not re.search(r"\d{4}", line):
+                    location = line
+                    break
+
+        return {
+            "email": email_match.group(0) if email_match else None,
+            "phone": phone,
+            "website": website,
+            "location": location,
+            "linkedin": linkedin,
+            "github": gh,
+        }
+
+    def _extract_letter_body(self, text: str) -> str:
+        """
+        Prefer the letter body starting at the salutation (Dear ...),
+        stripping header contact blocks and page footers.
+        """
+        cleaned = self._clean_pdf_text(text)
+        # Start at first salutation
+        salutation = re.search(
+            r"(?im)^(dear\s+[^\n,]{1,80}[,:]?\s*)$",
+            cleaned,
+        )
+        body = cleaned
+        if salutation:
+            body = cleaned[salutation.start() :]
+        else:
+            # Fallback: after first blank line following header
+            parts = re.split(r"\n\s*\n", cleaned, maxsplit=2)
+            if len(parts) >= 2:
+                body = "\n\n".join(parts[1:])
+
+        # Drop repeated page footers
+        body = re.sub(
+            r"(?im)^\s*(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+\d{4}\s*$",
+            "",
+            body,
+        )
+        body = re.sub(r"(?im)^\s*.{0,40}·\s*cover letter\s*$", "", body)
+        body = re.sub(r"\n{3,}", "\n\n", body).strip()
+        return body
+
     async def _parse_cover_letter(self, text: str) -> Dict[str, Any]:
-        """Parse cover letter using LLM — same quality bar as resume extraction."""
+        """Parse cover letter: structured contact fields + body-only content."""
         logger.info("[ResumeParser] Parsing cover letter with LLM")
-        cleaned = text.strip()
+        cleaned = self._clean_pdf_text(text)
+        contact = self._extract_contact_fields(cleaned)
+        body = self._extract_letter_body(cleaned)
+
         basic = {
-            "content": cleaned,
-            "word_count": len(cleaned.split()),
+            "content": body or cleaned,
+            "word_count": len((body or cleaned).split()),
             "extraction_method": "basic",
             "name": None,
-            "email": None,
-            "phone": None,
+            "email": contact.get("email"),
+            "phone": contact.get("phone"),
+            "website": contact.get("website"),
+            "location": contact.get("location"),
+            "linkedin": contact.get("linkedin"),
+            "github": contact.get("github"),
             "job_title": None,
             "company_name": None,
             "recipient_name": None,
@@ -317,6 +455,23 @@ class ResumeParser:
             "skills": [],
             "tone": "professional",
         }
+
+        # First non-empty line often is the applicant name
+        for line in cleaned.splitlines()[:6]:
+            line = line.strip()
+            if (
+                line
+                and "@" not in line
+                and "http" not in line.lower()
+                and not re.search(r"\d{3,}", line)
+                and len(line.split()) <= 5
+                and len(line) < 60
+            ):
+                # Skip role titles in ALL CAPS / engineer lines if multi-word job-ish
+                if re.search(r"(?i)engineer|developer|manager|designer|scientist", line):
+                    continue
+                basic["name"] = line
+                break
 
         if not self.settings.groq_api_key:
             return basic
@@ -326,24 +481,35 @@ class ResumeParser:
             if not client:
                 raise ValueError("Groq client not available")
 
-            prompt = f"""Extract structured information from this cover letter. Return ONLY valid JSON:
+            prompt = f"""Extract structured fields from this cover letter. Return ONLY valid JSON.
+
+CRITICAL RULES:
+1. "content" must be the LETTER BODY ONLY — start at the salutation (e.g. "Dear ...")
+   through the closing/signature. Do NOT include the header contact block
+   (name, phone icons, email row, social handles, page footers like "COVER LETTER").
+2. Put contact details ONLY in the separate fields below — never invent them.
+3. If a field is missing in the document, use null (or [] for lists).
 
 {{
-    "content": "The full cleaned cover letter body text (preserve paragraphs)",
-    "name": "Applicant full name if present, or null",
-    "email": "Applicant email if present, or null",
-    "phone": "Applicant phone if present, or null",
-    "recipient_name": "Hiring manager / recipient name if mentioned, or null",
-    "company_name": "Target company name if mentioned, or null",
-    "job_title": "Position being applied for if mentioned, or null",
-    "key_qualifications": ["Key qualifications or achievements mentioned"],
+    "content": "Letter body only, starting with Dear ...",
+    "name": "Applicant full name or null",
+    "email": "Applicant email or null",
+    "phone": "Applicant phone or null",
+    "website": "Personal website/portfolio URL or null",
+    "location": "City, Country or null",
+    "linkedin": "LinkedIn URL or handle or null",
+    "github": "GitHub URL or handle or null",
+    "recipient_name": "Recipient names if present or null",
+    "company_name": "Target organization/company or null",
+    "job_title": "Role/program being applied for or null",
+    "key_qualifications": ["Key points from the letter"],
     "skills": ["Skills explicitly mentioned"],
     "tone": "professional | casual | formal",
     "word_count": integer
 }}
 
 Cover Letter Text:
-{text[:MAX_CHUNK_CHARS]}
+{cleaned[:MAX_CHUNK_CHARS]}
 
 Return ONLY JSON, no markdown or explanation."""
 
@@ -353,14 +519,14 @@ Return ONLY JSON, no markdown or explanation."""
                     {
                         "role": "system",
                         "content": (
-                            "You are a document parser. Extract structured data and "
-                            "return valid JSON only. Never invent facts not in the text."
+                            "You are a document parser. Separate contact header fields "
+                            "from letter body. Return valid JSON only. Never invent facts."
                         ),
                     },
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.1,
-                max_tokens=3000,
+                max_tokens=4000,
             )
 
             if not response.choices or not response.choices[0].message.content:
@@ -368,26 +534,45 @@ Return ONLY JSON, no markdown or explanation."""
             content = response.choices[0].message.content.strip()
 
             if content.startswith("```"):
-                content = re.sub(r'^```\w*\n?', '', content)
-                content = re.sub(r'\n?```$', '', content)
+                content = re.sub(r"^```\w*\n?", "", content)
+                content = re.sub(r"\n?```$", "", content)
 
             result = json.loads(content)
             result["extraction_method"] = "llm"
-            # Normalize aliases used by the frontend save path
+
             if result.get("sender_name") and not result.get("name"):
                 result["name"] = result["sender_name"]
             if result.get("recipient_company") and not result.get("company_name"):
                 result["company_name"] = result["recipient_company"]
-            if not result.get("content"):
-                result["content"] = cleaned
-            if not result.get("word_count"):
-                result["word_count"] = len(str(result.get("content", "")).split())
+
+            # Prefer deterministic contact fields when present
+            for key in ("email", "phone", "website", "location", "linkedin", "github"):
+                if contact.get(key):
+                    result[key] = contact[key]
+                elif not result.get(key) and basic.get(key):
+                    result[key] = basic[key]
+
+            if basic.get("name") and not result.get("name"):
+                result["name"] = basic["name"]
+
+            # Ensure body is salutation-forward even if the model echoed the header
+            llm_body = str(result.get("content") or "").strip()
+            if not llm_body or not re.search(r"(?i)^dear\s+", llm_body):
+                result["content"] = body or llm_body or cleaned
+            else:
+                # Strip accidental header lines before Dear if any
+                result["content"] = self._extract_letter_body(llm_body) or llm_body
+
+            result["word_count"] = len(str(result.get("content", "")).split())
 
             logger.info("[ResumeParser] Cover letter parsed successfully", {
                 "word_count": result.get("word_count"),
                 "has_job_title": bool(result.get("job_title")),
                 "has_company": bool(result.get("company_name")),
                 "has_name": bool(result.get("name")),
+                "has_email": bool(result.get("email")),
+                "has_phone": bool(result.get("phone")),
+                "has_website": bool(result.get("website")),
             })
 
             return result

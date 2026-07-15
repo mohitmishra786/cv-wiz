@@ -241,9 +241,19 @@ model CoverLetter {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Letter body only (greeting through signature) — not the header contact block
   content     String   @db.Text
   jobTitle    String?
   companyName String?
+  /// Structured contact / meta fields extracted separately from the body
+  email       String?
+  phone       String?
+  website     String?
+  location    String?
+  linkedin    String?
+  github      String?
+  recipientName String?
+  applicantName String?
   /// Optional data-URL thumbnails extracted from an uploaded letter PDF
   imageUrls   String[] @default([])
   createdAt   DateTime @default(now())
